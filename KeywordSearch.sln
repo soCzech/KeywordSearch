@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeywordSearch", "KeywordSearch\KeywordSearch.csproj", "{8437F641-6B7A-4369-8826-3640F6D289FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SuggestionTextBox", "SuggestionTextBox\SuggestionTextBox.csproj", "{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{1559F091-C5E3-4D60-A605-2810B739D46B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8437F641-6B7A-4369-8826-3640F6D289FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8437F641-6B7A-4369-8826-3640F6D289FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8437F641-6B7A-4369-8826-3640F6D289FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8437F641-6B7A-4369-8826-3640F6D289FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1559F091-C5E3-4D60-A605-2810B739D46B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1559F091-C5E3-4D60-A605-2810B739D46B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1559F091-C5E3-4D60-A605-2810B739D46B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1559F091-C5E3-4D60-A605-2810B739D46B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

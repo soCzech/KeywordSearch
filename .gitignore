@@ -1,0 +1,8 @@
+.vs/
+Tests/
+KeywordSearch/bin/
+KeywordSearch/obj/
+SuggestionTextBox/bin/
+SuggestionTextBox/obj/
+
+labels_extended.txt
