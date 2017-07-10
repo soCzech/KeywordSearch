@@ -63,6 +63,7 @@ namespace CustomElements {
         public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateProperty = DependencyProperty.Register("ItemTemplate", typeof(DataTemplate), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
+        public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
 
         public bool IsPopupOpen {
@@ -80,6 +81,10 @@ namespace CustomElements {
         public bool IsLoading {
             get { return (bool)GetValue(IsLoadingProperty); }
             set { SetValue(IsLoadingProperty, value); }
+        }
+        public int MaxNumberOfElements {
+            get { return (int)GetValue(MaxNumberOfElementsProperty); }
+            set { SetValue(MaxNumberOfElementsProperty, value); }
         }
         public object LoadingPlaceholder {
             get { return GetValue(LoadingPlaceholderProperty); }
@@ -132,9 +137,13 @@ namespace CustomElements {
 
             switch (e.Key) {
                 case Key.Enter:
-                    TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).GetTextRepresentation();
-                    TextBox_.SelectionStart = TextBox_.Text.Length;
-                    Popup_Close();
+                case Key.Tab:
+                    if (Selector_.SelectedItem != null) {
+                        TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).GetTextRepresentation();
+                        TextBox_.SelectionStart = TextBox_.Text.Length;
+                        Popup_Close();
+                        e.Handled = true;
+                    }
                     break;
                 case Key.Escape:
                     Popup_Close();
@@ -155,10 +164,24 @@ namespace CustomElements {
                     }
                     ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
                     break;
-                //case Key.PageUp:
-                //    break;
-                //case Key.PageDown:
-                //    break;
+                case Key.PageUp:
+                    if (Selector_.SelectedIndex != -1) {
+                        int newIndex = Selector_.SelectedIndex - 5;
+                        if (newIndex < 0) newIndex = 0;
+                        Selector_.SelectedIndex = newIndex;
+                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
+                        e.Handled = true;
+                    }
+                    break;
+                case Key.PageDown:
+                    if (Selector_.SelectedIndex != -1) {
+                        int newIndex = Selector_.SelectedIndex + 5;
+                        if (newIndex >= Selector_.Items.Count) newIndex = Selector_.Items.Count - 1;
+                        Selector_.SelectedIndex = newIndex;
+                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
+                        e.Handled = true;
+                    }
+                    break;
             }
         }
 
@@ -184,7 +207,7 @@ namespace CustomElements {
         public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
             if (IsPopupOpen && filter == TextBox_.Text) {
                 IsLoading = false;
-                Selector_.ItemsSource = suggestions;
+                Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
                 IsPopupOpen = Selector_.HasItems;
             }
         }

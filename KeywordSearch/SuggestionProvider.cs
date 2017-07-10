@@ -31,15 +31,10 @@ namespace KeywordSearch {
             }
 
             CTS = new CancellationTokenSource();
-            Stopwatch s = new Stopwatch();
-            s.Start();
 
             Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); },
                 CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
-
-                    s.Stop();
-                    Debug.WriteLine(s.ElapsedMilliseconds);
-
+                    
                     suggestionTextBox.Dispatcher.BeginInvoke(
                         new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
                         new object[] { task.Result, filter }
@@ -66,7 +61,7 @@ namespace KeywordSearch {
             AC.Add(filter);
             AC.Build();
 
-            var l = new List<ImageClass>();
+            var list = new List<ImageClass>();
             foreach (var item in LabelProvider.Labels) {
                 if (token.IsCancellationRequested) {
                     break;
@@ -79,7 +74,7 @@ namespace KeywordSearch {
                     var nameRel = HighlightPhrase(nameEnum, item.Name);
                     var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
 
-                    l.Add(new ImageClass {
+                    list.Add(new ImageClass {
                         SearchableName = keepPart + item.Name,
                         Name = nameRel.HighlightedString,
                         Description = descriptionRel.HighlightedString,
@@ -88,75 +83,9 @@ namespace KeywordSearch {
                     });
                 }
             }
-            l.Sort();
+            list.Sort();
 
-            return l;
-        }
-
-        private Task<List<ImageClass>> GetImageClassesRecursively(SortedSet<Label> labels, AhoCorasick AC, string keepPart, CancellationToken token, int remainingDepthOfRecursion) {
-            if (remainingDepthOfRecursion == 0) {
-
-                return Task.Factory.StartNew(() => {
-                    var l = new List<ImageClass>();
-                    foreach (var item in labels) {
-                        if (token.IsCancellationRequested) {
-                            break;
-                        }
-
-                        var nameEnum = AC.Find(item.Name);
-                        var descriptionEnum = AC.Find(item.Description);
-
-                        if (nameEnum.Any() || descriptionEnum.Any()) {
-                            var nameRel = HighlightPhrase(nameEnum, item.Name);
-                            var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
-
-                            l.Add(new ImageClass {
-                                SearchableName = keepPart + item.Name,
-                                Name = nameRel.HighlightedString,
-                                Description = descriptionRel.HighlightedString,
-                                NameLenghtInWords = item.NameLenghtInWords,
-                                SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                            });
-                        }
-                    }
-                    l.Sort();
-                    return l;
-                }, token, TaskCreationOptions.None, TaskScheduler.Default);
-
-            } else {
-                remainingDepthOfRecursion--;
-
-                char middle = (char)((labels.Max.Name[0] - labels.Min.Name[0]) / 2 + labels.Min.Name[0]);
-                var middleLabel = new Label() { Name = middle.ToString() };
-
-                var t1 = GetImageClassesRecursively(labels.GetViewBetween(labels.Min, middleLabel), AC, keepPart, token, remainingDepthOfRecursion);
-                var t2 = GetImageClassesRecursively(labels.GetViewBetween(middleLabel, labels.Max), AC, keepPart, token, remainingDepthOfRecursion);
-
-                return Task.Factory.ContinueWhenAll(new Task<List<ImageClass>>[] { t1, t2 }, (Task<List<ImageClass>>[] tasks) => {
-                    return MergeSort(tasks);
-                }, token);
-            }
-        }
-
-        private List<ImageClass> MergeSort(Task<List<ImageClass>>[] t) {
-            List<ImageClass> a = t[0].Result, b = t[1].Result, result = new List<ImageClass>();
-
-            result.Capacity = a.Count + b.Count;
-
-            int a_ = 0, b_ = 0, result_ = 0;
-            while (b_ < b.Count || a_ < a.Count) {
-                while (a_ < a.Count && (b.Count == b_ || a[a_].CompareTo(b[b_]) <= 0)) {
-                    result[result_] = a[a_];
-                    result_++;
-                    a_++;
-                }
-                while (b_ < b.Count && (a.Count == a_ || b[b_].CompareTo(a[a_]) <= 0)) {
-                    result[result_] = b[b_];
-                    result_++;
-                    b_++;
-                }
-            }
-            return result;
+            return list;
         }
 
         private HighlightedStringWithRelevance HighlightPhrase(IEnumerable<Occurrence> hits, string text) {

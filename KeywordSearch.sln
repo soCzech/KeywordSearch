@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeywordSearch", "KeywordSea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SuggestionTextBox", "SuggestionTextBox\SuggestionTextBox.csproj", "{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{1559F091-C5E3-4D60-A605-2810B739D46B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1559F091-C5E3-4D60-A605-2810B739D46B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1559F091-C5E3-4D60-A605-2810B739D46B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1559F091-C5E3-4D60-A605-2810B739D46B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1559F091-C5E3-4D60-A605-2810B739D46B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
