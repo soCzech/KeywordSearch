@@ -31,12 +31,19 @@ namespace KeywordSearch {
             }
 
             CTS = new CancellationTokenSource();
-            Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); }, CTS.Token,
-                                         TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
-                suggestionTextBox.Dispatcher.BeginInvoke(
-                    new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
-                    new object[] { task.Result, filter }
-                    );
+            Stopwatch s = new Stopwatch();
+            s.Start();
+
+            Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); },
+                CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
+
+                    s.Stop();
+                    Debug.WriteLine(s.ElapsedMilliseconds);
+
+                    suggestionTextBox.Dispatcher.BeginInvoke(
+                        new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
+                        new object[] { task.Result, filter }
+                        );
             }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
         }
 
@@ -58,14 +65,6 @@ namespace KeywordSearch {
             AhoCorasick AC = new AhoCorasick();
             AC.Add(filter);
             AC.Build();
-
-            //Debug.WriteLine("ID: " + Thread.CurrentThread.ManagedThreadId);
-
-
-            //Task = Task.Factory.StartNew(() => { return GetPart(filter, token); }, token, TaskCreationOptions.None, TaskScheduler.Default)
-
-            Stopwatch s = new Stopwatch();
-            s.Start();
 
             var l = new List<ImageClass>();
             foreach (var item in LabelProvider.Labels) {
@@ -90,8 +89,6 @@ namespace KeywordSearch {
                 }
             }
             l.Sort();
-            s.Stop();
-            Debug.WriteLine(s.ElapsedMilliseconds);
 
             return l;
         }
