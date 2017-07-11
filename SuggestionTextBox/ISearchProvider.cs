@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace CustomElements {
     public interface ISearchProvider {
-        void Search(string filter);
+        void Search(string filter, SuggestionTextBox suggestionTextBox);
     }
 }

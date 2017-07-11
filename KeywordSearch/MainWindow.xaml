@@ -29,7 +29,17 @@
         </Style>
         <Style x:Key="AnnotationStyle" TargetType="TextBlock">
             <Setter Property="Background" Value="#70FFFFFF" />
+            <Setter Property="Padding" Value="4,2" />
             <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="AnnotationStyle2" TargetType="TextBlock">
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Background" Value="#70FFFFFF" />
+            <Setter Property="Foreground" Value="Red" />
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
             <Setter Property="TextAlignment" Value="Center"/>
@@ -64,7 +74,8 @@
                 <DataTemplate>
                     <Grid>
                         <Image Source="{Binding Path=Image}" Stretch="Fill"/>
-                        <TextBlock Text="{Binding Path=Path}" Style="{StaticResource AnnotationStyle}"/>
+                        <TextBlock Text="{Binding Path=Filename.Id}" Style="{StaticResource AnnotationStyle}"/>
+                        <TextBlock Text="{Binding Path=Filename.Probability}" Style="{StaticResource AnnotationStyle2}"/>
                     </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>

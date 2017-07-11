@@ -75,7 +75,8 @@ namespace KeywordSearch {
             AC.Build();
 
             var list = new List<ImageClass>();
-            foreach (var item in LabelProvider.Labels) {
+            foreach (var kvp in LabelProvider.Labels) {
+                var item = kvp.Value;
                 if (token.IsCancellationRequested) {
                     break;
                 }

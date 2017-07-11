@@ -32,7 +32,7 @@ namespace KeywordSearch {
             Box.SearchProvider = Logic.ImageProvider;
 
             //Logic.ImageProvider.ViewModel1();
-            var x = (ItemsControl)FindName("imageList");
+            Logic.ImageProvider.ItemsControl = (ItemsControl)FindName("imageList");
             //x.ItemsSource = Logic.ImageProvider.Products;
         }
     }

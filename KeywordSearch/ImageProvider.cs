@@ -5,18 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
 namespace KeywordSearch {
 
-    class Product {
-        public string Path { get; set; }
+    struct Thumbnail {
+        public Filename Filename { get; set; }
         public BitmapImage Image { get; set; }
-
-        public Product(string path, BitmapImage image) {
-            Path = path;
-            Image = image;
-        }
     }
 
     struct Filename {
@@ -46,6 +43,7 @@ namespace KeywordSearch {
         private LabelProvider LabelProvider;
         private Dictionary<int, List<Filename>> Classes = new Dictionary<int, List<Filename>>();
         private Task LoadTask { get; set; }
+        public ItemsControl ItemsControl { get; set; }
 
         private void LoadFromFile() {
             BufferedByteStream stream = null;
@@ -89,19 +87,43 @@ namespace KeywordSearch {
             }
         }
 
-        private BitmapImage GetImage(string path) {
+        private BitmapImage GetImage(uint id) {
             BitmapImage bmp = new BitmapImage();
 
             bmp.BeginInit();
-            bmp.UriSource = new Uri(path, UriKind.Relative);
+            bmp.UriSource = new Uri(string.Format("{0}{1}.jpg", ImageFolderPath, id), UriKind.Relative);
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.EndInit();
 
             return bmp;
         }
 
-        public void Search(string filter) {
-            throw new NotImplementedException();
+        public void Search(string filter, SuggestionTextBox suggestionTextBox) {
+            if (LabelProvider.LoadTask.IsFaulted) {
+                suggestionTextBox.IsPopupOpen = false;
+                suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                    () => { MessageBox.Show(LabelProvider.LoadTask.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                    ));
+                return;
+            } else if (!LabelProvider.LoadTask.IsCompleted) {
+                ((TextBlock)suggestionTextBox.LoadingPlaceholder).Text = "Labels not loaded yet...";
+                return;
+            }
+
+            Label label = null;
+            if (LabelProvider.Labels.TryGetValue(filter, out label)) {
+                if (!Classes.ContainsKey(label.Id))
+                    return;
+
+                List<Filename> list = Classes[label.Id];
+                List<Thumbnail> thumbnails = new List<Thumbnail>();
+
+                foreach (var item in list) {
+                    thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
+                }
+                if (ItemsControl != null)
+                    ItemsControl.ItemsSource = thumbnails;
+            }
         }
     }
 }

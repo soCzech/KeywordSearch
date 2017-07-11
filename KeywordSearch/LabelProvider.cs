@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace KeywordSearch {
 
     public class Label : IComparable<Label> {
-        public uint Id { get; set; }
+        public int Id { get; set; }
         public string SynsetId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
@@ -34,10 +34,10 @@ namespace KeywordSearch {
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
 
-        private List<Label> Labels_ = new List<Label>();
+        private Dictionary<string, Label> Labels_ = new Dictionary<string, Label>();
 
         public Task LoadTask { get; private set; }
-        public List<Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
+        public Dictionary<string, Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
 
         private void LoadFromFile() {
             using (StreamReader reader = new StreamReader(FilePath)) {
@@ -55,16 +55,19 @@ namespace KeywordSearch {
                     }
 
                     var label = new Label() {
-                        Id = uint.Parse(parts[0]),
+                        Id = int.Parse(parts[0]),
                         SynsetId = parts[1],
                         Name = parts[2],
                         Description = parts[3],
                         NameLenghtInWords = minLenght
                     };
-                    Labels_.Add(label);
+                    //if (Labels_.ContainsKey(parts[2]))
+                    //    throw new Exception();
+                    // TODO !!!
+                    if (!Labels_.ContainsKey(parts[2]))
+                        Labels_.Add(parts[2], label);
                 }
             }
-            Labels_.Sort();
         }
 
     }

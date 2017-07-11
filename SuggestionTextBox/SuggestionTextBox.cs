@@ -130,8 +130,11 @@ namespace CustomElements {
         }
 
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
-            if (Selector_.SelectedItem == null && e.Key == Key.Enter) {
-                SearchProvider?.Search(TextBox_.Text);
+            if ((!IsPopupOpen || Selector_.SelectedItem == null) && e.Key == Key.Enter) {
+                if (TextBox_.Text != string.Empty) {
+                    SearchProvider?.Search(TextBox_.Text, this);
+                    Popup_Close();
+                }
                 return;
             }
 
