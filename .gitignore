@@ -5,4 +5,8 @@ KeywordSearch/obj/
 SuggestionTextBox/bin/
 SuggestionTextBox/obj/
 
-labels_extended.txt
+classes.labels
+files.index
+files.txt
+images/
+index_file_gen.py

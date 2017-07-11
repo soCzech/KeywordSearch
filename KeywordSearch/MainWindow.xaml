@@ -6,12 +6,13 @@
         xmlns:local="clr-namespace:KeywordSearch"
         xmlns:tools="clr-namespace:CustomElements;assembly=SuggestionTextBox"
         mc:Ignorable="d"
-        Title="MainWindow">
-    
+        Title="Keyword Search"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized">
+
     <Window.Resources>
         <!--<local:SuggestionProvider x:Key="suggestionProvider"/>-->
         <local:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
-        
+
         <DataTemplate x:Key="imageClassTemplate">
             <Border Padding="5">
                 <StackPanel Orientation="Vertical">
@@ -26,10 +27,18 @@
                x:Key="highlightedText">
             <Setter Property="Foreground" Value="Red" />
         </Style>
+        <Style x:Key="AnnotationStyle" TargetType="TextBlock">
+            <Setter Property="Background" Value="#70FFFFFF" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
     </Window.Resources>
 
-    <Grid>
-        <Border BorderBrush="Black" BorderThickness="0,0,0,1" VerticalAlignment="Top">
+    <DockPanel VerticalAlignment="Stretch">
+        <Border BorderBrush="Gray" BorderThickness="0,0,0,1" DockPanel.Dock="Top">
             <StackPanel VerticalAlignment="Top" Orientation="Horizontal" Margin="10,2">
                 <TextBlock TextWrapping="Wrap" Text="Keyword:" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <tools:SuggestionTextBox Width="300"
@@ -45,5 +54,20 @@
             </StackPanel>
 
         </Border>
-    </Grid>
+        <ItemsControl x:Name="imageList" ItemsSource="{Binding Path=ImageProvider.Products}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="10" Margin="5" Rows="7"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Image Source="{Binding Path=Image}" Stretch="Fill"/>
+                        <TextBlock Text="{Binding Path=Path}" Style="{StaticResource AnnotationStyle}"/>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
 </Window>

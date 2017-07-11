@@ -23,20 +23,21 @@ namespace KeywordSearch {
 
     class LabelProvider {
 
-        private string FilePath = ".\\labels_extended.txt";
+        private string FilePath = ".\\classes.labels";
 
         public LabelProvider() {
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
+
         public LabelProvider(string filePath) {
             FilePath = filePath;
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
 
-        private SortedSet<Label> Labels_ = new SortedSet<Label>();
+        private List<Label> Labels_ = new List<Label>();
 
         public Task LoadTask { get; private set; }
-        public SortedSet<Label> Labels { get { return (LoadTask.IsCompleted) ? Labels_ : null; } }
+        public List<Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
 
         private void LoadFromFile() {
             using (StreamReader reader = new StreamReader(FilePath)) {
@@ -63,27 +64,8 @@ namespace KeywordSearch {
                     Labels_.Add(label);
                 }
             }
-            //Thread.Sleep(5000);
+            Labels_.Sort();
         }
 
-        //public Task LoadFromFileAsync() {
-        //    StreamReader reader = new StreamReader(new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true));
-        //    return LoadFromFileAsync(reader).ContinueWith((Task t) => { reader.Dispose(); });
-        //}
-
-        //private async Task LoadFromFileAsync(StreamReader reader) {
-        //    Task<string> readTask = reader.ReadLineAsync();
-        //    string line;
-
-        //    while ((line = await readTask) != null) {
-        //        readTask = reader.ReadLineAsync();
-
-        //        var parts = line.Split('~');
-        //        if (parts.Length != 4) throw new FormatException("Line has invalid number of parts.");
-
-        //        var label = new Label() { Id = uint.Parse(parts[0]), SynsetId = parts[1], Name = parts[2], Description = parts[3] };
-        //        Labels.Add(label);
-        //    }
-        //}
     }
 }

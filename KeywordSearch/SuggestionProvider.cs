@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Threading;
 
 using KeywordSearch.TextSearch;
+using System.Windows;
 
 namespace KeywordSearch {
     class SuggestionProvider : ISuggestionProvider {
@@ -23,7 +24,13 @@ namespace KeywordSearch {
         }
 
         public void GetSuggestionsAsync(string filter, SuggestionTextBox suggestionTextBox) {
-            if (!LabelProvider.LoadTask.IsCompleted) {
+            if (LabelProvider.LoadTask.IsFaulted) {
+                suggestionTextBox.IsPopupOpen = false;
+                suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                    () => { MessageBox.Show(LabelProvider.LoadTask.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                    ));
+                return;
+            } else if (!LabelProvider.LoadTask.IsCompleted) {
                 ((TextBlock)suggestionTextBox.LoadingPlaceholder).Text = "Labels not loaded yet...";
                 return;
             } else {
@@ -34,7 +41,13 @@ namespace KeywordSearch {
 
             Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); },
                 CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
-                    
+                    if (task.IsFaulted) {
+                        suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                            () => { MessageBox.Show(task.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                            ));
+                        return;
+                    }
+
                     suggestionTextBox.Dispatcher.BeginInvoke(
                         new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
                         new object[] { task.Result, filter }
@@ -54,7 +67,7 @@ namespace KeywordSearch {
                 keepPart = filter.Substring(0, lastPart);
                 filter = filter.Substring(lastPart).Trim();
 
-                if (filter == string.Empty) return null;
+                if (filter == string.Empty) return new List<ImageClass>();
             }
 
             AhoCorasick AC = new AhoCorasick();

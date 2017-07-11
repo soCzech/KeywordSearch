@@ -29,7 +29,11 @@ namespace KeywordSearch {
 
             var Box = (SuggestionTextBox)FindName("SuggestionTextBox");
             Box.SuggestionProvider = Logic.SuggestionProvider;
+            Box.SearchProvider = Logic.ImageProvider;
 
+            //Logic.ImageProvider.ViewModel1();
+            var x = (ItemsControl)FindName("imageList");
+            //x.ItemsSource = Logic.ImageProvider.Products;
         }
     }
 }

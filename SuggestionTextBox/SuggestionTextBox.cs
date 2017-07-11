@@ -61,6 +61,7 @@ namespace CustomElements {
 
         public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateProperty = DependencyProperty.Register("ItemTemplate", typeof(DataTemplate), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
@@ -73,6 +74,10 @@ namespace CustomElements {
         public ISuggestionProvider SuggestionProvider {
             get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
             set { SetValue(SuggestionProviderProperty, value); }
+        }
+        public ISearchProvider SearchProvider {
+            get { return (ISearchProvider)GetValue(SearchProviderProperty); }
+            set { SetValue(SearchProviderProperty, value); }
         }
         public DataTemplate ItemTemplate {
             get { return (DataTemplate)GetValue(ItemTemplateProperty); }
@@ -126,7 +131,7 @@ namespace CustomElements {
 
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
             if (Selector_.SelectedItem == null && e.Key == Key.Enter) {
-                //SearchHandler?.Invoke(TextBox_.Text);
+                SearchProvider?.Search(TextBox_.Text);
                 return;
             }
 

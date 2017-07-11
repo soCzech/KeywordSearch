@@ -8,12 +8,13 @@ namespace KeywordSearch {
     public class AppLogic {
         internal LabelProvider LabelProvider;
         internal SuggestionProvider SuggestionProvider;
+        internal ImageProvider ImageProvider;
 
         public AppLogic() {
             LabelProvider = new LabelProvider();
             SuggestionProvider = new SuggestionProvider(LabelProvider);
+            ImageProvider = new ImageProvider(LabelProvider);
         }
-
 
     }
 }
