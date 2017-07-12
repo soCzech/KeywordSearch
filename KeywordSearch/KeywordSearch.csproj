@@ -58,6 +58,7 @@
     </ApplicationDefinition>
     <Compile Include="BufferedByteStream.cs" />
     <Compile Include="ImageProvider.cs" />
+    <Compile Include="NotFoundMessageConverter.cs" />
     <Compile Include="TextSearch\AhoCorasick.cs" />
     <Compile Include="TextSearch\Occurrence.cs" />
     <Compile Include="AppLogic.cs" />

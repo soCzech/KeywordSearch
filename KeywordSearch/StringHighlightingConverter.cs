@@ -24,7 +24,8 @@ namespace KeywordSearch {
             if (input == null) return null;
 
             string escaped = SecurityElement.Escape(input);
-            string xml = escaped.Replace(START_TAG, "<Run Style=\"{DynamicResource ResourceKey=highlightedText}\">").Replace(END_TAG, "</Run>");
+            //string xml = escaped.Replace(START_TAG, "<Run Style=\"{DynamicResource ResourceKey=highlightedText}\">").Replace(END_TAG, "</Run>");
+            string xml = escaped.Replace(START_TAG, "<Run Foreground=\"Red\">").Replace(END_TAG, "</Run>");
 
             string wrappedXml = string.Format("<TextBlock xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xml:space=\"preserve\" TextWrapping=\"Wrap\">{0}</TextBlock>", xml);
 

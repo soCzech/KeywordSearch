@@ -1,9 +1,11 @@
 ﻿using CustomElements;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -44,6 +46,7 @@ namespace KeywordSearch {
         private Dictionary<int, List<Filename>> Classes = new Dictionary<int, List<Filename>>();
         private Task LoadTask { get; set; }
         public ItemsControl ItemsControl { get; set; }
+        public ContentControl NotFoundMessageBox { get; set; }
 
         private void LoadFromFile() {
             BufferedByteStream stream = null;
@@ -100,30 +103,53 @@ namespace KeywordSearch {
 
         public void Search(string filter, SuggestionTextBox suggestionTextBox) {
             if (LabelProvider.LoadTask.IsFaulted) {
-                suggestionTextBox.IsPopupOpen = false;
                 suggestionTextBox.Dispatcher.BeginInvoke(new Action(
                     () => { MessageBox.Show(LabelProvider.LoadTask.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
                     ));
                 return;
-            } else if (!LabelProvider.LoadTask.IsCompleted) {
-                ((TextBlock)suggestionTextBox.LoadingPlaceholder).Text = "Labels not loaded yet...";
+            } else if (LoadTask.IsFaulted) {
+                suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                    () => { MessageBox.Show(LoadTask.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                    ));
+                return;
+            } else if (!LabelProvider.LoadTask.IsCompleted || !LoadTask.IsCompleted) {
+                ShowNotFoundMessageBox(null);
                 return;
             }
 
             Label label = null;
-            if (LabelProvider.Labels.TryGetValue(filter, out label)) {
-                if (!Classes.ContainsKey(label.Id))
-                    return;
-
+            if (LabelProvider.Labels.TryGetValue(filter, out label) && Classes.ContainsKey(label.Id)) {
                 List<Filename> list = Classes[label.Id];
                 List<Thumbnail> thumbnails = new List<Thumbnail>();
 
                 foreach (var item in list) {
                     thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
                 }
-                if (ItemsControl != null)
+                if (ItemsControl != null) {
                     ItemsControl.ItemsSource = thumbnails;
+                    HideNotFoundMessageBox();
+                } else {
+                    suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                        () => { MessageBox.Show("ImageProvider has no reference to ItemsControl.", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                        ));
+                }
+            } else {
+                ShowNotFoundMessageBox(filter);
+                if (ItemsControl != null)
+                    ItemsControl.ItemsSource = null;
+                return;
             }
+        }
+
+        enum NotFoundMessageType { NotFound, NotValidClass }
+        NotFoundMessageConverter NotFoundMessageConverter = new NotFoundMessageConverter();
+
+        private void ShowNotFoundMessageBox(string message) {
+            NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null, null, CultureInfo.CurrentCulture);
+            NotFoundMessageBox.Visibility = Visibility.Visible;
+        }
+        private void HideNotFoundMessageBox() {
+            NotFoundMessageBox.Visibility = Visibility.Hidden;
         }
     }
 }

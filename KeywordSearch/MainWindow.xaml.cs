@@ -33,6 +33,7 @@ namespace KeywordSearch {
 
             //Logic.ImageProvider.ViewModel1();
             Logic.ImageProvider.ItemsControl = (ItemsControl)FindName("imageList");
+            Logic.ImageProvider.NotFoundMessageBox = (ContentControl)FindName("NotFoundMessageBox");
             //x.ItemsSource = Logic.ImageProvider.Products;
         }
     }

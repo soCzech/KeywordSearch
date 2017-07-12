@@ -45,6 +45,7 @@
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>
 
     <DockPanel VerticalAlignment="Stretch">
@@ -64,21 +65,33 @@
             </StackPanel>
 
         </Border>
-        <ItemsControl x:Name="imageList" ItemsSource="{Binding Path=ImageProvider.Products}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Columns="10" Margin="5" Rows="7"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Image Source="{Binding Path=Image}" Stretch="Fill"/>
-                        <TextBlock Text="{Binding Path=Filename.Id}" Style="{StaticResource AnnotationStyle}"/>
-                        <TextBlock Text="{Binding Path=Filename.Probability}" Style="{StaticResource AnnotationStyle2}"/>
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Grid>
+            <ItemsControl x:Name="imageList" ItemsSource="{Binding Path=ImageProvider.Products}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="10" Margin="5" Rows="7"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Image Source="{Binding Path=Image}" Stretch="Fill"/>
+                            <TextBlock Text="{Binding Path=Filename.Id}" Style="{StaticResource AnnotationStyle}"/>
+                            <TextBlock Text="{Binding Path=Filename.Probability}" Style="{StaticResource AnnotationStyle2}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ContentControl x:Name="NotFoundMessageBox"
+                            Margin="30"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Typography.Capitals="AllSmallCaps"
+                            Foreground="Black"
+                            FontSize="40"
+                            FontWeight="DemiBold">
+                <TextBlock Foreground="Gray">Nothing to show</TextBlock>
+            </ContentControl>
+        </Grid>
     </DockPanel>
 </Window>
