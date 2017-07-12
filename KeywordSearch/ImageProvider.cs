@@ -18,9 +18,13 @@ namespace KeywordSearch {
         public BitmapImage Image { get; set; }
     }
 
-    struct Filename {
+    struct Filename : IComparable<Filename> {
         public uint Id { get; set; }
         public float Probability { get; set; }
+
+        public int CompareTo(Filename other) {
+            return Probability.CompareTo(other.Probability);
+        }
     }
 
     class ImageProvider : ISearchProvider {
@@ -113,40 +117,157 @@ namespace KeywordSearch {
                     ));
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted || !LoadTask.IsCompleted) {
-                ShowNotFoundMessageBox(null);
+                ShowNotFoundMessageBox(NotFoundMessageType.ResourcesNotLoadedYet, filter);
                 return;
             }
 
-            Label label = null;
-            if (LabelProvider.Labels.TryGetValue(filter, out label) && Classes.ContainsKey(label.Id)) {
-                List<Filename> list = Classes[label.Id];
-                List<Thumbnail> thumbnails = new List<Thumbnail>();
-
-                foreach (var item in list) {
-                    thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
-                }
-                if (ItemsControl != null) {
-                    ItemsControl.ItemsSource = thumbnails;
-                    HideNotFoundMessageBox();
-                } else {
-                    suggestionTextBox.Dispatcher.BeginInvoke(new Action(
-                        () => { MessageBox.Show("ImageProvider has no reference to ItemsControl.", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
-                        ));
-                }
-            } else {
-                ShowNotFoundMessageBox(filter);
-                if (ItemsControl != null)
-                    ItemsControl.ItemsSource = null;
+            if (ItemsControl == null) {
+                suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                    () => { MessageBox.Show("ImageProvider has no reference to ItemsControl.", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                    ));
                 return;
             }
+
+            List<List<int>> ids = GetClassIds(filter);
+            if (ids == null) return;
+
+            List<ListOrDictionary> afterUnion = DoListUnions(ids);
+            List<Filename> afterMiltiplication = DoListMultiplications(afterUnion);
+
+            List<Thumbnail> thumbnails = new List<Thumbnail>();
+
+            foreach (var item in afterMiltiplication) {
+                thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
+            }
+
+            ItemsControl.ItemsSource = thumbnails;
+            HideNotFoundMessageBox();
         }
 
-        enum NotFoundMessageType { NotFound, NotValidClass }
+        private List<Filename> DoListMultiplications(List<ListOrDictionary> lists) {
+            if (lists.Count == 1 && lists[0].List != null)
+                return lists[0].List;
+
+            Dictionary<uint, Filename> dict = null;
+            for (int i = 0; i < lists.Count; i++) {
+                if (lists[i].Dictionary != null) {
+                    dict = lists[i].Dictionary;
+                    lists.RemoveAt(i);
+                    break;
+                }
+            }
+            if (dict == null) {
+                dict = lists[lists.Count - 1].List.ToDictionary(f => f.Id);
+                lists.RemoveAt(lists.Count - 1);
+            }
+
+            Filename fIn;
+            foreach (ListOrDictionary item in lists) {
+                Dictionary<uint, Filename> tempDict = new Dictionary<uint, Filename>();
+
+                if (item.List != null) {
+                    foreach (Filename f in item.List) {
+                        if (dict.TryGetValue(f.Id, out fIn)) {
+                            fIn.Probability = fIn.Probability * f.Probability;
+                            tempDict.Add(f.Id, fIn);
+                        }
+                    }
+                } else {
+                    foreach (KeyValuePair<uint, Filename> f in item.Dictionary) {
+                        if (dict.TryGetValue(f.Value.Id, out fIn)) {
+                            fIn.Probability = fIn.Probability * f.Value.Probability;
+                            tempDict.Add(f.Value.Id, fIn);
+                        }
+                    }
+                }
+                dict = tempDict;
+            }
+
+            var list = new List<Filename>();
+            list.Capacity = dict.Count;
+
+            foreach (var item in dict) {
+                list.Add(item.Value);
+            }
+            list.Sort();
+            return list;
+        }
+
+        private struct ListOrDictionary {
+            public List<Filename> List;
+            public Dictionary<uint, Filename> Dictionary;
+        }
+
+        private List<ListOrDictionary> DoListUnions(List<List<int>> ids) {
+            var list = new List<ListOrDictionary>();
+
+            Filename fIn;
+            foreach (List<int> listOfIds in ids) {
+                if (listOfIds.Count == 1) {
+                    list.Add(new ListOrDictionary() { List = Classes[listOfIds[0]] });
+                    continue;
+                }
+                Dictionary<uint, Filename> dict = Classes[listOfIds[0]].ToDictionary(f => f.Id);
+                for (int i = 1; i < listOfIds.Count; i++) {
+                    foreach (Filename f in Classes[listOfIds[i]]) {
+                        if (dict.TryGetValue(f.Id, out fIn)) {
+                            fIn.Probability += f.Probability;
+                            dict[f.Id] = fIn;
+                        } else {
+                            dict.Add(f.Id, f);
+                        }
+                    }
+                }
+                list.Add(new ListOrDictionary() { Dictionary = dict });
+            }
+            return list;
+        }
+
+        private List<List<int>> GetClassIds(string filter) {
+            var parts = filter.Split('*');
+
+            Label label = null;
+            List<List<int>> list = new List<List<int>>();
+
+            for (int p = 0; p < parts.Length; p++) {
+                var classes = parts[p].Split('+');
+
+                list.Add(new List<int>());
+
+                for (int i = 0; i < classes.Length; i++) {
+                    string cls = classes[i].Trim();
+
+                    if (cls == string.Empty) {
+                        ShowNotFoundMessageBox(NotFoundMessageType.InvalidFormat, filter);
+                        return null;
+                    }
+
+                    if (!LabelProvider.Labels.TryGetValue(cls, out label)) {
+                        ShowNotFoundMessageBox(NotFoundMessageType.InvalidLabel, cls);
+                        return null;
+                    }
+                    if (!Classes.ContainsKey(label.Id)) continue;
+
+                    list[p].Add(label.Id);
+                }
+            }
+            for (int p = 0; p < list.Count; p++) {
+                if (list[p].Count == 0) {
+                    ShowNotFoundMessageBox(NotFoundMessageType.MultiplicationByEmptySet, parts[p]);
+                    return null;
+                }
+            }
+            return list;
+        }
+
+        enum NotFoundMessageType { NotFound, InvalidLabel, InvalidFormat, MultiplicationByEmptySet, ResourcesNotLoadedYet }
         NotFoundMessageConverter NotFoundMessageConverter = new NotFoundMessageConverter();
 
-        private void ShowNotFoundMessageBox(string message) {
+        private void ShowNotFoundMessageBox(NotFoundMessageType type, string message) {
             NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null, null, CultureInfo.CurrentCulture);
             NotFoundMessageBox.Visibility = Visibility.Visible;
+            if (ItemsControl != null)
+                ItemsControl.ItemsSource = null;
         }
         private void HideNotFoundMessageBox() {
             NotFoundMessageBox.Visibility = Visibility.Hidden;
