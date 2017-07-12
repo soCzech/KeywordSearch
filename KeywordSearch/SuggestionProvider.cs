@@ -97,7 +97,8 @@ namespace KeywordSearch {
                     });
                 }
             }
-            list.Sort();
+            if (!token.IsCancellationRequested)
+                list.Sort();
 
             return list;
         }

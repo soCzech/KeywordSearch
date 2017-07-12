@@ -23,7 +23,7 @@ namespace KeywordSearch {
         public float Probability { get; set; }
 
         public int CompareTo(Filename other) {
-            return Probability.CompareTo(other.Probability);
+            return -Probability.CompareTo(other.Probability);
         }
     }
 
@@ -101,9 +101,12 @@ namespace KeywordSearch {
             bmp.UriSource = new Uri(string.Format("{0}{1}.jpg", ImageFolderPath, id), UriKind.Relative);
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.EndInit();
+            bmp.Freeze();
 
             return bmp;
         }
+
+        CancellationTokenSource CTS;
 
         public void Search(string filter, SuggestionTextBox suggestionTextBox) {
             if (LabelProvider.LoadTask.IsFaulted) {
@@ -131,20 +134,47 @@ namespace KeywordSearch {
             List<List<int>> ids = GetClassIds(filter);
             if (ids == null) return;
 
-            List<ListOrDictionary> afterUnion = DoListUnions(ids);
-            List<Filename> afterMiltiplication = DoListMultiplications(afterUnion);
+            CTS = new CancellationTokenSource();
+
+            Task.Factory.StartNew(() => {
+                return GetThumbnails(ids, CTS.Token);
+            }, CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<List<Thumbnail>> task) => {
+                if (task.IsFaulted) {
+                    suggestionTextBox.Dispatcher.BeginInvoke(new Action(
+                        () => { MessageBox.Show(task.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
+                        ));
+                    return;
+                }
+                if (task.Result == null) return;
+
+                suggestionTextBox.Dispatcher.BeginInvoke(
+                    new Action<List<Thumbnail>>(UpdateThumbnails),
+                    new object[] { task.Result }
+                    );
+            }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
+        }
+
+        private List<Thumbnail> GetThumbnails(List<List<int>> ids, CancellationToken token) {
+            List<ListOrDictionary> afterUnion = DoListUnions(ids, token);
+            if (afterUnion == null) return null;
+            List<Filename> afterMiltiplication = DoListMultiplications(afterUnion, token);
+            if (afterMiltiplication == null) return null;
 
             List<Thumbnail> thumbnails = new List<Thumbnail>();
 
             foreach (var item in afterMiltiplication) {
+                if (token.IsCancellationRequested) return null;
                 thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
             }
+            return thumbnails;
+        }
 
+        private void UpdateThumbnails(List<Thumbnail> thumbnails) {
             ItemsControl.ItemsSource = thumbnails;
             HideNotFoundMessageBox();
         }
 
-        private List<Filename> DoListMultiplications(List<ListOrDictionary> lists) {
+        private List<Filename> DoListMultiplications(List<ListOrDictionary> lists, CancellationToken token) {
             if (lists.Count == 1 && lists[0].List != null)
                 return lists[0].List;
 
@@ -167,6 +197,8 @@ namespace KeywordSearch {
 
                 if (item.List != null) {
                     foreach (Filename f in item.List) {
+                        if (token.IsCancellationRequested) return null;
+
                         if (dict.TryGetValue(f.Id, out fIn)) {
                             fIn.Probability = fIn.Probability * f.Probability;
                             tempDict.Add(f.Id, fIn);
@@ -174,6 +206,8 @@ namespace KeywordSearch {
                     }
                 } else {
                     foreach (KeyValuePair<uint, Filename> f in item.Dictionary) {
+                        if (token.IsCancellationRequested) return null;
+
                         if (dict.TryGetValue(f.Value.Id, out fIn)) {
                             fIn.Probability = fIn.Probability * f.Value.Probability;
                             tempDict.Add(f.Value.Id, fIn);
@@ -198,7 +232,7 @@ namespace KeywordSearch {
             public Dictionary<uint, Filename> Dictionary;
         }
 
-        private List<ListOrDictionary> DoListUnions(List<List<int>> ids) {
+        private List<ListOrDictionary> DoListUnions(List<List<int>> ids, CancellationToken token) {
             var list = new List<ListOrDictionary>();
 
             Filename fIn;
@@ -210,6 +244,8 @@ namespace KeywordSearch {
                 Dictionary<uint, Filename> dict = Classes[listOfIds[0]].ToDictionary(f => f.Id);
                 for (int i = 1; i < listOfIds.Count; i++) {
                     foreach (Filename f in Classes[listOfIds[i]]) {
+                        if (token.IsCancellationRequested) return null;
+
                         if (dict.TryGetValue(f.Id, out fIn)) {
                             fIn.Probability += f.Probability;
                             dict[f.Id] = fIn;
