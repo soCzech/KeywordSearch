@@ -67,30 +67,51 @@ namespace CustomElements {
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
 
+        /// <summary>
+        /// Indicates if the suggestions popup is open.
+        /// </summary>
         public bool IsPopupOpen {
             get { return (bool)GetValue(IsPopupOpenProperty); }
             set { SetValue(IsPopupOpenProperty, value); }
         }
+
+        /// <summary>
+        /// Suggestion provider responsible for any suggestions
+        /// </summary>
         public ISuggestionProvider SuggestionProvider {
             get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
             set { SetValue(SuggestionProviderProperty, value); }
         }
+
+        /// <summary>
+        /// Search provider responsibe for any results
+        /// </summary>
         public ISearchProvider SearchProvider {
             get { return (ISearchProvider)GetValue(SearchProviderProperty); }
             set { SetValue(SearchProviderProperty, value); }
         }
+
         public DataTemplate ItemTemplate {
             get { return (DataTemplate)GetValue(ItemTemplateProperty); }
             set { SetValue(ItemTemplateProperty, value); }
         }
+
+        /// <summary>
+        /// Indicates if suggestions are not ready yet
+        /// </summary>
         public bool IsLoading {
             get { return (bool)GetValue(IsLoadingProperty); }
             set { SetValue(IsLoadingProperty, value); }
         }
+
+        /// <summary>
+        /// Maximal number of elements shown in suggestions (-1 implies unlimited)
+        /// </summary>
         public int MaxNumberOfElements {
             get { return (int)GetValue(MaxNumberOfElementsProperty); }
             set { SetValue(MaxNumberOfElementsProperty, value); }
         }
+
         public object LoadingPlaceholder {
             get { return GetValue(LoadingPlaceholderProperty); }
             set { SetValue(LoadingPlaceholderProperty, value); }
@@ -115,11 +136,17 @@ namespace CustomElements {
             Popup_.Closed += Popup_OnClosed;
         }
 
+        /// <summary>
+        /// Close popup and cancel any pending search for suggestions
+        /// </summary>
         private void TextBox_OnLostFocus(object sender, RoutedEventArgs e) {
             if (!IsKeyboardFocusWithin)
                 Popup_Close();
         }
 
+        /// <summary>
+        /// Cancel any pending search for suggestions and initiate a new one with new value
+        /// </summary>
         private void TextBox_OnTextChanged(object sender, TextChangedEventArgs e) {
             if (TextBox_.Text.Length == 0) {
                 Popup_Close();
@@ -129,6 +156,9 @@ namespace CustomElements {
             Popup_Open();
         }
 
+        /// <summary>
+        /// Manage navigation in suggestions popup and run search if pressed enter
+        /// </summary>
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
             if ((!IsPopupOpen || Selector_.SelectedItem == null) && e.Key == Key.Enter) {
                 if (TextBox_.Text != string.Empty) {
@@ -138,6 +168,7 @@ namespace CustomElements {
                 return;
             }
 
+            // reopen suggestions if closed
             if (TextBox_.Text != string.Empty && !IsPopupOpen && (e.Key == Key.Up || e.Key == Key.Down)) {
                 Popup_Open();
                 return;
@@ -212,6 +243,12 @@ namespace CustomElements {
             SuggestionProvider.CancelSuggestionsLookup();
         }
 
+        /// <summary>
+        /// Update suggestions, must be called in UI thread to prevent race conditions
+        /// </summary>
+        /// <example>suggestionTextBox.Dispatcher.BeginInvoke(new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate), new object[] { suggestions, filter});</example>
+        /// <param name="suggestions"></param>
+        /// <param name="filter">A string, the suggestions are for</param>
         public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
             if (IsPopupOpen && filter == TextBox_.Text) {
                 IsLoading = false;
