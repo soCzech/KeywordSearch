@@ -289,18 +289,42 @@ namespace KeywordSearch {
             }
             for (int p = 0; p < list.Count; p++) {
                 if (list[p].Count == 0) {
-                    ShowNotFoundMessageBox(NotFoundMessageType.MultiplicationByEmptySet, parts[p]);
+                    ShowNotFoundMessageBox(NotFoundMessageType.NotFound, parts[p]);
                     return null;
                 }
             }
             return list;
         }
 
-        enum NotFoundMessageType { NotFound, InvalidLabel, InvalidFormat, MultiplicationByEmptySet, ResourcesNotLoadedYet }
+        enum NotFoundMessageType { NotFound, InvalidLabel, InvalidFormat, ResourcesNotLoadedYet }
         NotFoundMessageConverter NotFoundMessageConverter = new NotFoundMessageConverter();
 
         private void ShowNotFoundMessageBox(NotFoundMessageType type, string message) {
-            NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null, null, CultureInfo.CurrentCulture);
+            switch (type) {
+                case NotFoundMessageType.NotFound:
+                    NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null,
+                        new string[] { "No images of ", " found" },
+                        CultureInfo.CurrentCulture);
+                    break;
+                case NotFoundMessageType.InvalidLabel:
+                    NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null,
+                        new string[] { "Label ", " does not exist" },
+                        CultureInfo.CurrentCulture);
+                    break;
+                case NotFoundMessageType.InvalidFormat:
+                    NotFoundMessageBox.Content = NotFoundMessageConverter.Convert(message, null,
+                        new string[] { "Input ", " is incorrectly formated" },
+                        CultureInfo.CurrentCulture);
+                    break;
+                case NotFoundMessageType.ResourcesNotLoadedYet:
+                    NotFoundMessageBox.Content = NotFoundMessageConverter.Convert("", null,
+                        new string[] { "Labels or index file not loaded yet", "" },
+                        CultureInfo.CurrentCulture);
+                    break;
+                default:
+                    break;
+            }
+
             NotFoundMessageBox.Visibility = Visibility.Visible;
             if (ItemsControl != null)
                 ItemsControl.ItemsSource = null;

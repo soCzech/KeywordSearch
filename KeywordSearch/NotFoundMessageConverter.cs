@@ -18,29 +18,27 @@ namespace KeywordSearch {
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
             string input = value as string;
-            if (input == null && value != null) return null;
+            string[] array = parameter as string[]; ;
 
-            if (input == string.Empty)
-                input = "<Run Foreground=\"Gray\">Nothing to show</Run>";
-            else if (value == null)
-                input = "<Run Foreground=\"Gray\">Labels or index file not loaded yet</Run>";
-            else {
-                string escaped = SecurityElement.Escape(input);
-                StringBuilder builder = new StringBuilder();
-                foreach (char c in escaped) {
-                    if (c == '+' || c == '*') {
-                        builder.Append("<Run Foreground=\"Red\">");
-                        builder.Append(c == '*' ? '\u00d7' : c);
-                        builder.Append("</Run>");
-                    } else {
-                        builder.Append(c);
-                    }
+            if (input == null || array == null || array.Length != 2) return null;
+
+            string escaped = SecurityElement.Escape(input);
+            StringBuilder builder = new StringBuilder();
+            builder.Append(string.Format("<Run Foreground=\"Gray\">{0}</Run>", array[0]));
+
+            foreach (char c in escaped) {
+                if (c == '+' || c == '*') {
+                    builder.Append("<Run Foreground=\"Red\">");
+                    builder.Append(c == '*' ? '\u00d7' : c);
+                    builder.Append("</Run>");
+                } else {
+                    builder.Append(c);
                 }
-                builder.Append(" <Run Foreground=\"Gray\">not found</Run>");
-                input = builder.ToString();
             }
+            builder.Append(string.Format("<Run Foreground=\"Gray\">{0}</Run>", array[1]));
+            string output = builder.ToString();
             
-            string wrappedXml = string.Format("<TextBlock TextAlignment=\"Center\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xml:space=\"preserve\" TextWrapping=\"Wrap\">{0}</TextBlock>", input);
+            string wrappedXml = string.Format("<TextBlock TextAlignment=\"Center\" xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xml:space=\"preserve\" TextWrapping=\"Wrap\">{0}</TextBlock>", output);
 
             using (StringReader stringReader = new StringReader(wrappedXml)) {
                 using (XmlReader xmlReader = XmlReader.Create(stringReader)) {
