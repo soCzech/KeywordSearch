@@ -1,7 +1,10 @@
 ﻿KeywordSearch
 =============
 
-Program logic - all references established in constructors of `App`, `MainWindow` and `AppLogic`
+#### Program logic
+
+All references established in constructors of `App`, `MainWindow` and `AppLogic`.
+
 ```
                              App --> MainWindow
                                          |
@@ -20,6 +23,28 @@ NotFoundMessageBox    | |          classes.labels           |
 ```
 
 ---
+
+#### Example flow
+
+```
+         STARTUP              SUGGESTIONS                    SEARCH
+
+     +-- ImageProvider ---+                              +-- ImageProvider --+
+     |   > LoadFromFile() |                              |   > Search(...)   |
+     |                    |                              |                   |
+     |                    |                              |                   |
+App -+-- LabelProvider ---+-- SearchProvider ------------+                   +- END
+     |   > LoadFromFile() |   > GetSuggestionsAsync(...) |                   |
+     |                    |                              |                   |
+     |                    |                              |                   |
+     +-- MainWindow ------+-- UI Thread -----------------+-- UI Thread ------+
+
+
+```
+
+
+---
+
 
 ## Main Classes
 
