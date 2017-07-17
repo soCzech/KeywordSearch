@@ -3,9 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace KeywordSearch.TextSearch {
-    enum CaseSensitive { No = 0, Yes = 1 }
-    class AhoCorasick {
 
+    enum CaseSensitive { No = 0, Yes = 1 }
+
+    /// <summary>
+    /// AhoCorasick text search algorithm. First <see cref="Add(string)"/> all searched words, then <see cref="Build"/>, then <see cref="Find(string)"/>.
+    /// </summary>
+    class AhoCorasick {
         public AhoCorasick() { }
         public AhoCorasick(CaseSensitive caseSensitivity) {
             CaseSensitivity = caseSensitivity;

@@ -9,4 +9,5 @@ classes.labels
 files.index
 files.txt
 images/
+labels/
 index_file_gen.py

@@ -1,4 +1,4 @@
-﻿// https://wpfautocomplete.codeplex.com/
+﻿// inspired by: https://wpfautocomplete.codeplex.com/
 
 using System;
 using System.Collections.Generic;
@@ -46,7 +46,7 @@ namespace CustomElements {
     /// Step 2)
     /// Go ahead and use your control in the XAML file.
     ///
-    ///     <MyNamespace:SuggestionTextBox/>
+    ///     &lt;MyNamespace:SuggestionTextBox/&gt;
     ///
     /// </summary>
     public class SuggestionTextBox : Control {
@@ -246,7 +246,7 @@ namespace CustomElements {
         /// <summary>
         /// Update suggestions, must be called in UI thread to prevent race conditions
         /// </summary>
-        /// <example>suggestionTextBox.Dispatcher.BeginInvoke(new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate), new object[] { suggestions, filter});</example>
+        /// <example><code>suggestionTextBox.Dispatcher.BeginInvoke(new Action(suggestionTextBox.OnSuggestionUpdate), new object[] { suggestions, filter });</code></example>
         /// <param name="suggestions"></param>
         /// <param name="filter">A string, the suggestions are for</param>
         public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {

@@ -13,9 +13,20 @@ using System.Xml;
 
 namespace KeywordSearch {
 
+    /// <summary>
+    /// Converts string to WPF TextBlock to be shown as error.
+    /// </summary>
     [ValueConversion(typeof(string), typeof(object))]
     sealed class NotFoundMessageConverter : IValueConverter {
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="value">A string to be in black with red + and *</param>
+        /// <param name="targetType">Not used</param>
+        /// <param name="parameter">A string[] of length 2 with text preceeding and following the value argument in grey</param>
+        /// <param name="culture">Not used</param>
+        /// <returns>WPF TextBlock to be shown as error</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
             string input = value as string;
             string[] array = parameter as string[]; ;
@@ -47,6 +58,9 @@ namespace KeywordSearch {
             }
         }
 
+        /// <summary>
+        /// Not implemented!
+        /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
             throw new NotImplementedException("The converter does not support two-way binding.");
         }

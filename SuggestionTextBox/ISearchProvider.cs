@@ -12,7 +12,7 @@ namespace CustomElements {
         /// <summary>
         /// Called when user searches from a search box
         /// </summary>
-        /// <param name="filter">A string, the result should be for</param>
+        /// <param name="filter">A string the result should be for</param>
         /// <param name="suggestionTextBox">A reference to the search box</param>
         void Search(string filter, SuggestionTextBox suggestionTextBox);
     }

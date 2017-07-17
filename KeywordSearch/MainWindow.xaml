@@ -10,24 +10,21 @@
         WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.Resources>
-        <!--<local:SuggestionProvider x:Key="suggestionProvider"/>-->
         <local:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
 
-        <DataTemplate x:Key="imageClassTemplate">
+        <DataTemplate x:Key="ImageClassTemplate">
             <Border Padding="5">
                 <StackPanel Orientation="Vertical">
                     <ContentControl FontWeight="Bold" Content="{Binding Path=Name, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
-                    <!--<TextBlock Text="{Binding Path=Name}" FontWeight="Bold" />-->
                     <ContentControl Content="{Binding Path=Description, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
-                    <!--<TextBlock TextWrapping="Wrap" Text="{Binding Path=Description, StringFormat='Last Modified: {0}'}" />-->
                 </StackPanel>
             </Border>
         </DataTemplate>
         <Style TargetType="Run"
-               x:Key="highlightedText">
+               x:Key="HighlightedText">
             <Setter Property="Foreground" Value="Red" />
         </Style>
-        <Style x:Key="AnnotationStyle" TargetType="TextBlock">
+        <Style x:Key="ImageAnnotationId" TargetType="TextBlock">
             <Setter Property="Background" Value="#70FFFFFF" />
             <Setter Property="Padding" Value="4,2" />
             <Setter Property="FontWeight" Value="Bold" />
@@ -36,7 +33,7 @@
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
-        <Style x:Key="AnnotationStyle2" TargetType="TextBlock">
+        <Style x:Key="ImageAnnotationProbability" TargetType="TextBlock">
             <Setter Property="Padding" Value="4,2" />
             <Setter Property="Background" Value="#70FFFFFF" />
             <Setter Property="Foreground" Value="Red" />
@@ -54,8 +51,7 @@
                 <TextBlock TextWrapping="Wrap" Text="Keyword:" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <tools:SuggestionTextBox Width="300"
                                          x:Name="SuggestionTextBox"
-                                         ItemTemplate="{StaticResource ResourceKey=imageClassTemplate}">
-                    <!--SuggestionProvider="{StaticResource ResourceKey=suggestionProvider}"-->
+                                         ItemTemplate="{StaticResource ResourceKey=ImageClassTemplate}">
 
                     <tools:SuggestionTextBox.LoadingPlaceholder>
                         <TextBlock Text="Loading..."
@@ -66,7 +62,7 @@
 
         </Border>
         <Grid>
-            <ItemsControl x:Name="imageList" ItemsSource="{Binding Path=ImageProvider.Products}">
+            <ItemsControl x:Name="ImageList" ItemsSource="{Binding Path=ImageProvider.Products}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="10" Margin="5" Rows="7"/>
@@ -76,8 +72,8 @@
                     <DataTemplate>
                         <Grid>
                             <Image Source="{Binding Path=Image}" Stretch="Fill"/>
-                            <TextBlock Text="{Binding Path=Filename.Id}" Style="{StaticResource AnnotationStyle}"/>
-                            <TextBlock Text="{Binding Path=Filename.Probability}" Style="{StaticResource AnnotationStyle2}"/>
+                            <TextBlock Text="{Binding Path=Filename.Id}" Style="{StaticResource ImageAnnotationId}"/>
+                            <TextBlock Text="{Binding Path=Filename.Probability, StringFormat=N2}" Style="{StaticResource ImageAnnotationProbability}"/>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -27,14 +27,15 @@ namespace KeywordSearch {
 
             InitializeComponent();
 
+            // add SuggestionProvider and SearchProvider to the search box
             var Box = (SuggestionTextBox)FindName("SuggestionTextBox");
             Box.SuggestionProvider = Logic.SuggestionProvider;
             Box.SearchProvider = Logic.ImageProvider;
 
-            //Logic.ImageProvider.ViewModel1();
-            Logic.ImageProvider.ItemsControl = (ItemsControl)FindName("imageList");
+            // add an UI element where to display the results
+            Logic.ImageProvider.ItemsControl = (ItemsControl)FindName("ImageList");
+            // add an UI element where to display errors
             Logic.ImageProvider.NotFoundMessageBox = (ContentControl)FindName("NotFoundMessageBox");
-            //x.ItemsSource = Logic.ImageProvider.Products;
         }
     }
 }

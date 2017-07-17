@@ -13,11 +13,17 @@ using System.Windows.Media.Imaging;
 
 namespace KeywordSearch {
 
+    /// <summary>
+    /// A struct used by ItemsControl to display images in the results.
+    /// </summary>
     struct Thumbnail {
         public Filename Filename { get; set; }
         public BitmapImage Image { get; set; }
     }
 
+    /// <summary>
+    /// A struct with all the file info needed to sort and display images.
+    /// </summary>
     struct Filename : IComparable<Filename> {
         public uint Id { get; set; }
         public float Probability { get; set; }
@@ -27,16 +33,26 @@ namespace KeywordSearch {
         }
     }
 
+    /// <summary>
+    /// Searches an index file and displays results
+    /// </summary>
     class ImageProvider : ISearchProvider {
 
         private string IndexFilePath = ".\\files.index";
         private string ImageFolderPath = ".\\images\\";
 
+        /// <summary>
+        /// Called with default values of <see cref="IndexFilePath"/> and <see cref="ImageFolderPath"/>.
+        /// </summary>
+        /// <param name="lp">For class name to class id conversion</param>
         public ImageProvider(LabelProvider lp) {
             LabelProvider = lp;
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
 
+        /// <param name="lp">For class name to class id conversion</param>
+        /// <param name="filePath">Relative or absolute path to index file</param>
+        /// <param name="folderPath">Relative or absolute path to image folder</param>
         public ImageProvider(LabelProvider lp, string filePath, string folderPath) {
             LabelProvider = lp;
 
@@ -49,6 +65,7 @@ namespace KeywordSearch {
         private LabelProvider LabelProvider;
         private Dictionary<int, List<Filename>> Classes = new Dictionary<int, List<Filename>>();
         private Task LoadTask { get; set; }
+        private CancellationTokenSource CTS;
         public ItemsControl ItemsControl { get; set; }
         public ContentControl NotFoundMessageBox { get; set; }
 
@@ -59,9 +76,11 @@ namespace KeywordSearch {
             try {
                 stream = new BufferedByteStream(IndexFilePath);
 
+                // header = 'KS INDEX'+(Int64)-1
                 if (stream.ReadInt64() != 0x4b5320494e444558 && stream.ReadInt64() != -1)
                     throw new FileFormatException("Invalid index file format.");
                 
+                // read offests of each class
                 while (true) {
                     int value = stream.ReadInt32();
                     int valueOffset = stream.ReadInt32();
@@ -74,12 +93,14 @@ namespace KeywordSearch {
                 while (true) {
                     if (stream.IsEndOfStream()) break;
 
+                    // list of class offets does not contain this one
                     if (!classLocations.ContainsKey(stream.Pointer))
                         throw new FileFormatException("Invalid index file format.");
 
                     int classId = classLocations[stream.Pointer];
                     Classes.Add(classId, new List<Filename>());
 
+                    // add all images
                     while (true) {
                         uint imageId = (uint)stream.ReadInt32();
                         float imageProbability = stream.ReadFloat();
@@ -101,13 +122,17 @@ namespace KeywordSearch {
             bmp.UriSource = new Uri(string.Format("{0}{1}.jpg", ImageFolderPath, id), UriKind.Relative);
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.EndInit();
+            // due to exception 'Must create DependencySource on same Thread as the DependencyObject'
             bmp.Freeze();
 
             return bmp;
         }
 
-        CancellationTokenSource CTS;
-
+        /// <summary>
+        /// Searches the index file asynchronously and updates UI with the result.
+        /// </summary>
+        /// <param name="filter">A string the resuts should be for</param>
+        /// <param name="suggestionTextBox">Reference to the UI element of SearchTextBox</param>
         public void Search(string filter, SuggestionTextBox suggestionTextBox) {
             if (LabelProvider.LoadTask.IsFaulted) {
                 suggestionTextBox.Dispatcher.BeginInvoke(new Action(
@@ -131,6 +156,7 @@ namespace KeywordSearch {
                 return;
             }
 
+            // parse the search phrase
             List<List<int>> ids = GetClassIds(filter);
             if (ids == null) return;
 
@@ -154,6 +180,12 @@ namespace KeywordSearch {
             }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
         }
 
+        /// <summary>
+        /// Creates list of results and then creates <see cref="Thumbnail"/>s for a display.
+        /// </summary>
+        /// <param name="ids">Parsed list of ids</param>
+        /// <param name="token"></param>
+        /// <returns>List to be used as ItemSource</returns>
         private List<Thumbnail> GetThumbnails(List<List<int>> ids, CancellationToken token) {
             List<ListOrDictionary> afterUnion = DoListUnions(ids, token);
             if (afterUnion == null) return null;
@@ -174,10 +206,17 @@ namespace KeywordSearch {
             HideNotFoundMessageBox();
         }
 
+        /// <summary>
+        /// Does set multiplication - returns elements present in all sets with probabilities from each set multiplied.
+        /// </summary>
+        /// <param name="lists">List of classes where each class is represented by a list or a dictionary of its images</param>
+        /// <param name="token"></param>
+        /// <returns>Elements present in all sets with probabilities from each set multiplied</returns>
         private List<Filename> DoListMultiplications(List<ListOrDictionary> lists, CancellationToken token) {
             if (lists.Count == 1 && lists[0].List != null)
                 return lists[0].List;
 
+            // find a dictionary (since classes can be represented also as lists)
             Dictionary<uint, Filename> dict = null;
             for (int i = 0; i < lists.Count; i++) {
                 if (lists[i].Dictionary != null) {
@@ -186,11 +225,13 @@ namespace KeywordSearch {
                     break;
                 }
             }
+            // if no dictionary, make one
             if (dict == null) {
                 dict = lists[lists.Count - 1].List.ToDictionary(f => f.Id);
                 lists.RemoveAt(lists.Count - 1);
             }
 
+            // iterate over each list and check if element in dictionary and behave accordingly
             Filename fIn;
             foreach (ListOrDictionary item in lists) {
                 Dictionary<uint, Filename> tempDict = new Dictionary<uint, Filename>();
@@ -220,10 +261,14 @@ namespace KeywordSearch {
             var list = new List<Filename>();
             list.Capacity = dict.Count;
 
+            if (token.IsCancellationRequested) return null;
+
             foreach (var item in dict) {
                 list.Add(item.Value);
             }
-            list.Sort();
+
+            if (!token.IsCancellationRequested)
+                list.Sort();
             return list;
         }
 
@@ -232,9 +277,17 @@ namespace KeywordSearch {
             public Dictionary<uint, Filename> Dictionary;
         }
 
+        /// <summary>
+        /// Merge files from classes in each list of ids.
+        /// </summary>
+        /// <param name="ids">Lists to be merged</param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         private List<ListOrDictionary> DoListUnions(List<List<int>> ids, CancellationToken token) {
             var list = new List<ListOrDictionary>();
 
+            // should be fast
+            // http://alicebobandmallory.com/articles/2012/10/18/merge-collections-without-duplicates-in-c
             Filename fIn;
             foreach (List<int> listOfIds in ids) {
                 if (listOfIds.Count == 1) {
@@ -259,6 +312,9 @@ namespace KeywordSearch {
             return list;
         }
 
+        /// <summary>
+        /// Parses string of classes (eg. tree+castle*car -> {{tree, castle}, {car}})
+        /// </summary>
         private List<List<int>> GetClassIds(string filter) {
             var parts = filter.Split('*');
 
@@ -299,6 +355,11 @@ namespace KeywordSearch {
         enum NotFoundMessageType { NotFound, InvalidLabel, InvalidFormat, ResourcesNotLoadedYet }
         NotFoundMessageConverter NotFoundMessageConverter = new NotFoundMessageConverter();
 
+        /// <summary>
+        /// Show error message in UI.
+        /// </summary>
+        /// <param name="type">Type of an error</param>
+        /// <param name="message">A text the error is in</param>
         private void ShowNotFoundMessageBox(NotFoundMessageType type, string message) {
             switch (type) {
                 case NotFoundMessageType.NotFound:
@@ -329,6 +390,7 @@ namespace KeywordSearch {
             if (ItemsControl != null)
                 ItemsControl.ItemsSource = null;
         }
+
         private void HideNotFoundMessageBox() {
             NotFoundMessageBox.Visibility = Visibility.Hidden;
         }

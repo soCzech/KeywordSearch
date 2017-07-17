@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace KeywordSearch {
 
+    /// <summary>
+    /// For faster read and write of ints, floats and longs.
+    /// </summary>
     class BufferedByteStream : IDisposable {
 
         private FileStream Stream;

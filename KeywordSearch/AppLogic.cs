@@ -5,6 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace KeywordSearch {
+
+    /// <summary>
+    /// Class holding all the logic.
+    /// </summary>
     public class AppLogic {
         internal LabelProvider LabelProvider;
         internal SuggestionProvider SuggestionProvider;

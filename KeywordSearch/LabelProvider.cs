@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace KeywordSearch {
 
-    public class Label : IComparable<Label> {
+    class Label : IComparable<Label> {
         public int Id { get; set; }
         public string SynsetId { get; set; }
         public string Name { get; set; }
@@ -25,10 +25,17 @@ namespace KeywordSearch {
 
         private string FilePath = ".\\classes.labels";
 
+        /// <summary>
+        /// Asynchronously loads <see cref="Labels"/> from default file.
+        /// </summary>
         public LabelProvider() {
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
 
+        /// <summary>
+        /// Asynchronously loads <see cref="Labels"/> from filePath argumkent.
+        /// </summary>
+        /// <param name="filePath">Relative or absolute location of classes.labels file.</param>
         public LabelProvider(string filePath) {
             FilePath = filePath;
             LoadTask = Task.Factory.StartNew(LoadFromFile);
@@ -36,7 +43,13 @@ namespace KeywordSearch {
 
         private Dictionary<string, Label> Labels_ = new Dictionary<string, Label>();
 
+        /// <summary>
+        /// Task responsible for filling <see cref="Labels"/>. Access <see cref="Labels"/> only after completion.
+        /// </summary>
         public Task LoadTask { get; private set; }
+        /// <summary>
+        /// Return dictionary of <see cref="Label"/>s if availible, otherwise null.
+        /// </summary>
         public Dictionary<string, Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
 
         private void LoadFromFile() {
@@ -64,6 +77,7 @@ namespace KeywordSearch {
                     //if (Labels_.ContainsKey(parts[2]))
                     //    throw new Exception();
                     // TODO !!!
+                    // Make sure the label file contains unique class names
                     if (!Labels_.ContainsKey(parts[2]))
                         Labels_.Add(parts[2], label);
                 }

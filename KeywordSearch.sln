@@ -7,6 +7,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeywordSearch", "KeywordSea
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SuggestionTextBox", "SuggestionTextBox\SuggestionTextBox.csproj", "{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0BA4D79B-1C9E-43AB-B738-41EF56FF728C}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		generate_index_file.py = generate_index_file.py
+		generate_label_file.sh = generate_label_file.sh
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

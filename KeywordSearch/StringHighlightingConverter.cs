@@ -1,4 +1,4 @@
-﻿// http://underground.infovark.com/2011/03/03/highlighting-query-terms-in-a-wpf-textblock/
+﻿// inspired by: http://underground.infovark.com/2011/03/03/highlighting-query-terms-in-a-wpf-textblock/
 
 using System;
 using System.Collections.Generic;
@@ -14,17 +14,29 @@ using System.Xml;
 
 namespace KeywordSearch {
 
+    /// <summary>
+    /// Converts string to WPF TextBlock with parts of text in red.
+    /// </summary>
     [ValueConversion(typeof(string), typeof(object))]
     sealed class StringHighlightingConverter : IValueConverter {
         public const string START_TAG = "$~START~$";
         public const string END_TAG = "$~END~$";
 
+        /// <summary>
+        /// Takes string and makes text between <see cref="START_TAG"/> and <see cref="END_TAG"/> red
+        /// </summary>
+        /// <param name="value">String to be converted</param>
+        /// <param name="targetType">Not used</param>
+        /// <param name="parameter">Not used</param>
+        /// <param name="culture">Not used</param>
+        /// <returns>WPF TextBlock with parts of text in red</returns>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
             string input = value as string;
             if (input == null) return null;
 
             string escaped = SecurityElement.Escape(input);
-            //string xml = escaped.Replace(START_TAG, "<Run Style=\"{DynamicResource ResourceKey=highlightedText}\">").Replace(END_TAG, "</Run>");
+            // solves errors 'Dynamic resource not found'
+            // string xml = escaped.Replace(START_TAG, "<Run Style=\"{DynamicResource ResourceKey=HighlightedText}\">").Replace(END_TAG, "</Run>");
             string xml = escaped.Replace(START_TAG, "<Run Foreground=\"Red\">").Replace(END_TAG, "</Run>");
 
             string wrappedXml = string.Format("<TextBlock xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xml:space=\"preserve\" TextWrapping=\"Wrap\">{0}</TextBlock>", xml);
@@ -35,7 +47,9 @@ namespace KeywordSearch {
                 }
             }
         }
-
+        /// <summary>
+        /// Not implemented!
+        /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
             throw new NotImplementedException("The converter does not support two-way binding.");
         }

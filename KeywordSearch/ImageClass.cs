@@ -8,6 +8,9 @@ using CustomElements;
 
 namespace KeywordSearch {
 
+    /// <summary>
+    /// Used for SearchTextBox suggestions.
+    /// </summary>
     class ImageClass : IIdentifiable, IComparable<ImageClass> {
         public string Name { get; set; }
         public string Description { get; set; }
@@ -25,7 +28,10 @@ namespace KeywordSearch {
         }
     }
 
-    enum NameBonus : byte { None = 0, StartsWord = 1, StartsName = 2, FullName = 10 }
+    /// <summary>
+    /// Adds bonus when calculating relevance of a search phrase
+    /// </summary>
+    enum NameBonus : byte { None = 0, StartsWord = 1, StartsName = 2, StartsNameAlone = 4, FullName = 5, FullNameAlone = 10 }
 
     struct Relevance {
         public byte NameHits { get; set; }
