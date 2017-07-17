@@ -57,6 +57,17 @@ ContentControl NotFoundMessageBox // reference to a UI element displaying errors
 
 ## Other Classes
 
+##### AhoCorasick
+```csharp
+AhoCorasick() // default is case insensitive search
+AhoCorasick(CaseSensitive caseSensitivity)
+Add(string word)
+Add(IEnumerable<string> words)
+Build()
+Find(string text)
+```
+
+
 ##### BufferedByteStream
 ```csharp
 BufferedByteStream(string filePath) // path to a file
@@ -64,4 +75,39 @@ BufferedByteStream(string filePath) // path to a file
 ReadInt64()
 ReadInt32()
 ReadFloat()
+```
+
+##### ImageClass
+```csharp
+CompareTo(ImageClass other) // for sorting
+GetTextRepresentation() // returns string for a search text box
+
+string Name
+string Description
+string SearchableName
+int NameLenghtInWords
+Relevance SearchRelevance
+```
+
+##### Label
+```csharp
+CompareTo(Label other) // for sorting
+
+int Id
+string SynsetId
+string Name
+string Description
+int NameLenghtInWords
+```
+
+##### NotFoundMessageConverter
+```csharp
+Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    // creates error message TextBlock from string
+```
+
+##### StringHighlightingConverter
+```csharp
+Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    // highlights text between start and end tags for suggestions
 ```
