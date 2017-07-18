@@ -11,3 +11,5 @@ files.txt
 images/
 labels/
 index_file_gen.py
+_stuff/
+_run/
