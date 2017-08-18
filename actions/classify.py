@@ -1,9 +1,14 @@
 import argparse
+import os
+import sys
+import struct
 import tensorflow as tf
 from models import network, model_utils, inception_v1
 
 
 def run(filenames, num_classes, bin_dir):
+    top_number = min(5, num_classes)
+
     key, image = network.get_image_as_batch(filenames, inception_v1.default_image_size)
 
     session = tf.Session()
@@ -21,21 +26,39 @@ def run(filenames, num_classes, bin_dir):
     generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionGeneralist')
 
     probabilities = tf.nn.softmax(logits, name='Probability')
-    top_values, top_indices = tf.nn.top_k(probabilities, k=min(5, num_classes), sorted=True)
+    top_values, top_indices = tf.nn.top_k(probabilities, k=top_number, sorted=True)
 
     session.run(tf.global_variables_initializer())
 
     model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
 
+    file = open('files.pseudo-index', 'ab')
+
+    indices_format = '<' + 'I' * top_number
+    values_format = '<' + 'f' * top_number
+
+    i = 0
     try:
         while not coord.should_stop():
-            r_key, r_image, r_top_v, r_top_i = session.run([key, image, top_values, top_indices])
+            r_key, r_image, r_top_v, r_top_i = session.run([key, image, tf.squeeze(top_values), tf.squeeze(top_indices)])
 
-            print(str(r_key) + ':  indices ' + str(r_top_i) + ', values ' + str(r_top_v))
+            _, filename = os.path.split(r_key)
+            file_id = int(filename[:-4])
 
+            data = struct.pack(indices_format, *r_top_i) + struct.pack(values_format, *r_top_v)
+
+            file.write(struct.pack('<I', file_id))
+            file.write(data)
+
+            i += 1
+            sys.stdout.write('\r>> Classifying... {} ({:d}/{:d})'.format(filename, i, len(filenames)))
+            sys.stdout.flush()
     except tf.errors.OutOfRangeError:
-        print('Done')
+        sys.stdout.write('\r>> Classification completed.\n')
+        sys.stdout.flush()
     finally:
+        file.close()
+
         # When done, ask the threads to stop.
         coord.request_stop()
 
