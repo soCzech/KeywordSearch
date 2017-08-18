@@ -1,3 +1,4 @@
+import os.path
 import sys
 import argparse
 import tensorflow as tf
@@ -74,6 +75,10 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
         # Wait for threads to finish.
         coord.join(threads)
         session.close()
+
+    model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation.txt'),
+                                 [('#Images', acc_sum), ('Top1Acc', acc_top1), ('Top5Acc', acc_top5),
+                                  ('Top10Acc', acc_top10)])
 
 
 # py actions/evaluate.py --tfrecord_dir=..\_test\tfrecords --filename=eval5 --num_classes=2

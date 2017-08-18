@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 import tensorflow as tf
 
 
@@ -27,3 +28,13 @@ def save_model(saver, session, bin_dir, global_step):
 def get_images_from_dir(directory):
     directory = os.path.normpath(directory)
     return [os.path.join(directory, filename) for filename in os.listdir(directory)]
+
+
+def write_evaluation(filename, results):
+    exists = os.path.isfile(filename)
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S ')
+
+    with open(filename, 'a') as f:
+        if not exists:
+            f.write(' ' * 20 + ', '.join(['{:10}'.format(x) for x, _ in results]) + '\n')
+        f.write(timestamp + ', '.join(['{:10d}'.format(x) for _, x in results]) + '\n')
