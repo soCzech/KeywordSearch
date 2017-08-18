@@ -9,7 +9,7 @@ slim = tf.contrib.slim
 
 
 def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
-    images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=3,
+    images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=20,
                                        image_size=inception_v1.default_image_size, is_training=False)
 
     session = tf.Session()
@@ -21,7 +21,7 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
     """
         Network model
     """
-    logits, _ = network.build_net(images, num_classes, scope='InceptionGeneralist', is_training=True)
+    logits, _ = network.build_net(images, num_classes, scope='InceptionGeneralist', is_training=False)
 
     inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionV1')
     generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionGeneralist')

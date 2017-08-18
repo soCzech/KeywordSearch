@@ -10,7 +10,7 @@ import sys
 slim = tf.contrib.slim
 
 
-def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir,learning_rate=0.1,
+def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_rate=0.1,
         number_of_iterations=100000, save_each=2000):
     images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=batch_size,
                                        image_size=inception_v1.default_image_size, is_training=True)

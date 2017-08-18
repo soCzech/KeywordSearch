@@ -28,6 +28,8 @@ def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.
 
         with tf.variable_scope(scope, reuse=False):
             net = slim.avg_pool2d(net, [7, 7], stride=1, scope='AvgPool_0a_7x7')
+            end_points['AvgPool_0a_7x7'] = net
+
             net = slim.dropout(net, dropout_keep_prob, scope='Dropout_0b')
             logits = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None,
                                  scope='Conv2d_0c_1x1')
@@ -48,7 +50,7 @@ def get_batch(tfrecord_dir, dataset_name, batch_size, image_size, is_training):
                                                                    is_training=is_training)
 
         if is_training:
-            return tf.train.shuffle_batch([processed_image, label], batch_size=batch_size,
+            return tf.train.shuffle_batch([processed_image, label], batch_size=batch_size, seed=42,
                                           capacity=10*batch_size, min_after_dequeue=8*batch_size)
         return tf.train.batch([processed_image, label], batch_size=batch_size, num_threads=1,
                               allow_smaller_final_batch=True)
