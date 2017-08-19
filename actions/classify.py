@@ -32,7 +32,10 @@ def run(filenames, num_classes, bin_dir):
 
     model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
 
-    file = open('files.pseudo-index', 'ab')
+    pi_filename = os.path.join(os.path.normpath(bin_dir), 'files.pseudo-index')
+    if os.path.isfile(pi_filename):
+        raise Exception(pi_filename + ' exists.')
+    file = open(pi_filename, 'wb')
 
     indices_format = '<' + 'I' * top_number
     values_format = '<' + 'f' * top_number

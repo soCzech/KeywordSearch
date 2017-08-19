@@ -1,11 +1,13 @@
 #https://github.com/tensorflow/models/tree/master/slim
 
-if [ ! -d "bin" ]; then
-	mkdir "bin"
-fi
-if [ ! -d "bin/checkpoints" ]; then
-	mkdir "bin/checkpoints"
-fi
+dirs="bin bin/checkpoints"
+
+for i in ${dirs}
+do
+    if [ ! -d ${i} ]; then
+        mkdir ${i}
+    fi
+done
 
 wget http://download.tensorflow.org/models/inception_v1_2016_08_28.tar.gz
 tar -xvf inception_v1_2016_08_28.tar.gz
