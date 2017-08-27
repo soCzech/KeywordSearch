@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-
+﻿
 namespace CustomElements {
 
     /// <summary>
@@ -9,15 +7,15 @@ namespace CustomElements {
     public interface ISuggestionProvider {
         /// <summary>
         /// Shall create the suggestions as IEnumerable&lt;IIdentifiable&gt;.
-        /// To update the list, call OnSuggestionUpdate(IEnumerable&lt;IIdentifiable&gt; suggestions, string filter) of the search box instance via BeginInvoke.
+        /// To update the list, call OnSuggestionUpdate(IEnumerable&lt;IIdentifiable&gt; suggestions, string filter).
         /// Second argument filter should be the same as the input argument.
         /// </summary>
         /// <param name="filter">A string the suggestions should be for</param>
-        void GetSuggestionsAsync(string filter);
+        void GetSuggestions(string filter);
         /// <summary>
         /// Called to stop any ongoing suggestions search (eg. the filter argument changed).
         /// </summary>
-        void CancelSuggestionsLookup();
+        void CancelSuggestions();
     }
 
 }

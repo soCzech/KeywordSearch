@@ -3,21 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Controls.Primitives;
-
-using System.Diagnostics;
-using System.Collections;
 
 namespace CustomElements {
     /// <summary>
@@ -55,9 +44,46 @@ namespace CustomElements {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(SuggestionTextBox), new FrameworkPropertyMetadata(typeof(SuggestionTextBox)));
         }
 
+        #region Initialization
+
+        /// <summary>
+        /// Indetifies TextBox part of the UI element
+        /// </summary>
         public const string PartTextBox = "PART_TextBox";
+        /// <summary>
+        /// Indetifies Popup (containing list of suggestions) part of the UI element
+        /// </summary>
         public const string PartPopup = "PART_Popup";
+        /// <summary>
+        /// Indetifies ListBox (with suggestions) part of the UI element
+        /// </summary>
         public const string PartListBox = "PART_ListBox";
+
+        private TextBox TextBox_;
+        private Popup Popup_;
+        private Selector Selector_;
+
+        /// <summary>
+        /// Initialize the UI elements and register events
+        /// </summary>
+        public override void OnApplyTemplate() {
+            base.OnApplyTemplate();
+
+            TextBox_ = (TextBox)Template.FindName(PartTextBox, this);
+            Popup_ = (Popup)Template.FindName(PartPopup, this);
+            Selector_ = (Selector)Template.FindName(PartListBox, this);
+
+            TextBox_.TextChanged += TextBox_OnTextChanged;
+            TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
+            TextBox_.LostFocus += TextBox_OnLostFocus;
+
+            Popup_.StaysOpen = false;
+            Popup_.Closed += Popup_OnClosed;
+        }
+
+        #endregion
+
+        #region Properties
 
         public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
@@ -91,6 +117,9 @@ namespace CustomElements {
             set { SetValue(SearchProviderProperty, value); }
         }
 
+        /// <summary>
+        /// Template for items in the ListBox
+        /// </summary>
         public DataTemplate ItemTemplate {
             get { return (DataTemplate)GetValue(ItemTemplateProperty); }
             set { SetValue(ItemTemplateProperty, value); }
@@ -112,28 +141,95 @@ namespace CustomElements {
             set { SetValue(MaxNumberOfElementsProperty, value); }
         }
 
+        /// <summary>
+        /// TextBlock shown if loading any results
+        /// </summary>
         public object LoadingPlaceholder {
             get { return GetValue(LoadingPlaceholderProperty); }
             set { SetValue(LoadingPlaceholderProperty, value); }
         }
 
-        private TextBox TextBox_;
-        private Popup Popup_;
-        private Selector Selector_;
+        #endregion
 
-        public override void OnApplyTemplate() {
-            base.OnApplyTemplate();
+        #region Public Methods
 
-            TextBox_ = (TextBox)Template.FindName(PartTextBox, this);
-            Popup_ = (Popup)Template.FindName(PartPopup, this);
-            Selector_ = (Selector)Template.FindName(PartListBox, this);
+        /// <summary>
+        /// Visually update suggestions
+        /// </summary>
+        /// <param name="suggestions"><see cref="IEnumerable{IIdentifiable}"/> of the suggestions</param>
+        /// <param name="filter">A string, the suggestions are for</param>
+        public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
+            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
+                if (IsPopupOpen && filter == TextBox_.Text) {
+                    IsLoading = false;
+                    Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
+                    IsPopupOpen = Selector_.HasItems;
+                }
+            });
+        }
 
-            TextBox_.TextChanged += TextBox_OnTextChanged;
-            TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
-            TextBox_.LostFocus += TextBox_OnLostFocus;
+        /// <summary>
+        /// Type of message to be shown in Popup underneath the TextBox
+        /// </summary>
+        public enum SuggestionMessageType {
+            /// <summary>
+            /// Message is shown in <see cref="MessageBox"/> as an error of application
+            /// </summary>
+            Exception,
+            /// <summary>
+            /// Message is shown in Popup underneath the TextBox and disappears when any change to Popup occurs
+            /// </summary>
+            ResourcesNotLoadedYet
+        }
 
-            Popup_.StaysOpen = false;
-            Popup_.Closed += Popup_OnClosed;
+        /// <summary>
+        /// Show message in the Popup of this UI element
+        /// </summary>
+        public void OnShowSuggestionMessage(SuggestionMessageType type, string message) {
+            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
+                switch (type) {
+                    case SuggestionMessageType.Exception:
+                        Popup_Close();
+                        MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        return;
+                    case SuggestionMessageType.ResourcesNotLoadedYet:
+                        ((TextBlock)LoadingPlaceholder).Text = message;
+                        break;
+                    default:
+                        MessageBox.Show("Unknown type of SuggestionError", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        break;
+                }
+            });
+        }
+
+        #endregion
+
+        #region Control Methods
+
+        private void Popup_Open() {
+            IsPopupOpen = true;
+            IsLoading = true;
+
+            Selector_.ItemsSource = null;
+            SuggestionProvider.CancelSuggestions();
+
+            SuggestionProvider.GetSuggestions(TextBox_.Text);
+        }
+
+        private void Popup_Close() {
+            IsPopupOpen = false;
+            IsLoading = false;
+        }
+
+        #endregion
+
+        #region Event Handling Methods
+        
+        /// <summary>
+        /// Cancel suggestion search when suggestions closed
+        /// </summary>
+        private void Popup_OnClosed(object sender, EventArgs e) {
+            SuggestionProvider.CancelSuggestions();
         }
 
         /// <summary>
@@ -224,56 +320,8 @@ namespace CustomElements {
             }
         }
 
-        private void Popup_Open() {
-            IsPopupOpen = true;
-            IsLoading = true;
-
-            Selector_.ItemsSource = null;
-            SuggestionProvider.CancelSuggestionsLookup();
-
-            SuggestionProvider.GetSuggestionsAsync(TextBox_.Text);
-        }
-
-        private void Popup_Close() {
-            IsPopupOpen = false;
-            IsLoading = false;
-        }
-
-        private void Popup_OnClosed(object sender, EventArgs e) {
-            SuggestionProvider.CancelSuggestionsLookup();
-        }
-
-        /// <summary>
-        /// Visually update suggestions
-        /// </summary>
-        /// <param name="suggestions">IEnumerable of the suggestions</param>
-        /// <param name="filter">A string, the suggestions are for</param>
-        public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
-            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
-                if (IsPopupOpen && filter == TextBox_.Text) {
-                    IsLoading = false;
-                    Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
-                    IsPopupOpen = Selector_.HasItems;
-                }
-            });
-        }
-
-        public void OnSearchErrorEvent(ErrorMessageType type, string message) {
-            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
-                switch (type) {
-                    case ErrorMessageType.Exception:
-                        Popup_Close();
-                        MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                        return;
-                    case ErrorMessageType.ResourcesNotLoadedYet:
-                        ((TextBlock)LoadingPlaceholder).Text = message;
-                        break;
-                    default:
-                        MessageBox.Show("Unknown type of SuggestionError", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                        break;
-                }
-            });
-        }
+        #endregion
 
     }
+
 }

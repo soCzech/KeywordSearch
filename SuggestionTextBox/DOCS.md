@@ -33,9 +33,8 @@
     Box.SuggestionProvider = new SuggestionProvider(); // (your implementation)
     Box.SearchProvider = new SearchProvider(); // (your implementation)
     ```
-4. To update suggestions, you need to call `SuggestionTextBox.OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter)`{:.language-csharp}. It sould be called in the UI thread.
-5. Done :)
-
+4. To update suggestions, call `OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter)`{:.language-csharp}. It is callable from any thread since internally it calls `BeginInvoke` on `Application.Current.Dispatcher`{:.language-csharp}.
+5. To show message other than *Loading...*, call `Application.Current.Dispatcher`{:.language-csharp}.
 ---
 
 ### List of all custom SuggestionTextBox properties
