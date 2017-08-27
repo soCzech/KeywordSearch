@@ -34,30 +34,18 @@
     Box.SearchProvider = new SearchProvider(); // (your implementation)
     ```
 4. To update suggestions, call `OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter)`{:.language-csharp}. It is callable from any thread since internally it calls `BeginInvoke` on `Application.Current.Dispatcher`{:.language-csharp}.
-5. To show message other than *Loading...*, call `Application.Current.Dispatcher`{:.language-csharp}.
+5. To show message other than *Loading...* or show an exception in `MessageBox`, call `OnShowSuggestionMessage(SuggestionMessageType type, string message)`{:.language-csharp} (callable from any thread).
+6. Done :)
 ---
 
-### List of all custom SuggestionTextBox properties
+##### Initialiation
+Initialization is done in overwritten `OnApplyTemplate` method where references to UI parts are assigned and all event handlers registered.
 
-```csharp
-bool IsLoading // indicates if there is ongoing suggestion search
-               // LoadingPlaceholder is showed
-```
-```csharp
-bool IsPopupOpen // indicates if suggestion box is open
-```
-```csharp
-DataTemplate ItemTemplate // represents design of an suggestion item
-```
-```csharp
-object LoadingPlaceholder // UI element to be showed instead of suggestions when IsLoading
-```
-```csharp
-int MaxNumberOfElements // maximal number of item to show in suggestions
-```
-```csharp
-ISuggestionProvider SuggestionProvider
-```
-```csharp
-ISearchProvider SearchProvider
-```
+##### Custom Properties
+See *Properties* region in `SuggestionTextBox.cs`.
+
+##### Public Methods
+Public methods are only `OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter)`{:.language-csharp} and `OnShowSuggestionMessage(SuggestionMessageType type, string message)`{:.language-csharp}. They can be called from any thread.
+
+##### Control & Event Handling Methods
+Used to handle user interaction with the UI element. Expected to be called only from the UI thread.

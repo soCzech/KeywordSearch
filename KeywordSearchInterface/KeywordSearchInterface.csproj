@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Converters\StringHighlightingConverter.cs" />
+    <Compile Include="DataClasses\Filename.cs" />
     <Compile Include="DataClasses\ImageClass.cs" />
     <Compile Include="DataClasses\Label.cs" />
     <Compile Include="ImageProvider.cs" />

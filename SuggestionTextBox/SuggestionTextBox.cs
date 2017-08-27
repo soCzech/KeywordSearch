@@ -158,7 +158,7 @@ namespace CustomElements {
         /// </summary>
         /// <param name="suggestions"><see cref="IEnumerable{IIdentifiable}"/> of the suggestions</param>
         /// <param name="filter">A string, the suggestions are for</param>
-        public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
+        public void OnSuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter) {
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {
                 if (IsPopupOpen && filter == TextBox_.Text) {
                     IsLoading = false;
@@ -166,20 +166,6 @@ namespace CustomElements {
                     IsPopupOpen = Selector_.HasItems;
                 }
             });
-        }
-
-        /// <summary>
-        /// Type of message to be shown in Popup underneath the TextBox
-        /// </summary>
-        public enum SuggestionMessageType {
-            /// <summary>
-            /// Message is shown in <see cref="MessageBox"/> as an error of application
-            /// </summary>
-            Exception,
-            /// <summary>
-            /// Message is shown in Popup underneath the TextBox and disappears when any change to Popup occurs
-            /// </summary>
-            ResourcesNotLoadedYet
         }
 
         /// <summary>
@@ -322,6 +308,20 @@ namespace CustomElements {
 
         #endregion
 
+    }
+
+    /// <summary>
+    /// Type of message to be shown in Popup underneath the TextBox
+    /// </summary>
+    public enum SuggestionMessageType {
+        /// <summary>
+        /// Message is shown in <see cref="MessageBox"/> as an error of application
+        /// </summary>
+        Exception,
+        /// <summary>
+        /// Message is shown in Popup underneath the TextBox and disappears when any change to Popup occurs
+        /// </summary>
+        ResourcesNotLoadedYet
     }
 
 }

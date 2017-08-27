@@ -1,30 +1,13 @@
-﻿using CustomElements;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media.Imaging;
+using CustomElements;
 
 namespace KeywordSearchInterface {
-
-    /// <summary>
-    /// A struct with all the file info needed to sort and display images.
-    /// </summary>
-    public struct Filename : IComparable<Filename> {
-        public uint Id { get; set; }
-        public float Probability { get; set; }
-
-        public int CompareTo(Filename other) {
-            return -Probability.CompareTo(other.Probability);
-        }
-    }
-
+    
     /// <summary>
     /// Searches an index file and displays results
     /// </summary>
@@ -58,6 +41,8 @@ namespace KeywordSearchInterface {
         private Dictionary<int, List<Filename>> Classes = new Dictionary<int, List<Filename>>();
         private Task LoadTask { get; set; }
         private CancellationTokenSource CTS;
+
+        #region (Private) Index File Loading
 
         private void LoadFromFile() {
             BufferedByteStream stream = null;
@@ -105,20 +90,23 @@ namespace KeywordSearchInterface {
             }
         }
 
+        #endregion
+
+        #region Interface Methods
+
         /// <summary>
-        /// Searches the index file asynchronously and updates UI with the result.
+        /// Searches the index file asynchronously and calls <see cref="SearchResultsReadyEvent"/>.
         /// </summary>
         /// <param name="filter">A string the resuts should be for</param>
-        /// <param name="suggestionTextBox">Reference to the UI element of SearchTextBox</param>
         public void Search(string filter) {
             if (LabelProvider.LoadTask.IsFaulted) {
-                SearchErrorEvent(ErrorMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
+                ShowSearchMessageEvent(SearchMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
             } else if (LoadTask.IsFaulted) {
-                SearchErrorEvent(ErrorMessageType.Exception, LoadTask.Exception.InnerException.Message);
+                ShowSearchMessageEvent(SearchMessageType.Exception, LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted || !LoadTask.IsCompleted) {
-                SearchErrorEvent(ErrorMessageType.ResourcesNotLoadedYet, filter);
+                ShowSearchMessageEvent(SearchMessageType.ResourcesNotLoadedYet, filter);
                 return;
             }
 
@@ -132,7 +120,7 @@ namespace KeywordSearchInterface {
                 return GetFilenames(ids, CTS.Token);
             }, CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<List<Filename>> task) => {
                 if (task.IsFaulted) {
-                    SearchErrorEvent(ErrorMessageType.Exception, task.Exception.InnerException.Message);
+                    ShowSearchMessageEvent(SearchMessageType.Exception, task.Exception.InnerException.Message);
                     return;
                 }
                 if (task.Result == null) return;
@@ -148,12 +136,47 @@ namespace KeywordSearchInterface {
             CTS?.Cancel();
         }
 
+        #endregion
+
+        #region Events
+
         /// <summary>
-        /// Creates list of results and then creates <see cref="Thumbnail"/>s for a display.
+        /// Delegate for <see cref="SearchResultsReadyEvent"/>
+        /// </summary>
+        public delegate void SearchResultsReady(List<Filename> filenames);
+
+        /// <summary>
+        /// Called when new result are ready and should be shown
+        /// </summary>
+        public event SearchResultsReady SearchResultsReadyEvent;
+
+        /// <summary>
+        /// Delegate for <see cref="ShowSearchMessageEvent"/>
+        /// </summary>
+        /// <param name="type">Type of an message</param>
+        /// <param name="message">A text the message to show</param>
+        public delegate void ShowSearchMessage(SearchMessageType type, string message);
+
+        /// <summary>
+        /// Called when an UI message should be shown
+        /// </summary>
+        public event ShowSearchMessage ShowSearchMessageEvent;
+
+        #endregion
+
+        #region (Private) List Unions & Multiplications
+
+        private struct ListOrDictionary {
+            public List<Filename> List;
+            public Dictionary<uint, Filename> Dictionary;
+        }
+
+        /// <summary>
+        /// Creates list of results for a display.
         /// </summary>
         /// <param name="ids">Parsed list of ids</param>
         /// <param name="token"></param>
-        /// <returns>List to be used as ItemSource</returns>
+        /// <returns>List of <see cref="Filename"/>s</returns>
         private List<Filename> GetFilenames(List<List<int>> ids, CancellationToken token) {
             List<ListOrDictionary> afterUnion = DoListUnions(ids, token);
             if (afterUnion == null) return null;
@@ -226,11 +249,6 @@ namespace KeywordSearchInterface {
             return list;
         }
 
-        private struct ListOrDictionary {
-            public List<Filename> List;
-            public Dictionary<uint, Filename> Dictionary;
-        }
-
         /// <summary>
         /// Merge files from classes in each list of ids.
         /// </summary>
@@ -266,6 +284,10 @@ namespace KeywordSearchInterface {
             return list;
         }
 
+        #endregion
+
+        #region (Private) Parse Search Term
+
         /// <summary>
         /// Parses string of classes (eg. tree+castle*car -> {{tree, castle}, {car}})
         /// </summary>
@@ -284,12 +306,12 @@ namespace KeywordSearchInterface {
                     string cls = classes[i].Trim();
 
                     if (cls == string.Empty) {
-                        SearchErrorEvent(ErrorMessageType.InvalidFormat, filter);
+                        ShowSearchMessageEvent(SearchMessageType.InvalidFormat, filter);
                         return null;
                     }
 
                     if (!LabelProvider.Labels.TryGetValue(cls, out label)) {
-                        SearchErrorEvent(ErrorMessageType.InvalidLabel, cls);
+                        ShowSearchMessageEvent(SearchMessageType.InvalidLabel, cls);
                         return null;
                     }
                     if (!Classes.ContainsKey(label.Id)) continue;
@@ -299,17 +321,20 @@ namespace KeywordSearchInterface {
             }
             for (int p = 0; p < list.Count; p++) {
                 if (list[p].Count == 0) {
-                    SearchErrorEvent(ErrorMessageType.NotFound, parts[p]);
+                    ShowSearchMessageEvent(SearchMessageType.NotFound, parts[p]);
                     return null;
                 }
             }
             return list;
         }
 
+        #endregion
 
-        public event SearchError SearchErrorEvent;
-
-        public delegate void SearchResultsReady(List<Filename> filenames);
-        public event SearchResultsReady SearchResultsReadyEvent;
     }
+
+    /// <summary>
+    /// Type of message to be shown instead of the results
+    /// </summary>
+    public enum SearchMessageType { Exception, NotFound, InvalidLabel, InvalidFormat, ResourcesNotLoadedYet }
+
 }

@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
-// !
-using CustomElements;
-using System.Diagnostics;
-using System.Windows.Controls;
 using System.Threading;
-
-using System.Windows;
+using CustomElements;
 
 namespace KeywordSearchInterface {
+
     public class SuggestionProvider : ISuggestionProvider {
 
         private LabelProvider LabelProvider;
@@ -23,20 +18,47 @@ namespace KeywordSearchInterface {
             LabelProvider = labelProvider;
         }
 
+        #region Events
+
         /// <summary>
-        /// Checks if labels are loaded. Creates new task that searches for correct labels. Calls suggestion list update on the UI thread.
+        /// Delegate for <see cref="SuggestionResultsReadyEvent"/>
+        /// </summary>
+        public delegate void SuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter);
+
+        /// <summary>
+        /// Called when new result are ready and should be shown
+        /// </summary>
+        public event SuggestionResultsReady SuggestionResultsReadyEvent;
+
+        /// <summary>
+        /// Delegate for <see cref="ShowSuggestionMessageEvent"/>
+        /// </summary>
+        /// <param name="type">Type of an message</param>
+        /// <param name="message">A text the message to show</param>
+        public delegate void ShowSuggestionMessage(SuggestionMessageType type, string message);
+
+        /// <summary>
+        /// Called when an UI message should be shown
+        /// </summary>
+        public event ShowSuggestionMessage ShowSuggestionMessageEvent;
+
+        #endregion
+
+        #region Interface Methods
+
+        /// <summary>
+        /// Checks if labels are loaded. Creates new task that searches for correct labels. Calls <see cref="SuggestionResultsReadyEvent"/>.
         /// </summary>
         /// <param name="filter">A string the result should be for</param>
-        /// <param name="suggestionTextBox">A reference to the search box</param>
-        public void GetSuggestionsAsync(string filter) {
+        public void GetSuggestions(string filter) {
             if (LabelProvider.LoadTask.IsFaulted) {
-                SearchErrorEvent(ErrorMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
+                ShowSuggestionMessageEvent(SuggestionMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted) {
-                SearchErrorEvent(ErrorMessageType.ResourcesNotLoadedYet, "Labels not loaded yet...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Labels not loaded yet...");
                 return;
             } else {
-                SearchErrorEvent(ErrorMessageType.ResourcesNotLoadedYet, "Loading...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Loading...");
             }
 
             CTS = new CancellationTokenSource();
@@ -44,27 +66,27 @@ namespace KeywordSearchInterface {
             Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); },
                 CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
                     if (task.IsFaulted) {
-                        SearchErrorEvent(ErrorMessageType.Exception, task.Exception.InnerException.Message);
+                        ShowSuggestionMessageEvent(SuggestionMessageType.Exception, task.Exception.InnerException.Message);
                         return;
                     }
 
                     SuggestionResultsReadyEvent(task.Result, filter);
-                    //suggestionTextBox.Dispatcher.BeginInvoke(
-                    //    new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
-                    //    new object[] { task.Result, filter }
-                    //    );
             }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
         }
 
         /// <summary>
         /// Calls Cancel() on <see cref="CancellationTokenSource">CancellationTokenSource</see> resulting in cancelation of a label search task.
         /// </summary>
-        public void CancelSuggestionsLookup() {
+        public void CancelSuggestions() {
             CTS?.Cancel();
         }
 
+        #endregion
+
+        #region Private Search Methods
+
         /// <summary>
-        /// 
+        /// Performs the search on all labels
         /// </summary>
         /// <param name="filter">A string the result should be for</param>
         /// <param name="token">A cancellation token to stop the search if necessary</param>
@@ -163,9 +185,8 @@ namespace KeywordSearchInterface {
             public NameBonus Bonus { get; set; }
         }
 
-        public event SearchError SearchErrorEvent;
+        #endregion
 
-        public delegate void SuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter);
-        public event SuggestionResultsReady SuggestionResultsReadyEvent;
     }
+
 }

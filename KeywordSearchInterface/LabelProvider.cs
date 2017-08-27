@@ -21,7 +21,7 @@ namespace KeywordSearchInterface {
         }
 
         /// <summary>
-        /// Asynchronously loads <see cref="Labels"/> from filePath argumkent.
+        /// Asynchronously loads <see cref="Labels"/> from filePath argument.
         /// </summary>
         /// <param name="filePath">Relative or absolute location of classes.labels file.</param>
         public LabelProvider(string filePath) {
