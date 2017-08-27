@@ -162,7 +162,7 @@ namespace CustomElements {
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
             if ((!IsPopupOpen || Selector_.SelectedItem == null) && e.Key == Key.Enter) {
                 if (TextBox_.Text != string.Empty) {
-                    SearchProvider?.Search(TextBox_.Text, this);
+                    SearchProvider?.Search(TextBox_.Text);
                     Popup_Close();
                 }
                 return;
@@ -231,7 +231,7 @@ namespace CustomElements {
             Selector_.ItemsSource = null;
             SuggestionProvider.CancelSuggestionsLookup();
 
-            SuggestionProvider.GetSuggestionsAsync(TextBox_.Text, this);
+            SuggestionProvider.GetSuggestionsAsync(TextBox_.Text);
         }
 
         private void Popup_Close() {
@@ -244,17 +244,35 @@ namespace CustomElements {
         }
 
         /// <summary>
-        /// Update suggestions, must be called in UI thread to prevent race conditions
+        /// Visually update suggestions
         /// </summary>
-        /// <example><code>suggestionTextBox.Dispatcher.BeginInvoke(new Action(suggestionTextBox.OnSuggestionUpdate), new object[] { suggestions, filter });</code></example>
-        /// <param name="suggestions"></param>
+        /// <param name="suggestions">IEnumerable of the suggestions</param>
         /// <param name="filter">A string, the suggestions are for</param>
         public void OnSuggestionUpdate(IEnumerable<IIdentifiable> suggestions, string filter) {
-            if (IsPopupOpen && filter == TextBox_.Text) {
-                IsLoading = false;
-                Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
-                IsPopupOpen = Selector_.HasItems;
-            }
+            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
+                if (IsPopupOpen && filter == TextBox_.Text) {
+                    IsLoading = false;
+                    Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
+                    IsPopupOpen = Selector_.HasItems;
+                }
+            });
+        }
+
+        public void OnSearchErrorEvent(ErrorMessageType type, string message) {
+            Application.Current.Dispatcher.BeginInvoke((Action)delegate {
+                switch (type) {
+                    case ErrorMessageType.Exception:
+                        Popup_Close();
+                        MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        return;
+                    case ErrorMessageType.ResourcesNotLoadedYet:
+                        ((TextBlock)LoadingPlaceholder).Text = message;
+                        break;
+                    default:
+                        MessageBox.Show("Unknown type of SuggestionError", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        break;
+                }
+            });
         }
 
     }

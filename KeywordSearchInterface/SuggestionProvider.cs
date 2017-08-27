@@ -10,11 +10,10 @@ using System.Diagnostics;
 using System.Windows.Controls;
 using System.Threading;
 
-using KeywordSearch.TextSearch;
 using System.Windows;
 
-namespace KeywordSearch {
-    class SuggestionProvider : ISuggestionProvider {
+namespace KeywordSearchInterface {
+    public class SuggestionProvider : ISuggestionProvider {
 
         private LabelProvider LabelProvider;
         private CancellationTokenSource CTS;
@@ -29,18 +28,15 @@ namespace KeywordSearch {
         /// </summary>
         /// <param name="filter">A string the result should be for</param>
         /// <param name="suggestionTextBox">A reference to the search box</param>
-        public void GetSuggestionsAsync(string filter, SuggestionTextBox suggestionTextBox) {
+        public void GetSuggestionsAsync(string filter) {
             if (LabelProvider.LoadTask.IsFaulted) {
-                suggestionTextBox.IsPopupOpen = false;
-                suggestionTextBox.Dispatcher.BeginInvoke(new Action(
-                    () => { MessageBox.Show(LabelProvider.LoadTask.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
-                    ));
+                SearchErrorEvent(ErrorMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted) {
-                ((TextBlock)suggestionTextBox.LoadingPlaceholder).Text = "Labels not loaded yet...";
+                SearchErrorEvent(ErrorMessageType.ResourcesNotLoadedYet, "Labels not loaded yet...");
                 return;
             } else {
-                ((TextBlock)suggestionTextBox.LoadingPlaceholder).Text = "Loading...";
+                SearchErrorEvent(ErrorMessageType.ResourcesNotLoadedYet, "Loading...");
             }
 
             CTS = new CancellationTokenSource();
@@ -48,16 +44,15 @@ namespace KeywordSearch {
             Task.Factory.StartNew(() => { return GetList(filter, CTS.Token); },
                 CTS.Token, TaskCreationOptions.None, TaskScheduler.Default).ContinueWith((Task<IEnumerable<IIdentifiable>> task) => {
                     if (task.IsFaulted) {
-                        suggestionTextBox.Dispatcher.BeginInvoke(new Action(
-                            () => { MessageBox.Show(task.Exception.InnerException.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation); }
-                            ));
+                        SearchErrorEvent(ErrorMessageType.Exception, task.Exception.InnerException.Message);
                         return;
                     }
 
-                    suggestionTextBox.Dispatcher.BeginInvoke(
-                        new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
-                        new object[] { task.Result, filter }
-                        );
+                    SuggestionResultsReadyEvent(task.Result, filter);
+                    //suggestionTextBox.Dispatcher.BeginInvoke(
+                    //    new Action<IEnumerable<IIdentifiable>, string>(suggestionTextBox.OnSuggestionUpdate),
+                    //    new object[] { task.Result, filter }
+                    //    );
             }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
         }
 
@@ -167,5 +162,10 @@ namespace KeywordSearch {
             public byte Hits { get; set; }
             public NameBonus Bonus { get; set; }
         }
+
+        public event SearchError SearchErrorEvent;
+
+        public delegate void SuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter);
+        public event SuggestionResultsReady SuggestionResultsReadyEvent;
     }
 }

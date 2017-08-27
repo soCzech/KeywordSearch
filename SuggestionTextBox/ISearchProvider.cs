@@ -13,7 +13,17 @@ namespace CustomElements {
         /// Called when user searches from a search box
         /// </summary>
         /// <param name="filter">A string the result should be for</param>
-        /// <param name="suggestionTextBox">A reference to the search box</param>
-        void Search(string filter, SuggestionTextBox suggestionTextBox);
+        void Search(string filter);
+
+        void CancelSearch();
     }
+
+    public enum ErrorMessageType { Exception, NotFound, InvalidLabel, InvalidFormat, ResourcesNotLoadedYet }
+
+    /// <summary>
+    /// Show error message in UI.
+    /// </summary>
+    /// <param name="type">Type of an error</param>
+    /// <param name="message">A text the error is in</param>
+    public delegate void SearchError(ErrorMessageType type, string message);
 }

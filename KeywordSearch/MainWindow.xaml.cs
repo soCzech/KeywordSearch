@@ -14,28 +14,21 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 using CustomElements;
+using KeywordSearchInterface;
 
 namespace KeywordSearch {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window {
-        private AppLogic Logic;
 
-        public MainWindow(AppLogic logic) {
-            Logic = logic;
-
+        public MainWindow() {
             InitializeComponent();
 
-            // add SuggestionProvider and SearchProvider to the search box
-            var Box = (SuggestionTextBox)FindName("SuggestionTextBox");
-            Box.SuggestionProvider = Logic.SuggestionProvider;
-            Box.SearchProvider = Logic.ImageProvider;
-
-            // add an UI element where to display the results
-            Logic.ImageProvider.ItemsControl = (ItemsControl)FindName("ImageList");
-            // add an UI element where to display errors
-            Logic.ImageProvider.NotFoundMessageBox = (ContentControl)FindName("NotFoundMessageBox");
+            WPFImageProvider provider = new WPFImageProvider(
+                (SuggestionTextBox)FindName("SuggestionTextBox"),
+                (ItemsControl)FindName("ImageList"),
+                (ContentControl)FindName("NotFoundMessageBox"));
         }
     }
 }

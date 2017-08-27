@@ -7,9 +7,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace KeywordSearch {
+namespace KeywordSearchInterface {
 
-    class LabelProvider {
+    public class LabelProvider {
 
         private string FilePath = ".\\classes.labels";
 

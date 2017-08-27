@@ -12,10 +12,8 @@ namespace KeywordSearch {
     /// </summary>
     public partial class App : Application {
 
-        private AppLogic Logic = new AppLogic();
-
         void MyStartup(object sender, StartupEventArgs e) {
-            MainWindow window = new MainWindow(Logic);
+            MainWindow window = new MainWindow();
             window.Show();
         }
     }

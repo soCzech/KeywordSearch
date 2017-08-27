@@ -1,9 +1,7 @@
 .vs/
 Tests/
-KeywordSearch/bin/
-KeywordSearch/obj/
-SuggestionTextBox/bin/
-SuggestionTextBox/obj/
+bin/
+obj/
 
 classes.labels
 files.index

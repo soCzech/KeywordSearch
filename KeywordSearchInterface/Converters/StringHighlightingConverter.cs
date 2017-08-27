@@ -12,13 +12,13 @@ using System.Windows.Data;
 using System.Windows.Markup;
 using System.Xml;
 
-namespace KeywordSearch {
+namespace KeywordSearchInterface {
 
     /// <summary>
     /// Converts string to WPF TextBlock with parts of text in red.
     /// </summary>
     [ValueConversion(typeof(string), typeof(object))]
-    sealed class StringHighlightingConverter : IValueConverter {
+    public sealed class StringHighlightingConverter : IValueConverter {
         public const string START_TAG = "$~START~$";
         public const string END_TAG = "$~END~$";
 

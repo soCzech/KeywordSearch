@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KeywordSearch {
+namespace KeywordSearchInterface {
 
     /// <summary>
     /// For faster read and write of ints, floats and longs.

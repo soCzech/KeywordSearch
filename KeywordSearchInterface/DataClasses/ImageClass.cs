@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 // !
 using CustomElements;
 
-namespace KeywordSearch {
+namespace KeywordSearchInterface {
 
     /// <summary>
     /// Used for SearchTextBox suggestions.

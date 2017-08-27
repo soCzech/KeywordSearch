@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KeywordSearch {
+namespace KeywordSearchInterface {
 
-    class Label : IComparable<Label> {
+    public class Label : IComparable<Label> {
         public int Id { get; set; }
         public string SynsetId { get; set; }
         public string Name { get; set; }

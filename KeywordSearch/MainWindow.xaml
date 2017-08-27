@@ -4,13 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:KeywordSearch"
+        xmlns:interface="clr-namespace:KeywordSearchInterface;assembly=KeywordSearchInterface"
         xmlns:tools="clr-namespace:CustomElements;assembly=SuggestionTextBox"
         mc:Ignorable="d"
         Title="Keyword Search"
         WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.Resources>
-        <local:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
+        <interface:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
 
         <DataTemplate x:Key="ImageClassTemplate">
             <Border Padding="5">

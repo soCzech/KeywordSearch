@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace KeywordSearch.TextSearch {
+namespace KeywordSearchInterface {
 
     enum CaseSensitive { No = 0, Yes = 1 }
 

@@ -13,8 +13,7 @@ namespace CustomElements {
         /// Second argument filter should be the same as the input argument.
         /// </summary>
         /// <param name="filter">A string the suggestions should be for</param>
-        /// <param name="suggestionTextBox">A reference to the search box</param>
-        void GetSuggestionsAsync(string filter, SuggestionTextBox suggestionTextBox);
+        void GetSuggestionsAsync(string filter);
         /// <summary>
         /// Called to stop any ongoing suggestions search (eg. the filter argument changed).
         /// </summary>

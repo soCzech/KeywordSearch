@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KeywordSearch.TextSearch {
+namespace KeywordSearchInterface {
     /// <summary>
     /// Represents one result form AhoCorasick search.
     /// </summary>
