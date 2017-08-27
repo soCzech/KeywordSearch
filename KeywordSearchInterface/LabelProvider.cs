@@ -29,7 +29,8 @@ namespace KeywordSearchInterface {
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
 
-        private Dictionary<string, Label> Labels_ = new Dictionary<string, Label>();
+        private Dictionary<int, Label> Labels_ = new Dictionary<int, Label>();
+        private Dictionary<string, List<int>> IdMapping_ = new Dictionary<string, List<int>>();
 
         /// <summary>
         /// Task responsible for filling <see cref="Labels"/>. Access <see cref="Labels"/> only after completion.
@@ -38,7 +39,22 @@ namespace KeywordSearchInterface {
         /// <summary>
         /// Return dictionary of <see cref="Label"/>s if availible, otherwise null.
         /// </summary>
-        public Dictionary<string, Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
+        public Dictionary<int, Label> Labels { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? Labels_ : null; } }
+        /// <summary>
+        /// Return mappings of class names to ids if availible, otherwise null.
+        /// </summary>
+        public Dictionary<string, List<int>> IdMapping { get { return (LoadTask.Status == TaskStatus.RanToCompletion) ? IdMapping_ : null; } }
+
+        private int[] GetSynsetIds(string text) {
+            if (text.Length == 0) return null;
+            var parts = text.Split('#');
+            var ints = new int[parts.Length];
+
+            for (int i = 0; i < parts.Length; i++) {
+                ints[i] = int.Parse(parts[i]);
+            }
+            return ints;
+        }
 
         private void LoadFromFile() {
             using (StreamReader reader = new StreamReader(FilePath)) {
@@ -46,28 +62,39 @@ namespace KeywordSearchInterface {
 
                 while ((line = reader.ReadLine()) != null) {
                     var parts = line.Split('~');
-                    if (parts.Length != 4) throw new FormatException("Line has invalid number of parts.");
+                    if (parts.Length != 6) throw new FormatException("Line has invalid number of parts.");
 
-                    var nameParts = parts[2].Split(',');
+                    var nameParts = parts[2].Split('#');
                     int minLenght = int.MaxValue;
                     foreach (var item in nameParts) {
                         int length = item.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
                         if (length < minLenght) minLenght = length;
                     }
 
+                    int id = -1;
+                    if (parts[0] != "H") {
+                        id = int.Parse(parts[0]);
+                    }
+
                     var label = new Label() {
-                        Id = int.Parse(parts[0]),
-                        SynsetId = parts[1],
-                        Name = parts[2],
-                        Description = parts[3],
+                        Id = id,
+                        SynsetId = int.Parse(parts[1]),
+                        Name = string.Join(", ", nameParts),
+                        Names = nameParts,
+                        Hyponyms = GetSynsetIds(parts[3]),
+                        Hypernyms = GetSynsetIds(parts[4]),
+                        Description = parts[5],
                         NameLenghtInWords = minLenght
                     };
-                    //if (Labels_.ContainsKey(parts[2]))
-                    //    throw new Exception();
-                    // TODO !!!
-                    // Make sure the label file contains unique class names
-                    if (!Labels_.ContainsKey(parts[2]))
-                        Labels_.Add(parts[2], label);
+
+                    Labels_.Add(label.SynsetId, label);
+
+                    if (label.Id != -1) {
+                        if (!IdMapping_.ContainsKey(label.Name))
+                            IdMapping_.Add(label.Name, new List<int> { label.SynsetId });
+                        else
+                            IdMapping_[label.Name].Add(label.SynsetId);
+                    }
                 }
             }
         }

@@ -128,13 +128,29 @@ namespace KeywordSearchInterface {
                     var nameRel = HighlightPhrase(nameEnum, item.Name);
                     var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
 
-                    list.Add(new ImageClass {
-                        SearchableName = keepPart + item.Name,
-                        Name = nameRel.HighlightedString,
-                        Description = descriptionRel.HighlightedString,
-                        NameLenghtInWords = item.NameLenghtInWords,
-                        SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                    });
+                    if (item.Id != -1) {
+                        list.Add(new ImageClass {
+                            IsHypernym = false,
+                            SearchableName = keepPart + item.Name,
+                            Name = nameRel.HighlightedString,
+                            Description = descriptionRel.HighlightedString,
+                            NameLenghtInWords = item.NameLenghtInWords,
+                            SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
+                        });
+                    } else {
+                        var printNames = new string[item.Hyponyms.Length];
+                        for (int i = 0; i < item.Hyponyms.Length; i++) {
+                            printNames[i] = LabelProvider.Labels[item.Hyponyms[i]].Name;
+                        }
+                        list.Add(new ImageClass {
+                            IsHypernym = true,
+                            SearchableName = keepPart + string.Join("+", printNames),
+                            Name = nameRel.HighlightedString,
+                            Description = descriptionRel.HighlightedString,
+                            NameLenghtInWords = item.NameLenghtInWords,
+                            SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
+                        });
+                    }
                 }
             }
             if (!token.IsCancellationRequested)

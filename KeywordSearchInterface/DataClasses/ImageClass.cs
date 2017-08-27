@@ -12,6 +12,7 @@ namespace KeywordSearchInterface {
     /// Used for SearchTextBox suggestions.
     /// </summary>
     class ImageClass : IIdentifiable, IComparable<ImageClass> {
+        public bool IsHypernym { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string SearchableName { get; set; }

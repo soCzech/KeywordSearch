@@ -8,8 +8,11 @@ namespace KeywordSearchInterface {
 
     public class Label : IComparable<Label> {
         public int Id { get; set; }
-        public string SynsetId { get; set; }
+        public int SynsetId { get; set; }
         public string Name { get; set; }
+        public string[] Names { get; set; }
+        public int[] Hyponyms { get; set; }
+        public int[] Hypernyms { get; set; }
         public string Description { get; set; }
         public int NameLenghtInWords { get; set; }
 

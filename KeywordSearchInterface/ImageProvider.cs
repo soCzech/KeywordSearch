@@ -294,7 +294,6 @@ namespace KeywordSearchInterface {
         private List<List<int>> GetClassIds(string filter) {
             var parts = filter.Split('*');
 
-            Label label = null;
             List<List<int>> list = new List<List<int>>();
 
             for (int p = 0; p < parts.Length; p++) {
@@ -310,13 +309,19 @@ namespace KeywordSearchInterface {
                         return null;
                     }
 
-                    if (!LabelProvider.Labels.TryGetValue(cls, out label)) {
+                    List<int> synsetIds;
+                    if (!LabelProvider.IdMapping.TryGetValue(cls, out synsetIds)) {
                         ShowSearchMessageEvent(SearchMessageType.InvalidLabel, cls);
                         return null;
                     }
-                    if (!Classes.ContainsKey(label.Id)) continue;
+                    
+                    foreach (int synId in synsetIds) {
+                        int id = LabelProvider.Labels[synId].Id;
 
-                    list[p].Add(label.Id);
+                        if (Classes.ContainsKey(id)) {
+                            list[p].Add(id);
+                        }
+                    }
                 }
             }
             for (int p = 0; p < list.Count; p++) {
