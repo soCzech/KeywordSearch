@@ -89,12 +89,10 @@ namespace KeywordSearchInterface {
 
                     Labels_.Add(label.SynsetId, label);
 
-                    if (label.Id != -1) {
-                        if (!IdMapping_.ContainsKey(label.Name))
-                            IdMapping_.Add(label.Name, new List<int> { label.SynsetId });
-                        else
-                            IdMapping_[label.Name].Add(label.SynsetId);
-                    }
+                    if (!IdMapping_.ContainsKey(label.Name))
+                        IdMapping_.Add(label.Name, new List<int> { label.SynsetId });
+                    else
+                        IdMapping_[label.Name].Add(label.SynsetId);
                 }
             }
         }

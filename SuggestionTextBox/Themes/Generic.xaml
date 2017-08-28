@@ -62,9 +62,10 @@
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          
-                                             ItemTemplate="{TemplateBinding ItemTemplate}"
+                                             ItemTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                              ItemContainerStyle="{StaticResource ResourceKey=SuggestionItemStyle}">
                                     </ListBox>
+                                    <!--ItemTemplate="{TemplateBinding ItemTemplate}"-->
                                     <ContentPresenter ContentSource="LoadingPlaceholder" Visibility="{Binding Path=IsLoading, RelativeSource={RelativeSource Mode=TemplatedParent}, Converter={StaticResource ResourceKey=BooleanToVisibilityConverter}}"/>
                                 </Grid>
                             </Border>

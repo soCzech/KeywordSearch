@@ -314,7 +314,8 @@ namespace KeywordSearchInterface {
                         ShowSearchMessageEvent(SearchMessageType.InvalidLabel, cls);
                         return null;
                     }
-                    
+
+                    synsetIds = GetAllIds(synsetIds);
                     foreach (int synId in synsetIds) {
                         int id = LabelProvider.Labels[synId].Id;
 
@@ -323,12 +324,21 @@ namespace KeywordSearchInterface {
                         }
                     }
                 }
-            }
-            for (int p = 0; p < list.Count; p++) {
                 if (list[p].Count == 0) {
                     ShowSearchMessageEvent(SearchMessageType.NotFound, parts[p]);
                     return null;
                 }
+            }
+            return list;
+        }
+
+        private List<int> GetAllIds(IEnumerable<int> ids) {
+            var list = new List<int>();
+            foreach (var item in ids) {
+                Label label = LabelProvider.Labels[item];
+
+                if (label.Id != -1) list.Add(label.SynsetId);
+                if (label.Hyponyms != null) list.AddRange(GetAllIds(label.Hyponyms));
             }
             return list;
         }

@@ -128,29 +128,31 @@ namespace KeywordSearchInterface {
                     var nameRel = HighlightPhrase(nameEnum, item.Name);
                     var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
 
-                    if (item.Id != -1) {
-                        list.Add(new ImageClass {
-                            IsHypernym = false,
-                            SearchableName = keepPart + item.Name,
-                            Name = nameRel.HighlightedString,
-                            Description = descriptionRel.HighlightedString,
-                            NameLenghtInWords = item.NameLenghtInWords,
-                            SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                        });
-                    } else {
-                        var printNames = new string[item.Hyponyms.Length];
+                    string[] hyponymNames = null;
+                    if (item.Hyponyms != null) {
+                        hyponymNames = new string[item.Hyponyms.Length];
+
+                        Label l;
                         for (int i = 0; i < item.Hyponyms.Length; i++) {
-                            printNames[i] = LabelProvider.Labels[item.Hyponyms[i]].Name;
+                            l = LabelProvider.Labels[item.Hyponyms[i]];
+                            hyponymNames[i] = l.Names[0];
                         }
-                        list.Add(new ImageClass {
-                            IsHypernym = true,
-                            SearchableName = keepPart + string.Join("+", printNames),
-                            Name = nameRel.HighlightedString,
-                            Description = descriptionRel.HighlightedString,
-                            NameLenghtInWords = item.NameLenghtInWords,
-                            SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                        });
                     }
+
+                    var suggestion = new ImageClass {
+                        IsHypernym = false,
+                        SearchableName = keepPart + item.Name,
+                        Name = nameRel.HighlightedString,
+                        Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
+                        Description = descriptionRel.HighlightedString,
+                        NameLenghtInWords = item.NameLenghtInWords,
+                        SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
+                    };
+
+                    if (item.Id == -1) {
+                        suggestion.IsHypernym = true;
+                    }
+                    list.Add(suggestion);
                 }
             }
             if (!token.IsCancellationRequested)

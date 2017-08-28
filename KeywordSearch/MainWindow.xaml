@@ -13,6 +13,26 @@
     <Window.Resources>
         <interface:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
 
+        <DataTemplate x:Key="ImageHypernymTemplate">
+            <Border Padding="5" Background="#44DD88DD">
+                <StackPanel Orientation="Vertical">
+                    <ContentControl FontWeight="Bold" Content="{Binding Path=Name, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
+                    <TextBlock Text="{Binding Path=Hyponyms, StringFormat=Being: \{0\}}" Margin="0,0,0,2" FontStyle="Italic" TextWrapping="Wrap"/>
+                    <ContentControl Content="{Binding Path=Description, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ImageBothTemplate">
+            <Border Padding="5" Background="#4488DDDD">
+                <StackPanel Orientation="Vertical">
+                    <ContentControl FontWeight="Bold" Content="{Binding Path=Name, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
+                    <TextBlock Text="{Binding Path=Hyponyms, StringFormat=Including: \{0\}}" Margin="0,0,0,2" FontStyle="Italic" TextWrapping="Wrap"/>
+                    <ContentControl Content="{Binding Path=Description, Converter={StaticResource ResourceKey=stringHighlightingConverter}, Mode=OneTime}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <DataTemplate x:Key="ImageClassTemplate">
             <Border Padding="5">
                 <StackPanel Orientation="Vertical">
@@ -21,6 +41,12 @@
                 </StackPanel>
             </Border>
         </DataTemplate>
+
+        <local:SuggestionTemplateSelector x:Key="hypernymSelector"
+                                          Hypernym="{StaticResource ImageHypernymTemplate}"
+                                          Both="{StaticResource ImageBothTemplate}"
+                                          Class="{StaticResource ImageClassTemplate}"/>
+
         <Style TargetType="Run"
                x:Key="HighlightedText">
             <Setter Property="Foreground" Value="Red" />
@@ -52,8 +78,7 @@
                 <TextBlock TextWrapping="Wrap" Text="Keyword:" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <tools:SuggestionTextBox Width="300"
                                          x:Name="SuggestionTextBox"
-                                         ItemTemplate="{StaticResource ResourceKey=ImageClassTemplate}">
-
+                                         ItemTemplateSelector="{StaticResource ResourceKey=hypernymSelector}">
                     <tools:SuggestionTextBox.LoadingPlaceholder>
                         <TextBlock Text="Loading..."
                                    Margin="5"/>

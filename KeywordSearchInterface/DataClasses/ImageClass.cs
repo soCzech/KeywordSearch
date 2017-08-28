@@ -11,10 +11,11 @@ namespace KeywordSearchInterface {
     /// <summary>
     /// Used for SearchTextBox suggestions.
     /// </summary>
-    class ImageClass : IIdentifiable, IComparable<ImageClass> {
+    public class ImageClass : IIdentifiable, IComparable<ImageClass> {
         public bool IsHypernym { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public string Hyponyms { get; set; }
         public string SearchableName { get; set; }
         public int NameLenghtInWords { get; set; }
         public Relevance SearchRelevance { get; set; }
@@ -32,9 +33,9 @@ namespace KeywordSearchInterface {
     /// <summary>
     /// Adds bonus when calculating relevance of a search phrase
     /// </summary>
-    enum NameBonus : byte { None = 0, StartsWord = 1, StartsName = 2, StartsNameAlone = 4, FullName = 5, FullNameAlone = 10 }
+    public enum NameBonus : byte { None = 0, StartsWord = 1, StartsName = 2, StartsNameAlone = 4, FullName = 5, FullNameAlone = 10 }
 
-    struct Relevance {
+    public struct Relevance {
         public byte NameHits { get; set; }
         public byte DescriptionHits { get; set; }
         public NameBonus Bonus { get; set; }
