@@ -39,5 +39,5 @@ def write_evaluation(filename, results):
 
     with open(filename, 'a') as f:
         if not exists:
-            f.write(' ' * 20 + ', '.join(['{:10}'.format(x) for x, _ in results]) + '\n')
-        f.write(timestamp + ', '.join(['{:10d}'.format(x) for _, x in results]) + '\n')
+            f.write(' ' * 20 + ', '.join(['{:>16}'.format(x) for x, _, _ in results]) + '\n')
+        f.write(timestamp + ', '.join([frmt.format(x) for _, x, frmt in results]) + '\n')

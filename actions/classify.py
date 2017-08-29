@@ -6,9 +6,7 @@ import tensorflow as tf
 from models import network, model_utils, inception_v1
 
 
-def run(filenames, num_classes, bin_dir):
-    top_number = min(5, num_classes)
-
+def run(filenames, num_classes, take_top_n, bin_dir):
     key, image = network.get_image_as_batch(filenames, inception_v1.default_image_size)
 
     session = tf.Session()
@@ -26,7 +24,7 @@ def run(filenames, num_classes, bin_dir):
     generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionGeneralist')
 
     probabilities = tf.nn.softmax(logits, name='Probability')
-    top_values, top_indices = tf.nn.top_k(probabilities, k=top_number, sorted=True)
+    top_values, top_indices = tf.nn.top_k(probabilities, k=take_top_n, sorted=True)
 
     session.run(tf.global_variables_initializer())
 
@@ -37,8 +35,8 @@ def run(filenames, num_classes, bin_dir):
         raise Exception(pi_filename + ' exists.')
     file = open(pi_filename, 'wb')
 
-    indices_format = '<' + 'I' * top_number
-    values_format = '<' + 'f' * top_number
+    indices_format = '<' + 'I' * take_top_n
+    values_format = '<' + 'f' * take_top_n
 
     i = 0
     try:
@@ -77,9 +75,11 @@ if __name__ == '__main__':
                         help='directory where to find images for classification')
     parser.add_argument('--num_classes', type=int, required=True,
                         help='number of classes')
+    parser.add_argument('--take_top_n', type=int, default=10,
+                        help='number of classes to store to the pseudo-index file')
     parser.add_argument('--bin_dir', default='bin',
                         help='directory containing checkpoints and logs folder')
     args = parser.parse_args()
 
     images = model_utils.get_images_from_dir(args.image_dir)
-    run(images, args.num_classes, args.bin_dir)
+    run(images, args.num_classes, args.take_top_n, args.bin_dir)

@@ -90,8 +90,8 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
         session.close()
 
     model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation_nn.txt'),
-                                 [('#Images', acc_sum, '{:16d}'), ('Top1Acc', acc_top1, '{:16d}'),
-                                  ('Top5Acc', acc_top5, '{:16d}'), ('Top10Acc', acc_top10, '{:16d}')])
+                                 [('#Images', acc_sum, '{:16d}'), ('Top1Count', acc_top1, '{:16d}'),
+                                  ('Top5Count', acc_top5, '{:16d}'), ('Top10Count', acc_top10, '{:16d}')])
 
 
 # py actions/evaluate.py --tfrecord_dir=..\_test\tfrecords --filename=eval5 --num_classes=2

@@ -55,8 +55,8 @@ if __name__ == '__main__':
                         help='location of .pseudo-index file')
     parser.add_argument('--index_filename', required=True,
                         help='name of the new index file')
-    parser.add_argument('--num_classes', type=int, required=True,
-                        help='number of classes')
+    parser.add_argument('--take_top_n', type=int, default=10,
+                        help='number of classes in the pseudo-index file')
     args = parser.parse_args()
 
-    create_index_file(args.pseudo_index_filename, args.index_filename, args.num_classes)
+    create_index_file(args.pseudo_index_filename, args.index_filename, args.take_top_n)
