@@ -2,6 +2,7 @@ import os.path
 import sys
 import argparse
 import tensorflow as tf
+import numpy as np
 
 from models import network, inception_v1, model_utils
 
@@ -9,6 +10,10 @@ slim = tf.contrib.slim
 
 
 def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
+    calc_cov = True
+    mean = np.zeros(num_classes, dtype=np.float)
+    cov = np.zeros((num_classes, num_classes), dtype=np.float)
+
     images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=20,
                                        image_size=inception_v1.default_image_size, is_training=False)
 
@@ -26,22 +31,18 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
     inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionV1')
     generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionGeneralist')
 
-    """
-        Savers
-    """
-
-    # timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    # log_dir = '{}/{}'.format('bin/logs', timestamp)
-    # train_writer = tf.summary.FileWriter(log_dir + '/test', session.graph, flush_secs=10)
-
     correct_prediction = tf.equal(tf.cast(labels, tf.int64), tf.argmax(logits, 1), name='in_top_1')
-    # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    # tf.summary.scalar('in_top_1', accuracy)
-
     in_top_5 = tf.nn.in_top_k(logits, labels, k=5, name='in_top_5')
-    # tf.summary.scalar('in_top_5', tf.reduce_mean(tf.cast(in_top_5, tf.float32)))
     in_top_10 = tf.nn.in_top_k(logits, labels, k=10, name='in_top_10')
-    # tf.summary.scalar('in_top_10', tf.reduce_mean(tf.cast(in_top_10, tf.float32)))
+
+    """ Covariance """
+    probabilities = tf.nn.softmax(logits)
+    last_mean = tf.placeholder(tf.float32, shape=num_classes)
+    last_cov = tf.placeholder(tf.float32, shape=(num_classes, num_classes))
+
+    add_to_mean = tf.add(last_mean, tf.reduce_sum(probabilities, 0))
+    add_to_cov = tf.add(last_cov, tf.matmul(tf.transpose(probabilities), probabilities))
+    """ END / Covariance """
 
     session.run(tf.global_variables_initializer())
 
@@ -51,10 +52,17 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
 
     try:
         while not coord.should_stop():
-            shape, top1, top5, top10 = session.run([tf.shape(labels),
-                                                    tf.reduce_sum(tf.cast(correct_prediction, tf.int32)),
-                                                    tf.reduce_sum(tf.cast(in_top_5, tf.int32)),
-                                                    tf.reduce_sum(tf.cast(in_top_10, tf.int32))])
+            if calc_cov:
+                shape, top1, top5, top10, mean, cov = session.run([
+                    tf.shape(logits), tf.reduce_sum(tf.cast(correct_prediction, tf.int32)),
+                    tf.reduce_sum(tf.cast(in_top_5, tf.int32)), tf.reduce_sum(tf.cast(in_top_10, tf.int32)),
+                    add_to_mean, add_to_cov
+                ], feed_dict={last_mean: mean, last_cov: cov})
+            else:
+                shape, top1, top5, top10, = session.run([tf.shape(logits),
+                                                         tf.reduce_sum(tf.cast(correct_prediction, tf.int32)),
+                                                         tf.reduce_sum(tf.cast(in_top_5, tf.int32)),
+                                                         tf.reduce_sum(tf.cast(in_top_10, tf.int32))])
             acc_sum += shape[0]
             acc_top1 += top1
             acc_top5 += top5
@@ -65,10 +73,15 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
             sys.stdout.flush()
 
     except tf.errors.OutOfRangeError:
-        sys.stdout.write('\r>> Evaluated. Processed {:d}, Top1 {:.0f}%, Top5 {:.0f}%, Top10 {:.0f}%'.format(
+        sys.stdout.write('\r>> Evaluated. Processed {:d}, Top1 {:.0f}%, Top5 {:.0f}%, Top10 {:.0f}%\n'.format(
             acc_sum, acc_top1 / acc_sum * 100, acc_top5 / acc_sum * 100, acc_top10 / acc_sum * 100))
         sys.stdout.flush()
     finally:
+        if calc_cov:
+            # E[XX^T]-E[X]E[X]^T
+            mean = mean/acc_sum
+            cov = cov / acc_sum - np.outer(mean, mean)
+            print(cov)
         # When done, ask the threads to stop.
         coord.request_stop()
 
@@ -76,9 +89,9 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
         coord.join(threads)
         session.close()
 
-    model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation.txt'),
-                                 [('#Images', acc_sum), ('Top1Acc', acc_top1), ('Top5Acc', acc_top5),
-                                  ('Top10Acc', acc_top10)])
+    model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation_nn.txt'),
+                                 [('#Images', acc_sum, '{:16d}'), ('Top1Acc', acc_top1, '{:16d}'),
+                                  ('Top5Acc', acc_top5, '{:16d}'), ('Top10Acc', acc_top10, '{:16d}')])
 
 
 # py actions/evaluate.py --tfrecord_dir=..\_test\tfrecords --filename=eval5 --num_classes=2
