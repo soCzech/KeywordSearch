@@ -22,6 +22,7 @@ namespace KeywordSearch {
     public partial class MainWindow : Window {
 
         private string ImageFolderPath = ".\\images\\";
+        private int MaxImagesOnScreen = 70;
 
         private LabelProvider labelProvider;
         private SuggestionProvider suggestionProvider;
@@ -62,8 +63,13 @@ namespace KeywordSearch {
                 return;
             }
             List<Thumbnail> thumbnails = new List<Thumbnail>();
+            thumbnails.Capacity = MaxImagesOnScreen;
+
+            int i = 0;
             foreach (var item in filenames) {
+                if (i >= MaxImagesOnScreen) break;
                 thumbnails.Add(new Thumbnail() { Filename = item, Image = GetImage(item.Id) });
+                i++;
             }
 
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {

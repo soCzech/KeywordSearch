@@ -37,6 +37,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="DOCS.md" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Converters\StringHighlightingConverter.cs" />

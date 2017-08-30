@@ -14,7 +14,6 @@ namespace KeywordSearchInterface {
     public class ImageProvider : ISearchProvider {
 
         private string IndexFilePath = ".\\files.index";
-        private string ImageFolderPath = ".\\images\\";
 
         /// <summary>
         /// Called with default values of <see cref="IndexFilePath"/> and <see cref="ImageFolderPath"/>.
@@ -27,12 +26,9 @@ namespace KeywordSearchInterface {
 
         /// <param name="lp">For class name to class id conversion</param>
         /// <param name="filePath">Relative or absolute path to index file</param>
-        /// <param name="folderPath">Relative or absolute path to image folder</param>
-        public ImageProvider(LabelProvider lp, string filePath, string folderPath) {
+        public ImageProvider(LabelProvider lp, string filePath) {
             LabelProvider = lp;
-
             IndexFilePath = filePath;
-            ImageFolderPath = folderPath;
 
             LoadTask = Task.Factory.StartNew(LoadFromFile);
         }
@@ -164,6 +160,7 @@ namespace KeywordSearchInterface {
 
         #endregion
 
+        // TODO - limit number of results
         #region (Private) List Unions & Multiplications
 
         private struct ListOrDictionary {
@@ -316,6 +313,7 @@ namespace KeywordSearchInterface {
                     }
 
                     synsetIds = GetAllIds(synsetIds);
+                    // TODO - get only unique ids
                     foreach (int synId in synsetIds) {
                         int id = LabelProvider.Labels[synId].Id;
 
@@ -328,6 +326,7 @@ namespace KeywordSearchInterface {
                     ShowSearchMessageEvent(SearchMessageType.NotFound, parts[p]);
                     return null;
                 }
+                list[p] = list[p].Distinct().ToList();
             }
             return list;
         }
