@@ -7,7 +7,7 @@ from models import network, model_utils, inception_v1
 
 
 def run(filenames, num_classes, take_top_n, bin_dir):
-    key, image = network.get_image_as_batch(filenames, inception_v1.default_image_size)
+    keys, images = network.get_image_as_batch(filenames, inception_v1.default_image_size)
 
     session = tf.Session()
     session.run(tf.local_variables_initializer())
@@ -18,7 +18,7 @@ def run(filenames, num_classes, take_top_n, bin_dir):
     """
         Network model
     """
-    logits, _ = network.build_net(image, num_classes, scope='InceptionGeneralist', is_training=False)
+    logits, _ = network.build_net(images, num_classes, scope='InceptionGeneralist', is_training=False)
 
     inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionV1')
     generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionGeneralist')
@@ -41,17 +41,18 @@ def run(filenames, num_classes, take_top_n, bin_dir):
     i = 0
     try:
         while not coord.should_stop():
-            r_key, r_image, r_top_v, r_top_i = session.run([key, image, tf.squeeze(top_values), tf.squeeze(top_indices)])
+            r_keys, r_top_v, r_top_i = session.run([keys, top_values, top_indices])
 
-            _, filename = os.path.split(r_key)
-            file_id = int(filename[:-4])
+            for a in range(len(r_keys)):
+                _, filename = os.path.split(r_keys[a])
+                file_id = int(filename[:-4])
 
-            data = struct.pack(indices_format, *r_top_i) + struct.pack(values_format, *r_top_v)
+                data = struct.pack(indices_format, *r_top_i[a]) + struct.pack(values_format, *r_top_v[a])
 
-            file.write(struct.pack('<I', file_id))
-            file.write(data)
+                file.write(struct.pack('<I', file_id))
+                file.write(data)
 
-            i += 1
+            i += len(r_keys)
             sys.stdout.write('\r>> Classifying... {} ({:d}/{:d})'.format(filename, i, len(filenames)))
             sys.stdout.flush()
     except tf.errors.OutOfRangeError:

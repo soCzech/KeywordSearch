@@ -91,7 +91,7 @@ def print_hyponyms(synset_id_file, wn_id):
     def _print_hyponyms_helper(c, string):
         count = 0
 
-        string = string + ' ~ ' + c.synset.names[0]
+        string = '{} ~ {} (n{:08d})'.format(string, c.synset.names[0], c.synset.wn_id)
         if type(c) is ImageClass:
             if not c.visited:
                 c.visited = True
