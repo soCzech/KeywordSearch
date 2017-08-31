@@ -2,6 +2,8 @@
 Tests/
 bin/
 obj/
+.idea/
+__pycache__/
 
 classes.labels
 files.index
