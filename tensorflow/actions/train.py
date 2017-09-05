@@ -17,6 +17,7 @@ def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_r
     labels = tf.one_hot(labels, num_classes, name='OneHotLabels')
 
     session = tf.Session()
+    session.run(tf.local_variables_initializer())
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=session, coord=coord)
@@ -70,7 +71,7 @@ def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_r
     """
         Summary
     """
-    log_dir = os.path.normpath(os.path.join(bin_dir, 'logs', datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')))
+    log_dir = os.path.normpath(os.path.join('E:/logs', datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')))
     summary = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(log_dir, session.graph, flush_secs=10)
 

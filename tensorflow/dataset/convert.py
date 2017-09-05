@@ -79,12 +79,18 @@ def convert_photos(images, tfrecord_dir, dataset_name, shards, class_names_dict)
                 end_ndx = min((shard_id+1) * num_per_shard, len(images))
 
                 for i in range(start_ndx, end_ndx):
-                    sys.stdout.write('\r>> Converting image {:d}/{:d} shard {:d}'.format(i + 1, len(images), shard_id))
+                    sys.stdout.write('\r>> Converting image {:d}/{:d} shard {:d}, {}'.format(i + 1, len(images),
+                                                                                             shard_id, images[i]))
                     sys.stdout.flush()
 
                     image_data = tf.gfile.FastGFile(images[i], 'r').read()
                     # https://github.com/tensorflow/models/blob/master/slim/datasets/download_and_convert_flowers.py
-                    height, width = image_reader.read_image_dims(sess, image_data)
+                    try:
+                        height, width = image_reader.read_image_dims(sess, image_data)
+                    except tf.errors.InvalidArgumentError:
+                        sys.stdout.write('\r! Skipping {} for error.\n'.format(images[i]))
+                        sys.stdout.flush()
+                        continue
 
                     class_name = os.path.basename(os.path.dirname(images[i]))
                     class_id = class_names_dict[class_name]

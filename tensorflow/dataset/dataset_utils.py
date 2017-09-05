@@ -111,7 +111,7 @@ def get_dataset(filename_queue):
         'image/class/label': tf.FixedLenFeature([], tf.int64)
     })
 
-    image = tf.image.decode_jpeg(features['image/encoded'])
+    image = tf.image.decode_jpeg(features['image/encoded'], channels=3)
     label = tf.cast(features['image/class/label'], tf.int32)
 
     height = tf.cast(features['image/height'], tf.int32)
