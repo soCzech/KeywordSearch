@@ -1,5 +1,6 @@
 import os.path
 import sys
+import struct
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -14,7 +15,7 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
     mean = np.zeros(num_classes, dtype=np.float)
     cov = np.zeros((num_classes, num_classes), dtype=np.float)
 
-    images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=20,
+    images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=80,
                                        image_size=inception_v1.default_image_size, is_training=False)
 
     session = tf.Session()
@@ -78,10 +79,8 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
         sys.stdout.flush()
     finally:
         if calc_cov:
-            # E[XX^T]-E[X]E[X]^T
-            mean = mean/acc_sum
-            cov = cov / acc_sum - np.outer(mean, mean)
-            print(cov)
+            store_mean_and_covariance(mean, cov, acc_sum, os.path.join(bin_dir, 'covariance'))
+
         # When done, ask the threads to stop.
         coord.request_stop()
 
@@ -92,6 +91,22 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir):
     model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation_nn.txt'),
                                  [('#Images', acc_sum, '{:16d}'), ('Top1Count', acc_top1, '{:16d}'),
                                   ('Top5Count', acc_top5, '{:16d}'), ('Top10Count', acc_top10, '{:16d}')])
+
+
+def store_mean_and_covariance(mean, cov, no_images, folder):
+    # E[XX^T]-E[X]E[X]^T
+    mean = mean / no_images
+    cov = cov / no_images - np.outer(mean, mean)
+
+    frmt = '<'+'f'*len(mean)
+
+    with open(os.path.join(folder, 'mean.bin'), 'wb') as f:
+        f.write(struct.pack('<I', len(mean)))
+        f.write(struct.pack(frmt, *mean))
+    with open(os.path.join(folder, 'covariance.bin'), 'wb') as f:
+        f.write(struct.pack('<I', len(mean)))
+        for i in range(len(cov)):
+            f.write(struct.pack(frmt, *cov[i]))
 
 
 # py actions/evaluate.py --tfrecord_dir=..\_test\tfrecords --filename=eval5 --num_classes=2

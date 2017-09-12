@@ -1,6 +1,6 @@
 #https://github.com/tensorflow/models/tree/master/slim
 
-dirs="bin bin/checkpoints"
+dirs="bin bin/checkpoints bin/covariance"
 
 for i in ${dirs}
 do
