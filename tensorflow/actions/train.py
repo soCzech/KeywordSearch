@@ -1,6 +1,7 @@
 import os
 import datetime
 import argparse
+import time
 
 import tensorflow as tf
 from models import network, inception_v1, model_utils
@@ -10,8 +11,10 @@ import sys
 slim = tf.contrib.slim
 
 
-def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_rate=0.1,
+def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_rate=0.01,
         number_of_iterations=100000, save_each=2000):
+    train_all = True
+
     images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=batch_size,
                                        image_size=inception_v1.default_image_size, is_training=True)
     labels = tf.one_hot(labels, num_classes, name='OneHotLabels')
@@ -45,16 +48,18 @@ def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_r
     with tf.name_scope('train'):
         global_step = tf.Variable(0, name='global_step', trainable=False)
 
-        decay_steps = int(1000000 / batch_size)
+        decay_steps = int(100000 / batch_size)
         learning_rate = tf.train.exponential_decay(learning_rate, global_step, decay_steps, 0.94,
                                                    staircase=True, name='exponential_decay_learning_rate')
         tf.summary.scalar('learning_rate', learning_rate)
 
-        training = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999).minimize(
-            cross_entropy_logits,
-            global_step=global_step,
-            var_list=generalist_vars
-        )
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            training = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999).minimize(
+                cross_entropy_logits,
+                global_step=global_step,
+                var_list=generalist_vars + inception_vars if train_all else generalist_vars
+            )
 
     generalist_vars += tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='train/global_step')
 
@@ -73,23 +78,27 @@ def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_r
     """
     log_dir = os.path.normpath(os.path.join('E:/logs', datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')))
     summary = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(log_dir, session.graph, flush_secs=10)
+    train_writer = tf.summary.FileWriter(log_dir, session.graph, flush_secs=100)
 
     session.run(tf.global_variables_initializer())
 
     """
         Savers
     """
-    saver = model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
+    saver = model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars, train_all=train_all)
 
     for i in range(number_of_iterations):
-        s, _ = session.run([summary, training])
+        s, _, g_step = session.run([summary, training, global_step])
         train_writer.add_summary(s, i)
-        sys.stdout.write('\r>> Training... Batch #{:d}'.format(session.run(global_step)))
+        sys.stdout.write('\r>> Training... Batch #{:d}'.format(g_step))
         sys.stdout.flush()
 
         if i % save_each == save_each - 1:  # Record execution stats
             model_utils.save_model(saver, session, bin_dir, global_step)
+        if i % 200 == 199:
+            sys.stdout.write('\r>> Sleeping... Batch #{:d}'.format(g_step))
+            sys.stdout.flush()
+            time.sleep(20)
 
     sys.stdout.write('\r>> Training completed.\n')
     sys.stdout.flush()
@@ -112,7 +121,7 @@ if __name__ == '__main__':
                         help='directory containing checkpoints and logs folder')
     parser.add_argument('--batch_size', type=int, default=20,
                         help='batch size')
-    parser.add_argument('--learning_rate', type=float, default=0.1,
+    parser.add_argument('--learning_rate', type=float, default=0.01,
                         help='initial learning rate (exponential decay is implemented)')
     args = parser.parse_args()
 
