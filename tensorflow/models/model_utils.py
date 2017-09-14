@@ -7,8 +7,25 @@ def _get_ckpt_path(bin_dir):
     return 'model_v1.ckpt', os.path.normpath(os.path.join(bin_dir, 'checkpoints'))
 
 
-def restore_model(session, bin_dir, inception_vars, generalist_vars=None):
+def restore_model(session, bin_dir, inception_vars, generalist_vars=None, train_all=False):
+    """
+    Restores model to its latest state and returns saver
+
+    :param session: instance of the tf session
+    :param bin_dir: location of a checkpoints directory
+    :param inception_vars: variables of a network without the last layer,
+        if None saver tries to restore the whole network from one checkpoint file
+    :param generalist_vars: variables of the last layer,
+        if None saver does not restore the last layer
+    :param train_all: restores the network from two checkpoints but returns one saver for the whole network
+    :returns a saver, to be used for saving a network (or only the last layer of the network)
+    """
     ckpt_name, ckpt_dir = _get_ckpt_path(bin_dir)
+
+    if inception_vars is None:
+        all_saver = tf.train.Saver()
+        all_saver.restore(session, tf.train.latest_checkpoint(ckpt_dir))
+        return all_saver
 
     saver1 = tf.train.Saver(var_list=inception_vars)
     saver1.restore(session, os.path.join(ckpt_dir, 'inception_v1.ckpt'))
@@ -20,6 +37,8 @@ def restore_model(session, bin_dir, inception_vars, generalist_vars=None):
     for name in os.listdir(ckpt_dir):
         if os.path.isfile(os.path.join(ckpt_dir, name)) and ckpt_name in name:
             saver2.restore(session, tf.train.latest_checkpoint(ckpt_dir))  # TODO: fix - takes random last checkpoint
+    if train_all:
+        return tf.train.Saver()
     return saver2
 
 

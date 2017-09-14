@@ -12,8 +12,7 @@ slim = tf.contrib.slim
 
 
 def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_rate=0.01,
-        number_of_iterations=100000, save_each=2000):
-    train_all = True
+        number_of_iterations=100000, save_each=2000, restore_all=False, train_all=False):
 
     images, labels = network.get_batch(tfrecord_dir, dataset_name, batch_size=batch_size,
                                        image_size=inception_v1.default_image_size, is_training=True)
@@ -85,7 +84,10 @@ def run(tfrecord_dir, dataset_name, batch_size, num_classes, bin_dir, learning_r
     """
         Savers
     """
-    saver = model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars, train_all=train_all)
+    if restore_all:
+        saver = model_utils.restore_model(session, bin_dir, None)
+    else:
+        saver = model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars, train_all=train_all)
 
     for i in range(number_of_iterations):
         s, _, g_step = session.run([summary, training, global_step])
@@ -125,4 +127,5 @@ if __name__ == '__main__':
                         help='initial learning rate (exponential decay is implemented)')
     args = parser.parse_args()
 
-    run(args.tfrecord_dir, args.filename, args.batch_size, args.num_classes, args.bin_dir, args.learning_rate)
+    run(args.tfrecord_dir, args.filename, args.batch_size, args.num_classes, args.bin_dir, args.learning_rate,
+        restore_all=True, train_all=True)

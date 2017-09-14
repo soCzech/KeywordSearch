@@ -6,7 +6,7 @@ import tensorflow as tf
 from models import network, model_utils, inception_v1
 
 
-def run(filenames, num_classes, take_top_n, bin_dir):
+def run(filenames, num_classes, take_top_n, bin_dir, restore_all):
     keys, images = network.get_image_as_batch(filenames, inception_v1.default_image_size)
 
     session = tf.Session()
@@ -28,7 +28,10 @@ def run(filenames, num_classes, take_top_n, bin_dir):
 
     session.run(tf.global_variables_initializer())
 
-    model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
+    if restore_all:
+        model_utils.restore_model(session, bin_dir, None)
+    else:
+        model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
 
     pi_filename = os.path.join(os.path.normpath(bin_dir), 'files.pseudo-index')
     if os.path.isfile(pi_filename):
@@ -83,4 +86,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     images = model_utils.get_images_from_dir(args.image_dir)
-    run(images, args.num_classes, args.take_top_n, args.bin_dir)
+    run(images, args.num_classes, args.take_top_n, args.bin_dir, restore_all=True)
