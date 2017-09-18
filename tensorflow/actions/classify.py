@@ -2,11 +2,16 @@ import argparse
 import os
 import sys
 import struct
+import numpy as np
 import tensorflow as tf
+from diagnostics import heatmap_utils
 from models import network, model_utils, inception_v1
 
 
-def run(filenames, num_classes, take_top_n, bin_dir, restore_all):
+def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True):
+    if calc_cov:
+        mean = np.zeros(num_classes, dtype=np.float)
+        cov = np.zeros((num_classes, num_classes), dtype=np.float)
     keys, images = network.get_image_as_batch(filenames, inception_v1.default_image_size)
 
     session = tf.Session()
@@ -26,6 +31,17 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all):
     probabilities = tf.nn.softmax(logits, name='Probability')
     top_values, top_indices = tf.nn.top_k(probabilities, k=take_top_n, sorted=True)
 
+    """ Covariance """
+    if calc_cov:
+        probabilities = tf.nn.softmax(logits)
+
+        last_mean = tf.placeholder(tf.float32, shape=num_classes)
+        last_cov = tf.placeholder(tf.float32, shape=(num_classes, num_classes))
+
+        add_to_mean = tf.add(last_mean, tf.reduce_sum(probabilities, 0))
+        add_to_cov = tf.add(last_cov, tf.matmul(tf.transpose(probabilities), probabilities))
+    """ END / Covariance """
+
     session.run(tf.global_variables_initializer())
 
     if restore_all:
@@ -44,7 +60,12 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all):
     i = 0
     try:
         while not coord.should_stop():
-            r_keys, r_top_v, r_top_i = session.run([keys, top_values, top_indices])
+            if calc_cov:
+                r_keys, r_top_v, r_top_i, mean, cov = session.run([
+                    keys, top_values, top_indices, add_to_mean, add_to_cov
+                ], feed_dict={last_mean: mean, last_cov: cov})
+            else:
+                r_keys, r_top_v, r_top_i = session.run([keys, top_values, top_indices])
 
             for a in range(len(r_keys)):
                 _, filename = os.path.split(r_keys[a])
@@ -62,6 +83,10 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all):
         sys.stdout.write('\r>> Classification completed.\n')
         sys.stdout.flush()
     finally:
+        if calc_cov:
+            heatmap_utils.store_covariance_matrix(
+                mean, cov, len(filenames), os.path.join(bin_dir, 'covariance'), 'classification'
+            )
         file.close()
 
         # When done, ask the threads to stop.
