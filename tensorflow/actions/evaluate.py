@@ -1,6 +1,6 @@
 import os.path
 import sys
-import struct
+from diagnostics import heatmap_utils
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -47,8 +47,8 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir, restore_all, calc_cov=
         add_to_mean = tf.add(last_mean, tf.reduce_sum(probabilities, 0))
         add_to_cov = tf.add(last_cov, tf.matmul(tf.transpose(probabilities), probabilities))
 
-        last_conf = tf.placeholder(tf.int32, shape=num_classes)
-        conf_batch = tf.contrib.metrics.confusion_matrix(tf.argmax(logits, 1), labels)
+        last_conf = tf.placeholder(tf.int32, shape=(num_classes, num_classes))
+        conf_batch = tf.contrib.metrics.confusion_matrix(tf.argmax(logits, 1), labels, num_classes=num_classes, dtype=np.int32)
         add_to_conf = tf.add(last_conf, conf_batch)
     """ END / Covariance """
 
@@ -61,12 +61,18 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir, restore_all, calc_cov=
 
     acc_sum, acc_top1, acc_top5, acc_top10 = 0, 0, 0, 0
 
+    # https://stackoverflow.com/documentation/tensorflow/3883/how-to-debug-a-memory-leak-in-tensorflow#t=201612280142239281993
+    x1 = tf.shape(logits)
+    x2 = tf.reduce_sum(tf.cast(correct_prediction, tf.int32))
+    x3 = tf.reduce_sum(tf.cast(in_top_5, tf.int32))
+    x4 = tf.reduce_sum(tf.cast(in_top_10, tf.int32))
+
+    session.graph.finalize()
     try:
         while not coord.should_stop():
             if calc_cov:
-                shape, top1, top5, top10, mean, cov = session.run([
-                    tf.shape(logits), tf.reduce_sum(tf.cast(correct_prediction, tf.int32)),
-                    tf.reduce_sum(tf.cast(in_top_5, tf.int32)), tf.reduce_sum(tf.cast(in_top_10, tf.int32)),
+                shape, top1, top5, top10, mean, cov, confusion = session.run([
+                    x1, x2, x3, x4,
                     add_to_mean, add_to_cov, add_to_conf
                 ], feed_dict={last_mean: mean, last_cov: cov, last_conf: confusion})
             else:
@@ -89,8 +95,8 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir, restore_all, calc_cov=
         sys.stdout.flush()
     finally:
         if calc_cov:
-            store_mean_and_covariance(mean, cov, acc_sum, os.path.join(bin_dir, 'covariance'))
-            store_confusion(confusion, os.path.join(bin_dir, 'covariance'))
+            heatmap_utils.store_covariance_matrix(mean, cov, acc_sum, os.path.join(bin_dir, 'covariance'), dataset_name)
+            heatmap_utils.store_confusion_matrix(confusion, os.path.join(bin_dir, 'covariance'), dataset_name)
 
         # When done, ask the threads to stop.
         coord.request_stop()
@@ -102,30 +108,6 @@ def run(tfrecord_dir, dataset_name, num_classes, bin_dir, restore_all, calc_cov=
     model_utils.write_evaluation(os.path.join(bin_dir, 'evaluation_nn.txt'),
                                  [('#Images', acc_sum, '{:16d}'), ('Top1Count', acc_top1, '{:16d}'),
                                   ('Top5Count', acc_top5, '{:16d}'), ('Top10Count', acc_top10, '{:16d}')])
-
-
-def store_mean_and_covariance(mean, cov, no_images, folder):
-    # E[XX^T]-E[X]E[X]^T
-    mean = mean / no_images
-    cov = cov / no_images - np.outer(mean, mean)
-
-    frmt = '<'+'f'*len(mean)
-
-    with open(os.path.join(folder, 'mean.bin'), 'wb') as f:
-        f.write(struct.pack('<I', len(mean)))
-        f.write(struct.pack(frmt, *mean))
-    with open(os.path.join(folder, 'covariance.bin'), 'wb') as f:
-        f.write(struct.pack('<I', len(mean)))
-        for i in range(len(cov)):
-            f.write(struct.pack(frmt, *cov[i]))
-
-
-def store_confusion(conf, folder):
-    frmt = '<' + 'I' * len(conf[0])
-    with open(os.path.join(folder, 'confusion.bin'), 'wb') as f:
-        f.write(struct.pack('<I', len(conf[0])))
-        for i in range(len(conf)):
-            f.write(struct.pack(frmt, *conf[i]))
 
 
 # py actions/evaluate.py --tfrecord_dir=..\_test\tfrecords --filename=eval5 --num_classes=2
