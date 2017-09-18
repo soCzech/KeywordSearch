@@ -53,7 +53,7 @@ def inception_v1_base(inputs,
       ValueError: if final_endpoint is not set to one of the predefined values.
     """
     end_points = {}
-    with tf.variable_scope(scope, 'InceptionV1', [inputs], reuse=True):
+    with tf.variable_scope(scope, 'InceptionV1', [inputs], reuse=None):
         with slim.arg_scope(
                 [slim.conv2d, slim.fully_connected],
                 weights_initializer=trunc_normal(0.01)):
