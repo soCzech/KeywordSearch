@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import struct
 from deployment import index_utils
 from nltk.corpus import wordnet as wn
@@ -114,6 +115,58 @@ def print_hyponyms(synset_id_file, wn_id):
     print('Number of classes that are not hyponyms: ' + str(count_missing))
 
 
+def load_synset_file(filename):
+    synsets = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            split = line.split(':')
+            synsets[int(split[0][1:])] = int(split[1])
+    return synsets
+
+
+# egrep '(version="fall2011"|version="winter11")' ReleaseStatus.xml | sed -e 's/.*wnid="n/n/' |
+#   sed 's/" released.*numImages=/:/' | sed -e 's/"//' -e 's:" />::'
+#   > /mnt/c/Users/Tom/Workspace/KeywordSearch/tensorflow/bin/all_synsets_imagenet.txt
+def all_synsets_to_sql(filename, synset_file, image_dir):
+    synsets_to_no_images = load_synset_file(synset_file)
+    synsets = [wn._synset_from_pos_and_offset('n', key) for key in synsets_to_no_images]
+    classes = get_hypernyms(synsets)
+
+    print(str(len(classes)))
+
+    with open(filename, 'w') as f:
+        f.write("INSERT INTO `tree` (`id`, `names`, `description`, `parents`, `children`, `images`, `no_images`, `selected`)" +
+                " VALUES\n")
+
+        first = True
+        for key in sorted(classes):
+            c = classes[key]
+
+            if len(c.hypernyms) == 0:
+                print(str(c.synset.wn_id))
+
+                if c.synset.wn_id != 1740:
+                    continue
+
+            directory = os.path.join(image_dir, 'n{:08d}'.format(c.synset.wn_id))
+            files = ""
+            if os.path.isdir(directory):
+                files = ",".join(os.listdir(directory))
+
+            if first:
+                first = False
+            else:
+                f.write(",\n")
+            f.write("('n{:08d}', '{}', '{}', '{}', '{}', '{}', {:d}, '0')".format(
+                c.synset.wn_id, c.synset.name.replace("'", "\\'"), c.synset.desc.replace("'", "\\'"),
+                '#'.join(['n{:08d}'.format(i.synset.wn_id) for i in c.hypernyms]),
+                '#'.join(['n{:08d}'.format(i.synset.wn_id) for i in c.hyponyms]), files,
+                synsets_to_no_images[key] if key in synsets_to_no_images else 0
+            ))
+        f.write(";\n")
+#all_synsets_to_sql('bin/tree.sql', 'bin/all_synsets_imagenet.txt', 'W:/imagenet/synsets')
+
+
 def create_labels_from_annotations(directory, label_file, pseudo_index_file):
     annotations = index_utils.list_annotation_files(directory)
     classes = set()
@@ -151,7 +204,7 @@ def create_labels_from_annotations(directory, label_file, pseudo_index_file):
                 f.write(struct.pack('<f', p))
 
 
-create_labels_from_annotations("c:\\Users\\Tom\\Workspace\\KeywordSearch\\annotation\\", "bin/classes.labels-deepfeatures", "bin/files.pseudo-index-deepfeatures")
+#create_labels_from_annotations("c:\\Users\\Tom\\Workspace\\KeywordSearch\\annotation\\", "bin/classes.labels-deepfeatures", "bin/files.pseudo-index-deepfeatures")
 
 # 1740 is entity - should contain all classes
 if __name__ == '__main__':
