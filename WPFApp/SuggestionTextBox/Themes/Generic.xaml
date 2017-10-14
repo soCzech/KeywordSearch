@@ -60,7 +60,7 @@
                                              Focusable="False"
                                              BorderThickness="0"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ScrollViewer.VerticalScrollBarVisibility="Hidden"
                                          
                                              ItemTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                              ItemContainerStyle="{StaticResource ResourceKey=SuggestionItemStyle}">

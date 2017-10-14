@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 
 namespace CustomElements {
     /// <summary>
@@ -60,7 +61,7 @@ namespace CustomElements {
         public const string PartListBox = "PART_ListBox";
 
         private TextBox TextBox_;
-        private Popup Popup_;
+        private List<Popup> Popups_;
         private Selector Selector_;
 
         /// <summary>
@@ -70,15 +71,16 @@ namespace CustomElements {
             base.OnApplyTemplate();
 
             TextBox_ = (TextBox)Template.FindName(PartTextBox, this);
-            Popup_ = (Popup)Template.FindName(PartPopup, this);
+            Popups_ = new List<Popup>();
+            Popups_.Add((Popup)Template.FindName(PartPopup, this));
             Selector_ = (Selector)Template.FindName(PartListBox, this);
 
             TextBox_.TextChanged += TextBox_OnTextChanged;
             TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
             TextBox_.LostFocus += TextBox_OnLostFocus;
 
-            Popup_.StaysOpen = false;
-            Popup_.Closed += Popup_OnClosed;
+            Popups_[0].StaysOpen = false;
+            Popups_[0].Closed += Popup_OnClosed;
         }
 
         #endregion
@@ -178,7 +180,7 @@ namespace CustomElements {
                         Popup_Close();
                         MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                         return;
-                    case SuggestionMessageType.ResourcesNotLoadedYet:
+                    case SuggestionMessageType.Information:
                         ((TextBlock)LoadingPlaceholder).Text = message;
                         break;
                     default:
@@ -207,15 +209,59 @@ namespace CustomElements {
             IsLoading = false;
         }
 
+        private void Popup_Create(IEnumerable<int> withClasses) {
+            Popup p = new Popup();
+            p.PlacementTarget = Popups_[Popups_.Count - 1];
+            p.Placement = PlacementMode.Left;
+            p.VerticalOffset = ActualHeight - 1;
+            p.HorizontalOffset = ActualWidth;
+            p.Width = ActualWidth;
+            p.MinHeight = 25;
+            p.MaxHeight = 400;
+
+            Border b = new Border();
+            b.BorderBrush = System.Windows.Media.Brushes.Gray;
+            b.BorderThickness = new Thickness(0, 1, 1, 1);
+            b.Background = System.Windows.Media.Brushes.White;
+            p.Child = b;
+
+            MyListBox l = new MyListBox();
+            l.ItemContainerStyle = FindResource(typeof(ListBoxItem)) as Style;
+            l.ItemTemplateSelector = ItemTemplateSelector;
+            l.ItemsSource = SuggestionProvider.GetSuggestions(withClasses);
+            l.Focusable = false;
+            l.BorderThickness = new Thickness(0);
+            b.Child = l;
+
+            p.IsOpen = true;
+            Popups_.Add(p);
+        }
+
+        private void Popup_Destroy() {
+            if (Popups_.Count > 1) {
+                Popups_[Popups_.Count - 1].IsOpen = false;
+                Popups_.RemoveAt(Popups_.Count - 1);
+            }
+        }
+
+        private void Popups_Destroy() {
+            while (Popups_.Count > 1) {
+                Popups_[Popups_.Count - 1].IsOpen = false;
+                Popups_.RemoveAt(Popups_.Count - 1);
+            }
+        }
+
         #endregion
 
         #region Event Handling Methods
-        
+
         /// <summary>
         /// Cancel suggestion search when suggestions closed
         /// </summary>
         private void Popup_OnClosed(object sender, EventArgs e) {
             SuggestionProvider.CancelSuggestions();
+
+            Popups_Destroy();
         }
 
         /// <summary>
@@ -235,6 +281,7 @@ namespace CustomElements {
                 return;
             }
 
+            Popups_Destroy();
             Popup_Open();
         }
 
@@ -260,7 +307,7 @@ namespace CustomElements {
                 case Key.Enter:
                 case Key.Tab:
                     if (Selector_.SelectedItem != null) {
-                        TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).GetTextRepresentation();
+                        TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).TextRepresentation;
                         TextBox_.SelectionStart = TextBox_.Text.Length;
                         Popup_Close();
                         e.Handled = true;
@@ -303,6 +350,21 @@ namespace CustomElements {
                         e.Handled = true;
                     }
                     break;
+                case Key.Right:
+                    if (IsPopupOpen && Selector_.SelectedItem != null) {
+                        var el = ((IIdentifiable)Selector_.SelectedItem);
+                        if (el.HasChildren) {
+                            Popup_Create(el.Children);
+                        }
+                        e.Handled = true;
+                    }
+                    break;
+                case Key.Left:
+                    if (Selector_.SelectedItem != null) {
+                        Popup_Destroy();
+                        e.Handled = true;
+                    }
+                    break;
             }
         }
 
@@ -321,7 +383,7 @@ namespace CustomElements {
         /// <summary>
         /// Message is shown in Popup underneath the TextBox and disappears when any change to Popup occurs
         /// </summary>
-        ResourcesNotLoadedYet
+        Information
     }
 
 }

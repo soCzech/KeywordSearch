@@ -1,4 +1,6 @@
 ﻿
+using System.Collections.Generic;
+
 namespace CustomElements {
 
     /// <summary>
@@ -8,7 +10,16 @@ namespace CustomElements {
         /// <summary>
         /// </summary>
         /// <returns>Text to be writen into a search box</returns>
-        string GetTextRepresentation();
+        string TextRepresentation { get; }
+
+        /// <summary>
+        /// </summary>
+        /// <returns>Class ID of the text representation</returns>
+        int Id { get; }
+
+        bool HasChildren { get; }
+
+        IEnumerable<int> Children { get; }
     }
 
 }

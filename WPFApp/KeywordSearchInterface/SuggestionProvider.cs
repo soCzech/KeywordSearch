@@ -46,6 +46,23 @@ namespace KeywordSearchInterface {
 
         #region Interface Methods
 
+        public IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses) {
+            if (!LabelProvider.LoadTask.IsFaulted && LabelProvider.LoadTask.IsCompleted) {
+                foreach (var item in withClasses) {
+                    Label l = LabelProvider.Labels[item];
+                    yield return new ImageClass {
+                        IsHypernym = l.Id == -1,
+                        SearchableName = l.Name,
+                        Name = l.Name,
+                        Hyponyms = null,
+                        Description = l.Description,
+                        NameLenghtInWords = 1,
+                        SearchRelevance = new Relevance() { NameHits = 1, DescriptionHits = 1, Bonus = NameBonus.None }
+                    };
+                }
+            }
+        }
+
         /// <summary>
         /// Checks if labels are loaded. Creates new task that searches for correct labels. Calls <see cref="SuggestionResultsReadyEvent"/>.
         /// </summary>
@@ -55,10 +72,10 @@ namespace KeywordSearchInterface {
                 ShowSuggestionMessageEvent(SuggestionMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted) {
-                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Labels not loaded yet...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.Information, "Labels not loaded yet...");
                 return;
             } else {
-                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Loading...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.Information, "Loading...");
             }
 
             CTS = new CancellationTokenSource();

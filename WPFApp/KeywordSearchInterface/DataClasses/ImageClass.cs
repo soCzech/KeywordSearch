@@ -20,14 +20,19 @@ namespace KeywordSearchInterface {
         public int NameLenghtInWords { get; set; }
         public Relevance SearchRelevance { get; set; }
 
+        public string TextRepresentation => SearchableName;
+
+        public int Id => throw new NotImplementedException();
+
+        public bool HasChildren => Hyponyms != null;
+
+        public IEnumerable<int> Children => new List<int>() {7846};
+
         public int CompareTo(ImageClass other) {
             return (-1) * (((int)SearchRelevance.Bonus + SearchRelevance.NameHits) * 2 / (float)NameLenghtInWords + SearchRelevance.DescriptionHits).CompareTo(
                 ((int)other.SearchRelevance.Bonus + other.SearchRelevance.NameHits) * 2 / (float)other.NameLenghtInWords + other.SearchRelevance.DescriptionHits);
         }
 
-        public string GetTextRepresentation() {
-            return SearchableName;
-        }
     }
 
     /// <summary>

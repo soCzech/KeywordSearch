@@ -1,4 +1,6 @@
 ﻿
+using System.Collections.Generic;
+
 namespace CustomElements {
 
     /// <summary>
@@ -12,6 +14,8 @@ namespace CustomElements {
         /// </summary>
         /// <param name="filter">A string the suggestions should be for</param>
         void GetSuggestions(string filter);
+
+        IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses);
         /// <summary>
         /// Called to stop any ongoing suggestions search (eg. the filter argument changed).
         /// </summary>
