@@ -34,26 +34,41 @@
         </Setter>
     </Style>
 
+    <Style x:Key="tbstyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="Margin"
+                    Value="5" />
+        <Setter Property="Background"
+                    Value="Red"/>
+    </Style>
+
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 
     <Style TargetType="{x:Type local:SuggestionTextBox}">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:SuggestionTextBox}">
-                    <Grid>
-                        <TextBox x:Name="PART_TextBox"
-                                 VerticalAlignment="Center"
-                                 HorizontalAlignment="Stretch" />
-                        <popup:SuggestionPopup
-                            x:Name="PART_SuggestionPopup"
-                            Width="{TemplateBinding ActualWidth}"
-                            PopupBorderThickness="1,0,1,1"
-                            ItemTemplateSelector="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=ItemTemplateSelector}"
-                            LoadingPlaceholder="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=LoadingPlaceholder}">
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel x:Name="PART_ResultStack"
+                                        HorizontalAlignment="Stretch"
+                                        Orientation="Horizontal"/>
+                        <Grid>
+                            <TextBox x:Name="PART_TextBox"
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Stretch" />
+                            <popup:SuggestionPopup
+                                x:Name="PART_SuggestionPopup"
+                                Width="{TemplateBinding ActualWidth}"
+                                PopupBorderThickness="1,0,1,1"
+                                ItemTemplateSelector="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=ItemTemplateSelector}"
+                                LoadingPlaceholder="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=LoadingPlaceholder}">
 
-                        </popup:SuggestionPopup>
+                            </popup:SuggestionPopup>
 
-                    </Grid>
+                        </Grid>
+                        <StackPanel x:Name="PART_SourceStack"
+                                        HorizontalAlignment="Stretch"
+                                        Orientation="Horizontal"/>
+                    </StackPanel>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

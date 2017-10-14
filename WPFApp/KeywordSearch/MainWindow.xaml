@@ -6,11 +6,17 @@
         xmlns:local="clr-namespace:KeywordSearch"
         xmlns:interface="clr-namespace:KeywordSearchInterface;assembly=KeywordSearchInterface"
         xmlns:tools="clr-namespace:CustomElements;assembly=SuggestionTextBox"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Keyword Search"
         WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.Resources>
+        <x:Array Type="sys:String" x:Key="AnnotationSources">
+            <sys:String>files/GoogLeNet</sys:String>
+            <sys:String>files/YFCC100M</sys:String>
+        </x:Array>
+        
         <interface:StringHighlightingConverter x:Key="stringHighlightingConverter"/>
 
         <DataTemplate x:Key="ImageHypernymTemplate">
@@ -78,6 +84,7 @@
                 <TextBlock TextWrapping="Wrap" Text="Keyword:" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <tools:SuggestionTextBox Width="300"
                                          x:Name="SuggestionTextBox"
+                                         AnnotationSources="{StaticResource AnnotationSources}"
                                          ItemTemplateSelector="{StaticResource ResourceKey=hypernymSelector}">
                     <tools:SuggestionTextBox.LoadingPlaceholder>
                         <TextBlock Text="Loading..."

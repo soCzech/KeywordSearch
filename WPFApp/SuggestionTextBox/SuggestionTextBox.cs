@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.IO;
 
 namespace CustomElements {
 
@@ -28,8 +29,11 @@ namespace CustomElements {
         /// </summary>
         public const string PartPopup = "PART_SuggestionPopup";
 
+        public const string PartSourceStack = "PART_SourceStack";
+
         private TextBox TextBox_;
         private List<SuggestionPopup> Popups_;
+
 
         /// <summary>
         /// Initialize the UI elements and register events
@@ -47,18 +51,37 @@ namespace CustomElements {
 
             Popups_[0].OnItemSelected += Popup_OnItemSelected;
             Popups_[0].OnItemExpanded += Popup_OnItemExpanded;
+
+
+            StackPanel s = (StackPanel)Template.FindName(PartSourceStack, this);
+            for (int i = 0; i < AnnotationSources.Length; i++) {
+                RadioButton r = new RadioButton();
+                r.Tag = AnnotationSources[i];
+                r.Content = Path.GetFileName(AnnotationSources[i]);
+                r.GroupName = "AnnotationSources";
+                r.Checked += AnnotationSourceButton_Checked;
+                r.Margin = new Thickness(0, 5, 10, 0);
+                if (i == 0) r.IsChecked = true;
+                s.Children.Add(r);
+            }
         }
 
         #endregion
 
         #region Properties
 
+        public static readonly DependencyProperty AnnotationSourcesProperty = DependencyProperty.Register("AnnotationSources", typeof(string[]), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(new string[0]));
         public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+
+        public string[] AnnotationSources {
+            get { return (string[])GetValue(AnnotationSourcesProperty); }
+            set { SetValue(AnnotationSourcesProperty, value); }
+        }
 
         /// <summary>
         /// Suggestion provider responsible for any suggestions
@@ -252,6 +275,13 @@ namespace CustomElements {
             p.HorizontalOffset = ActualWidth * numberOfPopups;
 
             ((Grid)TextBox_.Parent).Children.Add(p);
+        }
+
+        private void AnnotationSourceButton_Checked(object sender, RoutedEventArgs e) {
+            RadioButton rb = sender as RadioButton;
+            if (rb == null) return;
+
+            //TextBox_.Text = rb.Tag.ToString();
         }
 
         #endregion
