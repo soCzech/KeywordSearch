@@ -50,14 +50,24 @@ namespace KeywordSearchInterface {
             if (!LabelProvider.LoadTask.IsFaulted && LabelProvider.LoadTask.IsCompleted) {
                 foreach (var item in withClasses) {
                     Label l = LabelProvider.Labels[item];
+
+                    string[] hyponymNames = null;
+                    if (l.Hyponyms != null) {
+                        hyponymNames = new string[l.Hyponyms.Length];
+
+                        Label x;
+                        for (int i = 0; i < l.Hyponyms.Length; i++) {
+                            x = LabelProvider.Labels[l.Hyponyms[i]];
+                            hyponymNames[i] = x.Names[0];
+                        }
+                    }
+
                     yield return new ImageClass {
-                        IsHypernym = l.Id == -1,
+                        Label = l,
                         TextRepresentation = l.Name,
                         Name = l.Name,
-                        Hyponyms = null,
-                        Description = l.Description,
-                        NameLenghtInWords = 1,
-                        SearchRelevance = new Relevance() { NameHits = 1, DescriptionHits = 1, Bonus = NameBonus.None }
+                        Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
+                        Description = l.Description
                     };
                 }
             }
@@ -135,49 +145,53 @@ namespace KeywordSearchInterface {
                     break;
                 }
 
-                // search in label name
-                var nameEnum = AC.Find(item.Name);
-                // search in description
-                var descriptionEnum = AC.Find(item.Description);
-
-                if (nameEnum.Any() || descriptionEnum.Any()) {
-                    // highlight the search phrase in the text and calculate relevance of the search
-                    var nameRel = HighlightPhrase(nameEnum, item.Name);
-                    var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
-
-                    string[] hyponymNames = null;
-                    if (item.Hyponyms != null) {
-                        hyponymNames = new string[item.Hyponyms.Length];
-
-                        Label l;
-                        for (int i = 0; i < item.Hyponyms.Length; i++) {
-                            l = LabelProvider.Labels[item.Hyponyms[i]];
-                            hyponymNames[i] = l.Names[0];
-                        }
-                    }
-
-                    var suggestion = new ImageClass {
-                        IsHypernym = false,
-                        Id = item.Id,
-                        Children = item.Hyponyms,
-                        TextRepresentation = keepPart + item.Name,
-                        Name = nameRel.HighlightedString,
-                        Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
-                        Description = descriptionRel.HighlightedString,
-                        NameLenghtInWords = item.NameLenghtInWords,
-                        SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                    };
-
-                    if (item.Id == -1) {
-                        suggestion.IsHypernym = true;
-                    }
-                    list.Add(suggestion);
+                ImageClass iCls = LabelToImageClass(item, AC);
+                if (iCls != null) {
+                    iCls.TextRepresentation = keepPart + iCls.TextRepresentation;
+                    list.Add(iCls);
                 }
             }
             if (!token.IsCancellationRequested)
                 list.Sort();
 
             return list;
+        }
+
+
+        private ImageClass LabelToImageClass(Label item, AhoCorasick AC) {
+            // search in label name
+            var nameEnum = AC.Find(item.Name);
+            // search in description
+            var descriptionEnum = AC.Find(item.Description);
+
+            if (nameEnum.Any() || descriptionEnum.Any()) {
+                // highlight the search phrase in the text and calculate relevance of the search
+                var nameRel = HighlightPhrase(nameEnum, item.Name);
+                var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
+
+                string[] hyponymNames = null;
+                if (item.Hyponyms != null) {
+                    hyponymNames = new string[item.Hyponyms.Length];
+
+                    Label l;
+                    for (int i = 0; i < item.Hyponyms.Length; i++) {
+                        l = LabelProvider.Labels[item.Hyponyms[i]];
+                        hyponymNames[i] = l.Names[0];
+                    }
+                }
+
+                var suggestion = new ImageClass {
+                    Label = item,
+                    TextRepresentation = item.Name,
+                    Name = nameRel.HighlightedString,
+                    Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
+                    Description = descriptionRel.HighlightedString,
+                    SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
+                };
+
+                return suggestion;
+            }
+            return null;
         }
 
         /// <summary>

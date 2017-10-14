@@ -243,10 +243,14 @@ namespace CustomElements {
 
             p.OnItemSelected += Popup_OnItemSelected;
             p.OnItemExpanded += Popup_OnItemExpanded;
-            p.HorizontalOffset = ActualWidth;
             p.PopupBorderThickness = new Thickness(0, 1, 1, 1);
 
             Popups_.Add(p);
+
+            int numberOfPopups = (int)Math.Floor((System.Windows.SystemParameters.PrimaryScreenWidth - 50) / ActualWidth);
+            numberOfPopups = (Popups_.Count-1) % (numberOfPopups);
+            p.HorizontalOffset = ActualWidth * numberOfPopups;
+
             ((Grid)TextBox_.Parent).Children.Add(p);
         }
 
