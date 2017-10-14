@@ -83,7 +83,7 @@ def convert_photos(images, tfrecord_dir, dataset_name, shards, class_names_dict)
                                                                                              shard_id, images[i]))
                     sys.stdout.flush()
 
-                    image_data = tf.gfile.FastGFile(images[i], 'r').read()
+                    image_data = tf.gfile.FastGFile(images[i], 'rb').read()
                     # https://github.com/tensorflow/models/blob/master/slim/datasets/download_and_convert_flowers.py
                     try:
                         height, width = image_reader.read_image_dims(sess, image_data)
@@ -138,7 +138,7 @@ def get_filenames_and_classes(dataset_dir, skip_first, take):
                 photo_filenames.extend(photos[skip_first:])
             class_names.append(class_dir)
 
-    return photo_filenames, sorted(class_names)
+    return photo_filenames, sorted(class_names, key=int)
 
 
 if __name__ == '__main__':

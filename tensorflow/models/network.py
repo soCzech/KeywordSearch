@@ -5,7 +5,7 @@ from models import inception_v1, inception_utils, inception_preprocessing
 slim = tf.contrib.slim
 
 
-def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.8):
+def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.8, base_scope='InceptionV1'):
     """Defines the Inception V1 architecture.
 
     Args:
@@ -24,7 +24,7 @@ def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.
 
     with slim.arg_scope([slim.batch_norm, slim.dropout], is_training=is_training):
         with slim.arg_scope(inception_utils.inception_arg_scope()):
-            net, end_points = inception_v1.inception_v1_base(inputs)
+            net, end_points = inception_v1.inception_v1_base(inputs, scope=base_scope)
 
         with tf.variable_scope(scope, reuse=False):
             net = slim.avg_pool2d(net, [7, 7], stride=1, scope='AvgPool_0a_7x7')

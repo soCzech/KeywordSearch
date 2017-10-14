@@ -27,7 +27,8 @@ def matrix_to_png(folder, filename, text_dtype, dtype, power):
     min_val, max_val = matrix.min(), matrix.max()
     print("Max: ", str(max_val), "\nMin: ", str(min_val))
 
-    matrix = np.power((matrix - min_val)/(max_val-min_val), power)
+    matrix = np.log10((matrix - min_val) / (max_val - min_val) * 9 + 1)
+    #matrix = np.power((matrix - min_val)/(max_val-min_val), power)
 
     min_val, max_val = matrix.min(), matrix.max()
     print("Normalized max: ", str(max_val), "\nNormalized min: ", str(min_val))
@@ -79,6 +80,6 @@ def print_color_scale():
 
     img.save('bin/covariance/scale.png')
 
-matrix_to_png('bin/covariance', 'covariance-classification', 'f', np.float32, 1/3)
-#matrix_to_png('bin/covariance', 'covariance-train1390', 'f', np.float32, 1/4)
-#matrix_to_png('bin/covariance', 'confusion-train1390', 'I', np.int32, 1)
+#matrix_to_png('bin/covariance', 'covariance-classification', 'f', np.float32, 1/3)
+matrix_to_png('bin/covariance', 'covariance-train1390', 'f', np.float32, 1/4)
+matrix_to_png('bin/covariance', 'confusion-train1390', 'I', np.int32, 1)
