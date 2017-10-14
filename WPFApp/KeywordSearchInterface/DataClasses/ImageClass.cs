@@ -16,17 +16,16 @@ namespace KeywordSearchInterface {
         public string Name { get; set; }
         public string Description { get; set; }
         public string Hyponyms { get; set; }
-        public string SearchableName { get; set; }
         public int NameLenghtInWords { get; set; }
         public Relevance SearchRelevance { get; set; }
 
-        public string TextRepresentation => SearchableName;
+        public string TextRepresentation { get; set; }
 
-        public int Id => throw new NotImplementedException();
+        public int Id { get; set; }
 
         public bool HasChildren => Hyponyms != null;
 
-        public IEnumerable<int> Children => new List<int>() {7846};
+        public IEnumerable<int> Children { get; set; }
 
         public int CompareTo(ImageClass other) {
             return (-1) * (((int)SearchRelevance.Bonus + SearchRelevance.NameHits) * 2 / (float)NameLenghtInWords + SearchRelevance.DescriptionHits).CompareTo(

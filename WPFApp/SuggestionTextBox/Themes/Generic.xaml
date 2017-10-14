@@ -47,6 +47,7 @@
                         <popup:SuggestionPopup
                             x:Name="PART_SuggestionPopup"
                             Width="{TemplateBinding ActualWidth}"
+                            PopupBorderThickness="1,0,1,1"
                             ItemTemplateSelector="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=ItemTemplateSelector}"
                             LoadingPlaceholder="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type local:SuggestionTextBox}}, Mode=TwoWay, Path=LoadingPlaceholder}">
 

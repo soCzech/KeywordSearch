@@ -72,6 +72,10 @@ namespace CustomElements {
             add { AddHandler(OnItemExpandedEvent, value); }
             remove { RemoveHandler(OnItemExpandedEvent, value); }
         }
+
+        public static readonly DependencyProperty PopupBorderThicknessProperty = DependencyProperty.Register("PopupBorderThickness", typeof(Thickness), typeof(SuggestionPopup), new FrameworkPropertyMetadata(new Thickness(1, 0, 1, 1)));
+        public static readonly DependencyProperty HorizontalOffsetProperty = DependencyProperty.Register("HorizontalOffset", typeof(double), typeof(SuggestionPopup), new FrameworkPropertyMetadata(0.0));
+        public static readonly DependencyProperty VerticalOffsetProperty = DependencyProperty.Register("VerticalOffset", typeof(double), typeof(SuggestionPopup), new FrameworkPropertyMetadata(0.0));
         public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register("ItemsSource", typeof(IEnumerable<IIdentifiable>), typeof(SuggestionPopup), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionPopup), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionPopup), new FrameworkPropertyMetadata(null));
@@ -79,6 +83,20 @@ namespace CustomElements {
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionPopup), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionPopup), new FrameworkPropertyMetadata(null));
 
+        public Thickness PopupBorderThickness {
+            get { return (Thickness)GetValue(PopupBorderThicknessProperty); }
+            set { SetValue(PopupBorderThicknessProperty, value); }
+        }
+
+        public double HorizontalOffset {
+            get { return (double)GetValue(HorizontalOffsetProperty); }
+            set { SetValue(HorizontalOffsetProperty, value); }
+        }
+
+        public double VerticalOffset {
+            get { return (double)GetValue(VerticalOffsetProperty); }
+            set { SetValue(VerticalOffsetProperty, value); }
+        }
 
         public IEnumerable<IIdentifiable> ItemsSource {
             get { return (IEnumerable<IIdentifiable>)GetValue(ItemsSourceProperty); }
@@ -141,7 +159,7 @@ namespace CustomElements {
                 case Key.Enter:
                 case Key.Tab:
                     if (mListBox.SelectedItem != null) {
-                        RaiseEvent(new RoutedEventArgs(OnItemSelectedEvent, mListBox.SelectedItem));
+                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemSelectedEvent, (IIdentifiable)mListBox.SelectedItem));
                         e.Handled = true;
                     }
                     break;
@@ -186,9 +204,9 @@ namespace CustomElements {
                     e.Handled = true;
                     break;
 
-                case Key.Left:
-                    if (mListBox.SelectedItem != null) {
-                        RaiseEvent(new RoutedEventArgs(OnItemExpandedEvent, mListBox.SelectedItem));
+                case Key.Right:
+                    if (mListBox.SelectedItem != null && ((IIdentifiable)mListBox.SelectedItem).HasChildren) {
+                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemExpandedEvent, (IIdentifiable)mListBox.SelectedItem));
                         e.Handled = true;
                     }
                     break;
@@ -207,7 +225,7 @@ namespace CustomElements {
             if (e != null) {
                 if (e.Any()) {
                     ItemsSource = e;
-                    mListBox.SelectedIndex = 0;
+                    if (mListBox != null) mListBox.SelectedIndex = 0;
                     IsLoading = false;
                 } else {
                     Close();

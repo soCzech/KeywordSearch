@@ -46,10 +46,12 @@
                                MinHeight="25"
                                MaxHeight="400"
                                AllowsTransparency="True"
+                           HorizontalOffset="{Binding Path=HorizontalOffset, RelativeSource={RelativeSource Mode=TemplatedParent}, Mode=TwoWay}"
+                           VerticalOffset="{Binding Path=VerticalOffset, RelativeSource={RelativeSource Mode=TemplatedParent}, Mode=TwoWay}"
                                PopupAnimation="Slide"
                                Focusable="False">
                         <Border Background="White"
-                                    BorderThickness="1,0,1,1"
+                                    BorderThickness="{Binding Path=PopupBorderThickness, RelativeSource={RelativeSource Mode=TemplatedParent}, Mode=TwoWay}"
                                     BorderBrush="Gray"
                                     Padding="2">
                             <Grid>

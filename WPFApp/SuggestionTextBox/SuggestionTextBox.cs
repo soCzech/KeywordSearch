@@ -10,35 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 
 namespace CustomElements {
-    /// <summary>
-    /// Follow steps 1a or 1b and then 2 to use this custom control in a XAML file.
-    ///
-    /// Step 1a) Using this custom control in a XAML file that exists in the current project.
-    /// Add this XmlNamespace attribute to the root element of the markup file where it is 
-    /// to be used:
-    ///
-    ///     xmlns:MyNamespace="clr-namespace:SuggestionTextBox"
-    ///
-    ///
-    /// Step 1b) Using this custom control in a XAML file that exists in a different project.
-    /// Add this XmlNamespace attribute to the root element of the markup file where it is 
-    /// to be used:
-    ///
-    ///     xmlns:MyNamespace="clr-namespace:SuggestionTextBox;assembly=SuggestionTextBox"
-    ///
-    /// You will also need to add a project reference from the project where the XAML file lives
-    /// to this project and Rebuild to avoid compilation errors:
-    ///
-    ///     Right click on the target project in the Solution Explorer and
-    ///     "Add Reference"->"Projects"->[Select this project]
-    ///
-    ///
-    /// Step 2)
-    /// Go ahead and use your control in the XAML file.
-    ///
-    ///     &lt;MyNamespace:SuggestionTextBox/&gt;
-    ///
-    /// </summary>
+
     public class SuggestionTextBox : Control {
 
         static SuggestionTextBox() {
@@ -72,6 +44,9 @@ namespace CustomElements {
             TextBox_.TextChanged += TextBox_OnTextChanged;
             TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
             TextBox_.LostFocus += TextBox_OnLostFocus;
+
+            Popups_[0].OnItemSelected += Popup_OnItemSelected;
+            Popups_[0].OnItemExpanded += Popup_OnItemExpanded;
         }
 
         #endregion
@@ -244,7 +219,35 @@ namespace CustomElements {
                     Popups_[Popups_.Count - 1].Popup_OnKeyDown(sender, e);
                 }
             }
-            
+        }
+
+        private void Popup_OnItemSelected(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
+            IIdentifiable item = e.SelectedItem;
+
+            TextBox_.Text = item.TextRepresentation;
+            TextBox_.SelectionStart = TextBox_.Text.Length;
+            Popup_CloseAll();
+
+            e.Handled = true;
+        }
+
+        private void Popup_OnItemExpanded(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
+            IIdentifiable item = e.SelectedItem;
+            if (!item.HasChildren) return;
+            e.Handled = true;
+
+            SuggestionPopup p = new SuggestionPopup();
+            p.Open(SuggestionProvider.GetSuggestions(item.Children));
+            p.ItemTemplateSelector = ItemTemplateSelector;
+
+
+            p.OnItemSelected += Popup_OnItemSelected;
+            p.OnItemExpanded += Popup_OnItemExpanded;
+            p.HorizontalOffset = ActualWidth;
+            p.PopupBorderThickness = new Thickness(0, 1, 1, 1);
+
+            Popups_.Add(p);
+            ((Grid)TextBox_.Parent).Children.Add(p);
         }
 
         #endregion

@@ -52,7 +52,7 @@ namespace KeywordSearchInterface {
                     Label l = LabelProvider.Labels[item];
                     yield return new ImageClass {
                         IsHypernym = l.Id == -1,
-                        SearchableName = l.Name,
+                        TextRepresentation = l.Name,
                         Name = l.Name,
                         Hyponyms = null,
                         Description = l.Description,
@@ -158,7 +158,9 @@ namespace KeywordSearchInterface {
 
                     var suggestion = new ImageClass {
                         IsHypernym = false,
-                        SearchableName = keepPart + item.Name,
+                        Id = item.Id,
+                        Children = item.Hyponyms,
+                        TextRepresentation = keepPart + item.Name,
                         Name = nameRel.HighlightedString,
                         Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
                         Description = descriptionRel.HighlightedString,
