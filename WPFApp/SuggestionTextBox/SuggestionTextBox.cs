@@ -54,15 +54,10 @@ namespace CustomElements {
         /// <summary>
         /// Indetifies Popup (containing list of suggestions) part of the UI element
         /// </summary>
-        public const string PartPopup = "PART_Popup";
-        /// <summary>
-        /// Indetifies ListBox (with suggestions) part of the UI element
-        /// </summary>
-        public const string PartListBox = "PART_ListBox";
+        public const string PartPopup = "PART_SuggestionPopup";
 
         private TextBox TextBox_;
-        private List<Popup> Popups_;
-        private Selector Selector_;
+        private List<SuggestionPopup> Popups_;
 
         /// <summary>
         /// Initialize the UI elements and register events
@@ -71,37 +66,24 @@ namespace CustomElements {
             base.OnApplyTemplate();
 
             TextBox_ = (TextBox)Template.FindName(PartTextBox, this);
-            Popups_ = new List<Popup>();
-            Popups_.Add((Popup)Template.FindName(PartPopup, this));
-            Selector_ = (Selector)Template.FindName(PartListBox, this);
+            Popups_ = new List<SuggestionPopup>();
+            Popups_.Add((SuggestionPopup)Template.FindName(PartPopup, this));
 
             TextBox_.TextChanged += TextBox_OnTextChanged;
             TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
             TextBox_.LostFocus += TextBox_OnLostFocus;
-
-            Popups_[0].StaysOpen = false;
-            Popups_[0].Closed += Popup_OnClosed;
         }
 
         #endregion
 
         #region Properties
 
-        public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
-
-        /// <summary>
-        /// Indicates if the suggestions popup is open.
-        /// </summary>
-        public bool IsPopupOpen {
-            get { return (bool)GetValue(IsPopupOpenProperty); }
-            set { SetValue(IsPopupOpenProperty, value); }
-        }
 
         /// <summary>
         /// Suggestion provider responsible for any suggestions
@@ -162,10 +144,8 @@ namespace CustomElements {
         /// <param name="filter">A string, the suggestions are for</param>
         public void OnSuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter) {
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {
-                if (IsPopupOpen && filter == TextBox_.Text) {
-                    IsLoading = false;
-                    Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
-                    IsPopupOpen = Selector_.HasItems;
+                if (Popups_[0].IsPopupOpen && filter == TextBox_.Text) {
+                    Popups_[0].Open(MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements));
                 }
             });
         }
@@ -177,7 +157,7 @@ namespace CustomElements {
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {
                 switch (type) {
                     case SuggestionMessageType.Exception:
-                        Popup_Close();
+                        Popup_CloseAll();
                         MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                         return;
                     case SuggestionMessageType.Information:
@@ -195,58 +175,25 @@ namespace CustomElements {
         #region Control Methods
 
         private void Popup_Open() {
-            IsPopupOpen = true;
-            IsLoading = true;
+            Popups_[0].Open(null);
 
-            Selector_.ItemsSource = null;
             SuggestionProvider.CancelSuggestions();
-
             SuggestionProvider.GetSuggestions(TextBox_.Text);
         }
 
-        private void Popup_Close() {
-            IsPopupOpen = false;
-            IsLoading = false;
-        }
+        private void Popup_CloseAll() {
+            SuggestionProvider.CancelSuggestions();
 
-        private void Popup_Create(IEnumerable<int> withClasses) {
-            Popup p = new Popup();
-            p.PlacementTarget = Popups_[Popups_.Count - 1];
-            p.Placement = PlacementMode.Left;
-            p.VerticalOffset = ActualHeight - 1;
-            p.HorizontalOffset = ActualWidth;
-            p.Width = ActualWidth;
-            p.MinHeight = 25;
-            p.MaxHeight = 400;
-
-            Border b = new Border();
-            b.BorderBrush = System.Windows.Media.Brushes.Gray;
-            b.BorderThickness = new Thickness(0, 1, 1, 1);
-            b.Background = System.Windows.Media.Brushes.White;
-            p.Child = b;
-
-            MyListBox l = new MyListBox();
-            l.ItemContainerStyle = FindResource(typeof(ListBoxItem)) as Style;
-            l.ItemTemplateSelector = ItemTemplateSelector;
-            l.ItemsSource = SuggestionProvider.GetSuggestions(withClasses);
-            l.Focusable = false;
-            l.BorderThickness = new Thickness(0);
-            b.Child = l;
-
-            p.IsOpen = true;
-            Popups_.Add(p);
-        }
-
-        private void Popup_Destroy() {
-            if (Popups_.Count > 1) {
-                Popups_[Popups_.Count - 1].IsOpen = false;
-                Popups_.RemoveAt(Popups_.Count - 1);
-            }
-        }
-
-        private void Popups_Destroy() {
             while (Popups_.Count > 1) {
-                Popups_[Popups_.Count - 1].IsOpen = false;
+                Popup_CloseOne();
+            }
+            Popup_CloseOne();
+        }
+
+        private void Popup_CloseOne() {
+            Popups_[Popups_.Count - 1].Close();
+
+            if (Popups_.Count > 1) {
                 Popups_.RemoveAt(Popups_.Count - 1);
             }
         }
@@ -256,116 +203,48 @@ namespace CustomElements {
         #region Event Handling Methods
 
         /// <summary>
-        /// Cancel suggestion search when suggestions closed
-        /// </summary>
-        private void Popup_OnClosed(object sender, EventArgs e) {
-            SuggestionProvider.CancelSuggestions();
-
-            Popups_Destroy();
-        }
-
-        /// <summary>
         /// Close popup and cancel any pending search for suggestions
         /// </summary>
         private void TextBox_OnLostFocus(object sender, RoutedEventArgs e) {
             if (!IsKeyboardFocusWithin)
-                Popup_Close();
+                Popup_CloseAll();
         }
 
         /// <summary>
         /// Cancel any pending search for suggestions and initiate a new one with new value
         /// </summary>
         private void TextBox_OnTextChanged(object sender, TextChangedEventArgs e) {
-            if (TextBox_.Text.Length == 0) {
-                Popup_Close();
-                return;
-            }
+            Popup_CloseAll();
 
-            Popups_Destroy();
-            Popup_Open();
+            if (TextBox_.Text.Length != 0) {
+                Popup_Open();
+            }
         }
 
         /// <summary>
         /// Manage navigation in suggestions popup and run search if pressed enter
         /// </summary>
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
-            if ((!IsPopupOpen || Selector_.SelectedItem == null) && e.Key == Key.Enter) {
-                if (TextBox_.Text != string.Empty) {
+            if (!Popups_[0].IsPopupOpen) {
+                if (e.Key == Key.Enter) {
                     SearchProvider?.Search(TextBox_.Text);
-                    Popup_Close();
+                    e.Handled = true;
+                } else if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
+                    Popup_Open();
+                    e.Handled = true;
                 }
-                return;
+            } else {
+                if (e.Key == Key.Escape) {
+                    Popup_CloseAll();
+                    e.Handled = true;
+                } else if (e.Key == Key.Left) {
+                    Popup_CloseOne();
+                    e.Handled = true;
+                } else {
+                    Popups_[Popups_.Count - 1].Popup_OnKeyDown(sender, e);
+                }
             }
-
-            // reopen suggestions if closed
-            if (TextBox_.Text != string.Empty && !IsPopupOpen && (e.Key == Key.Up || e.Key == Key.Down)) {
-                Popup_Open();
-                return;
-            }
-
-            switch (e.Key) {
-                case Key.Enter:
-                case Key.Tab:
-                    if (Selector_.SelectedItem != null) {
-                        TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).TextRepresentation;
-                        TextBox_.SelectionStart = TextBox_.Text.Length;
-                        Popup_Close();
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Escape:
-                    Popup_Close();
-                    break;
-                case Key.Up:
-                    if (Selector_.SelectedIndex == -1) Selector_.SelectedIndex = Selector_.Items.Count - 1;
-                    else {
-                        if (Selector_.SelectedIndex == 0) Selector_.SelectedIndex = Selector_.Items.Count - 1;
-                        else Selector_.SelectedIndex--;
-                    }
-                    ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                    break;
-                case Key.Down:
-                    if (Selector_.SelectedIndex == -1) Selector_.SelectedIndex = 0;
-                    else {
-                        if (Selector_.SelectedIndex == Selector_.Items.Count - 1) Selector_.SelectedIndex = 0;
-                        else Selector_.SelectedIndex++;
-                    }
-                    ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                    break;
-                case Key.PageUp:
-                    if (Selector_.SelectedIndex != -1) {
-                        int newIndex = Selector_.SelectedIndex - 5;
-                        if (newIndex < 0) newIndex = 0;
-                        Selector_.SelectedIndex = newIndex;
-                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.PageDown:
-                    if (Selector_.SelectedIndex != -1) {
-                        int newIndex = Selector_.SelectedIndex + 5;
-                        if (newIndex >= Selector_.Items.Count) newIndex = Selector_.Items.Count - 1;
-                        Selector_.SelectedIndex = newIndex;
-                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Right:
-                    if (IsPopupOpen && Selector_.SelectedItem != null) {
-                        var el = ((IIdentifiable)Selector_.SelectedItem);
-                        if (el.HasChildren) {
-                            Popup_Create(el.Children);
-                        }
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Left:
-                    if (Selector_.SelectedItem != null) {
-                        Popup_Destroy();
-                        e.Handled = true;
-                    }
-                    break;
-            }
+            
         }
 
         #endregion
