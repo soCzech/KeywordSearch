@@ -30,10 +30,13 @@ namespace CustomElements {
         public const string PartPopup = "PART_SuggestionPopup";
 
         public const string PartSourceStack = "PART_SourceStack";
+        public const string PartResultStack = "PART_ResultStack";
 
         private TextBox TextBox_;
         private List<SuggestionPopup> Popups_;
+        private WrapPanel RasultStack_;
 
+        private List<QueryTextBlock> Query_ = new List<QueryTextBlock>();
 
         /// <summary>
         /// Initialize the UI elements and register events
@@ -52,6 +55,7 @@ namespace CustomElements {
             Popups_[0].OnItemSelected += Popup_OnItemSelected;
             Popups_[0].OnItemExpanded += Popup_OnItemExpanded;
 
+            RasultStack_ = (WrapPanel)Template.FindName(PartResultStack, this);
 
             StackPanel s = (StackPanel)Template.FindName(PartSourceStack, this);
             for (int i = 0; i < AnnotationSources.Length; i++) {
@@ -60,7 +64,7 @@ namespace CustomElements {
                 r.Content = Path.GetFileName(AnnotationSources[i]);
                 r.GroupName = "AnnotationSources";
                 r.Checked += AnnotationSourceButton_Checked;
-                r.Margin = new Thickness(0, 5, 10, 0);
+                r.Margin = new Thickness(0, 0, 10, 0);
                 if (i == 0) r.IsChecked = true;
                 s.Children.Add(r);
             }
@@ -247,6 +251,8 @@ namespace CustomElements {
         private void Popup_OnItemSelected(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
             IIdentifiable item = e.SelectedItem;
 
+            AddToQuery(item.TextRepresentation, item.Id);
+
             TextBox_.Text = item.TextRepresentation;
             TextBox_.SelectionStart = TextBox_.Text.Length;
             Popup_CloseAll();
@@ -286,6 +292,41 @@ namespace CustomElements {
 
         #endregion
 
+
+        private void AddToQuery(string text, int id) {
+            QueryTextBlock b = new QueryTextBlock(text, text, id);
+
+            if (Query_.Count > 0) {
+                QueryTextBlock c = new QueryTextBlock(TextBlockType.OR);
+                RasultStack_.Children.Add(c);
+                Query_.Add(c);
+            }
+
+            RasultStack_.Children.Add(b);
+            Query_.Add(b);
+            b.MouseUp += QueryButton_MouseUp;
+        }
+
+        private void QueryButton_MouseUp(object sender, MouseButtonEventArgs e) {
+            QueryTextBlock b = sender as QueryTextBlock;
+
+            for (int i = 0; i < Query_.Count; i++) {
+                if (Query_[i].Id == b.Id) {
+                    if (i + 1 != Query_.Count) {
+                        RasultStack_.Children.Remove(Query_[i + 1]);
+                        Query_.RemoveAt(i + 1);
+                    }
+                    RasultStack_.Children.Remove(Query_[i]);
+                    Query_.RemoveAt(i);
+
+                    if (i != 0 && i == Query_.Count) {
+                        RasultStack_.Children.Remove(Query_[i - 1]);
+                        Query_.RemoveAt(i - 1);
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -55,7 +55,7 @@
     </Page>
     <Compile Include="ISearchProvider.cs" />
     <Compile Include="ISuggestionProvider.cs" />
-    <Compile Include="MyListBox.cs" />
+    <Compile Include="QueryTextBlock.cs" />
     <Compile Include="SuggestionTextBox.cs">
       <SubType>Code</SubType>
     </Compile>

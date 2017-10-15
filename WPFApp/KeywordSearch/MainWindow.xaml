@@ -12,6 +12,17 @@
         WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Window.Resources>
+
+        <Style TargetType="{x:Type tools:QueryTextBlock}">
+            <Setter Property="Background" Value="WhiteSmoke"/>
+            <Setter Property="Padding" Value="5,2,5,2" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter Property="Background" Value="LightGray"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <x:Array Type="sys:String" x:Key="AnnotationSources">
             <sys:String>files/GoogLeNet</sys:String>
             <sys:String>files/YFCC100M</sys:String>
