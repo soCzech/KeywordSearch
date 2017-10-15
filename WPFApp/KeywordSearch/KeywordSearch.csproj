@@ -58,6 +58,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="KeywordSearchController.cs" />
     <Compile Include="StringConverters\NotFoundMessageConverter.cs" />
     <Compile Include="SuggestionTemplateSelector.cs" />
     <Page Include="MainWindow.xaml">

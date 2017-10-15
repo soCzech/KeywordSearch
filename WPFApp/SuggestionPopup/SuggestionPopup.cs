@@ -55,10 +55,12 @@ namespace CustomElements {
 
         public delegate void SelectedItemRoutedEventHandler(object sender, SelectedItemRoutedEventArgs e);
         public class SelectedItemRoutedEventArgs : RoutedEventArgs {
-            public SelectedItemRoutedEventArgs(RoutedEvent e, IIdentifiable item) : base(e) {
+            public SelectedItemRoutedEventArgs(RoutedEvent e, IIdentifiable item, bool ctrlKey) : base(e) {
                 SelectedItem = item;
+                CtrlKeyPressed = ctrlKey;
             }
             public IIdentifiable SelectedItem { get; private set; }
+            public bool CtrlKeyPressed { get; private set; }
         }
         public static readonly RoutedEvent OnItemSelectedEvent = EventManager.RegisterRoutedEvent("OnItemSelected", RoutingStrategy.Bubble, typeof(SelectedItemRoutedEventHandler), typeof(SuggestionPopup));
 
@@ -80,7 +82,6 @@ namespace CustomElements {
         public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionPopup), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionPopup), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionPopup), new FrameworkPropertyMetadata(false));
-        public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionPopup), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionPopup), new FrameworkPropertyMetadata(null));
 
         public Thickness PopupBorderThickness {
@@ -128,14 +129,6 @@ namespace CustomElements {
         }
 
         /// <summary>
-        /// Maximal number of elements shown in suggestions (-1 implies unlimited)
-        /// </summary>
-        public int MaxNumberOfElements {
-            get { return (int)GetValue(MaxNumberOfElementsProperty); }
-            set { SetValue(MaxNumberOfElementsProperty, value); }
-        }
-
-        /// <summary>
         /// TextBlock shown if loading any results
         /// </summary>
         public object LoadingPlaceholder {
@@ -159,7 +152,7 @@ namespace CustomElements {
                 case Key.Enter:
                 case Key.Tab:
                     if (mListBox.SelectedItem != null) {
-                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemSelectedEvent, (IIdentifiable)mListBox.SelectedItem));
+                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemSelectedEvent, (IIdentifiable)mListBox.SelectedItem, Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)));
                         e.Handled = true;
                     }
                     break;
@@ -206,7 +199,7 @@ namespace CustomElements {
 
                 case Key.Right:
                     if (mListBox.SelectedItem != null && ((IIdentifiable)mListBox.SelectedItem).HasChildren) {
-                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemExpandedEvent, (IIdentifiable)mListBox.SelectedItem));
+                        RaiseEvent(new SelectedItemRoutedEventArgs(OnItemExpandedEvent, (IIdentifiable)mListBox.SelectedItem, Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)));
                         e.Handled = true;
                     }
                     break;

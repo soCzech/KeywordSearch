@@ -46,31 +46,23 @@ namespace KeywordSearchInterface {
 
         #region Interface Methods
 
-        public IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses) {
+        public IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses, string filter) {
+            List<IIdentifiable> list = new List<IIdentifiable>();
+
             if (!LabelProvider.LoadTask.IsFaulted && LabelProvider.LoadTask.IsCompleted) {
+                // build Aho-Corasick trie
+                AhoCorasick AC = new AhoCorasick();
+                AC.Add(filter);
+                AC.Build();
+
                 foreach (var item in withClasses) {
                     Label l = LabelProvider.Labels[item];
 
-                    string[] hyponymNames = null;
-                    if (l.Hyponyms != null) {
-                        hyponymNames = new string[l.Hyponyms.Length];
-
-                        Label x;
-                        for (int i = 0; i < l.Hyponyms.Length; i++) {
-                            x = LabelProvider.Labels[l.Hyponyms[i]];
-                            hyponymNames[i] = x.Names[0];
-                        }
-                    }
-
-                    yield return new ImageClass {
-                        Label = l,
-                        TextRepresentation = l.Name,
-                        Name = l.Name,
-                        Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
-                        Description = l.Description
-                    };
+                    ImageClass iCls = LabelToImageClass(l, AC, true);
+                    list.Add(iCls);
                 }
             }
+            return list;
         }
 
         /// <summary>
@@ -147,7 +139,7 @@ namespace KeywordSearchInterface {
 
                 ImageClass iCls = LabelToImageClass(item, AC);
                 if (iCls != null) {
-                    iCls.TextRepresentation = keepPart + iCls.TextRepresentation;
+                    //iCls.TextRepresentation = keepPart + iCls.TextRepresentation;
                     list.Add(iCls);
                 }
             }
@@ -158,13 +150,13 @@ namespace KeywordSearchInterface {
         }
 
 
-        private ImageClass LabelToImageClass(Label item, AhoCorasick AC) {
+        private ImageClass LabelToImageClass(Label item, AhoCorasick AC, bool showAll = false) {
             // search in label name
             var nameEnum = AC.Find(item.Name);
             // search in description
             var descriptionEnum = AC.Find(item.Description);
 
-            if (nameEnum.Any() || descriptionEnum.Any()) {
+            if (showAll || nameEnum.Any() || descriptionEnum.Any()) {
                 // highlight the search phrase in the text and calculate relevance of the search
                 var nameRel = HighlightPhrase(nameEnum, item.Name);
                 var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
@@ -182,7 +174,6 @@ namespace KeywordSearchInterface {
 
                 var suggestion = new ImageClass {
                     Label = item,
-                    TextRepresentation = item.Name,
                     Name = nameRel.HighlightedString,
                     Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
                     Description = descriptionRel.HighlightedString,

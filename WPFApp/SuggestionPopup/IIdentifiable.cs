@@ -11,6 +11,7 @@ namespace CustomElements {
         /// </summary>
         /// <returns>Text to be writen into a search box</returns>
         string TextRepresentation { get; }
+        string TextDescription { get; }
 
         /// <summary>
         /// </summary>
@@ -18,6 +19,7 @@ namespace CustomElements {
         int Id { get; }
 
         bool HasChildren { get; }
+        bool HasOnlyChildren { get; }
 
         IEnumerable<int> Children { get; }
     }

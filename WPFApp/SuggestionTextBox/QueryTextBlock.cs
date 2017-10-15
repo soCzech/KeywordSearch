@@ -4,15 +4,37 @@ using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace CustomElements {
-    public class QueryTextBlock : TextBlock {
+    public class QueryTextBlock : TextBlock, IQueryPart {
         public int Id { get; private set; }
-        public TextBlockType Type { get; private set; }
 
-        public QueryTextBlock(string shortText, string longText, int id) {
+        private TextBlockType type;
+        public TextBlockType Type {
+            get {
+                return type;
+            } set {
+                if (value == TextBlockType.Class) return;
+                type = value;
+            }
+        }
+        public bool UseChildren { get; private set; }
+
+        public QueryTextBlock(IIdentifiable item, bool ctrlKey) {
             Type = TextBlockType.Class;
-            Text = shortText;
-            ToolTip = string.Format("{0}\nid: {1}", longText, id);
-            Id = id;
+            Text = item.TextRepresentation;
+            Id = item.Id;
+            UseChildren = (!ctrlKey && item.HasChildren) || item.HasOnlyChildren;
+
+            if (UseChildren) {
+                if (item.HasOnlyChildren) {
+                    ToolTip = string.Format("{0}\nid: {1}\nHypernym", item.TextDescription, item.Id);
+                    Background = Brushes.LightPink;
+                } else {
+                    ToolTip = string.Format("{0}\nid: {1}\nHypernym (hold Ctrl when selecting to use only {2})", item.TextDescription, item.Id, item.TextRepresentation);
+                    Background = Brushes.LightGreen;
+                }
+            } else {
+                ToolTip = string.Format("{0}\nid: {1}", item.TextDescription, item.Id);
+            }
         }
 
         public QueryTextBlock(TextBlockType type) {
@@ -22,14 +44,6 @@ namespace CustomElements {
             Text = type == TextBlockType.AND ? "AND" : "OR";
             ToolTip = "Click to change logical operator";
             Foreground = Brushes.Red;
-
-            MouseUp += QueryTextBlock_MouseUp;
-        }
-
-        private void QueryTextBlock_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e) {
-            Type = Type == TextBlockType.AND ? TextBlockType.OR : TextBlockType.AND;
-            Text = Type == TextBlockType.AND ? "AND" : "OR";
         }
     }
-    public enum TextBlockType { Class, OR, AND }
 }

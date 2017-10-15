@@ -74,34 +74,52 @@ namespace CustomElements {
 
         #region Properties
 
+        public delegate void QueryChangedHandler(IEnumerable<IQueryPart> query, string annotationSource);
+        public event QueryChangedHandler QueryChangedEvent;
+
+        public delegate void SuggestionFilterChangedHandler(string filter, string annotationSource);
+        public event SuggestionFilterChangedHandler SuggestionFilterChangedEvent;
+
+        public delegate IEnumerable<IIdentifiable> GetSuggestionSubtreeHandler(IEnumerable<int> subtree, string filter, string annotationSource);
+        public event GetSuggestionSubtreeHandler GetSuggestionSubtreeEvent;
+
+        public delegate void SuggestionsNotNeededHandler();
+        public event SuggestionsNotNeededHandler SuggestionsNotNeededEvent;
+
+        public static readonly DependencyProperty AnnotationSourceProperty = DependencyProperty.Register("AnnotationSource", typeof(string), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty AnnotationSourcesProperty = DependencyProperty.Register("AnnotationSources", typeof(string[]), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(new string[0]));
-        public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
-        public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        //public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        //public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+
+        public string AnnotationSource {
+            get { return (string)GetValue(AnnotationSourceProperty); }
+            set { SetValue(AnnotationSourceProperty, value); }
+        }
 
         public string[] AnnotationSources {
             get { return (string[])GetValue(AnnotationSourcesProperty); }
             set { SetValue(AnnotationSourcesProperty, value); }
         }
 
-        /// <summary>
-        /// Suggestion provider responsible for any suggestions
-        /// </summary>
-        public ISuggestionProvider SuggestionProvider {
-            get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
-            set { SetValue(SuggestionProviderProperty, value); }
-        }
+        ///// <summary>
+        ///// Suggestion provider responsible for any suggestions
+        ///// </summary>
+        //public ISuggestionProvider SuggestionProvider {
+        //    get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
+        //    set { SetValue(SuggestionProviderProperty, value); }
+        //}
 
-        /// <summary>
-        /// Search provider responsibe for any results
-        /// </summary>
-        public ISearchProvider SearchProvider {
-            get { return (ISearchProvider)GetValue(SearchProviderProperty); }
-            set { SetValue(SearchProviderProperty, value); }
-        }
+        ///// <summary>
+        ///// Search provider responsibe for any results
+        ///// </summary>
+        //public ISearchProvider SearchProvider {
+        //    get { return (ISearchProvider)GetValue(SearchProviderProperty); }
+        //    set { SetValue(SearchProviderProperty, value); }
+        //}
 
         /// <summary>
         /// Template for items in the ListBox
@@ -179,12 +197,12 @@ namespace CustomElements {
         private void Popup_Open() {
             Popups_[0].Open(null);
 
-            SuggestionProvider.CancelSuggestions();
-            SuggestionProvider.GetSuggestions(TextBox_.Text);
+            SuggestionsNotNeededEvent?.Invoke();
+            SuggestionFilterChangedEvent?.Invoke(TextBox_.Text, AnnotationSource);
         }
 
         private void Popup_CloseAll() {
-            SuggestionProvider.CancelSuggestions();
+            SuggestionsNotNeededEvent?.Invoke();
 
             while (Popups_.Count > 1) {
                 Popup_CloseOne();
@@ -228,10 +246,11 @@ namespace CustomElements {
         /// </summary>
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
             if (!Popups_[0].IsPopupOpen) {
-                if (e.Key == Key.Enter) {
-                    SearchProvider?.Search(TextBox_.Text);
-                    e.Handled = true;
-                } else if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
+                //if (e.Key == Key.Enter) {
+                //    SearchProvider?.Search(TextBox_.Text);
+                //    e.Handled = true;
+                //} else 
+                if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
                     Popup_Open();
                     e.Handled = true;
                 }
@@ -251,11 +270,26 @@ namespace CustomElements {
         private void Popup_OnItemSelected(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
             IIdentifiable item = e.SelectedItem;
 
-            AddToQuery(item.TextRepresentation, item.Id);
+            QueryTextBlock b = new QueryTextBlock(item, e.CtrlKeyPressed);
 
-            TextBox_.Text = item.TextRepresentation;
-            TextBox_.SelectionStart = TextBox_.Text.Length;
+            if (Query_.Count > 0) {
+                QueryTextBlock c = new QueryTextBlock(TextBlockType.OR);
+                RasultStack_.Children.Add(c);
+                Query_.Add(c);
+                c.MouseUp += QueryOperator_MouseUp;
+            }
+
+            RasultStack_.Children.Add(b);
+            Query_.Add(b);
+            b.MouseUp += QueryClass_MouseUp;
+
+
+            TextBox_.Text = string.Empty;
+            //TextBox_.Text = item.TextRepresentation;
+            //TextBox_.SelectionStart = TextBox_.Text.Length;
             Popup_CloseAll();
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
 
             e.Handled = true;
         }
@@ -266,7 +300,7 @@ namespace CustomElements {
             e.Handled = true;
 
             SuggestionPopup p = new SuggestionPopup();
-            p.Open(SuggestionProvider.GetSuggestions(item.Children));
+            p.Open(GetSuggestionSubtreeEvent?.Invoke(item.Children, TextBox_.Text, AnnotationSource));
             p.ItemTemplateSelector = ItemTemplateSelector;
 
 
@@ -287,27 +321,20 @@ namespace CustomElements {
             RadioButton rb = sender as RadioButton;
             if (rb == null) return;
 
-            //TextBox_.Text = rb.Tag.ToString();
+            AnnotationSource = rb.Tag.ToString();
+
+            ClearQuery();
         }
 
         #endregion
 
-
-        private void AddToQuery(string text, int id) {
-            QueryTextBlock b = new QueryTextBlock(text, text, id);
-
-            if (Query_.Count > 0) {
-                QueryTextBlock c = new QueryTextBlock(TextBlockType.OR);
-                RasultStack_.Children.Add(c);
-                Query_.Add(c);
-            }
-
-            RasultStack_.Children.Add(b);
-            Query_.Add(b);
-            b.MouseUp += QueryButton_MouseUp;
+        private void ClearQuery() {
+            RasultStack_.Children.Clear();
+            Query_.Clear();
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
         }
 
-        private void QueryButton_MouseUp(object sender, MouseButtonEventArgs e) {
+        private void QueryClass_MouseUp(object sender, MouseButtonEventArgs e) {
             QueryTextBlock b = sender as QueryTextBlock;
 
             for (int i = 0; i < Query_.Count; i++) {
@@ -326,6 +353,17 @@ namespace CustomElements {
                     break;
                 }
             }
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+        }
+
+        private void QueryOperator_MouseUp(object sender, MouseButtonEventArgs e) {
+            QueryTextBlock b = sender as QueryTextBlock;
+
+            b.Type = b.Type == TextBlockType.AND ? TextBlockType.OR : TextBlockType.AND;
+            b.Text = b.Type == TextBlockType.AND ? "AND" : "OR";
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
         }
     }
 

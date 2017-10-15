@@ -15,7 +15,7 @@ namespace CustomElements {
         /// <param name="filter">A string the suggestions should be for</param>
         void GetSuggestions(string filter);
 
-        IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses);
+        IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses, string filter);
         /// <summary>
         /// Called to stop any ongoing suggestions search (eg. the filter argument changed).
         /// </summary>

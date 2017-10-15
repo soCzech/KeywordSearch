@@ -11,7 +11,7 @@ namespace KeywordSearchInterface {
     /// <summary>
     /// Searches an index file and displays results
     /// </summary>
-    public class ImageProvider : ISearchProvider {
+    public class ImageProvider {//: ISearchProvider {
 
         private string IndexFilePath = ".\\files.index";
 
@@ -94,7 +94,7 @@ namespace KeywordSearchInterface {
         /// Searches the index file asynchronously and calls <see cref="SearchResultsReadyEvent"/>.
         /// </summary>
         /// <param name="filter">A string the resuts should be for</param>
-        public void Search(string filter) {
+        public void Search(IEnumerable<IQueryPart> filter) {
             if (LabelProvider.LoadTask.IsFaulted) {
                 ShowSearchMessageEvent(SearchMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
@@ -102,7 +102,7 @@ namespace KeywordSearchInterface {
                 ShowSearchMessageEvent(SearchMessageType.Exception, LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted || !LoadTask.IsCompleted) {
-                ShowSearchMessageEvent(SearchMessageType.ResourcesNotLoadedYet, filter);
+                ShowSearchMessageEvent(SearchMessageType.ResourcesNotLoadedYet, "?");
                 return;
             }
 
@@ -121,7 +121,7 @@ namespace KeywordSearchInterface {
                 }
                 if (task.Result == null) return;
 
-                SearchResultsReadyEvent(task.Result);
+                KeywordResultsReadyEvent?.Invoke(task.Result);
             }, CTS.Token, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
         }
 
@@ -139,12 +139,12 @@ namespace KeywordSearchInterface {
         /// <summary>
         /// Delegate for <see cref="SearchResultsReadyEvent"/>
         /// </summary>
-        public delegate void SearchResultsReady(List<Filename> filenames);
+        public delegate void KeywordResultsReadyHandler(List<Filename> filenames);
 
         /// <summary>
         /// Called when new result are ready and should be shown
         /// </summary>
-        public event SearchResultsReady SearchResultsReadyEvent;
+        public event KeywordResultsReadyHandler KeywordResultsReadyEvent;
 
         /// <summary>
         /// Delegate for <see cref="ShowSearchMessageEvent"/>
@@ -284,6 +284,45 @@ namespace KeywordSearchInterface {
         #endregion
 
         #region (Private) Parse Search Term
+
+        private List<List<int>> GetClassIds(IEnumerable<IQueryPart> query) {
+            var list = new List<List<int>>();
+            list.Add(new List<int>());
+
+            foreach (var item in query) {
+                if (item.Type == TextBlockType.Class) {
+                    if (item.UseChildren) {
+                        IEnumerable<int> synsetIds = GetAllIds(new int[] { item.Id });
+
+                        foreach (int synId in synsetIds) {
+                            int id = LabelProvider.Labels[synId].Id;
+
+                            if (Classes.ContainsKey(id)) {
+                                list[list.Count - 1].Add(id);
+                            }
+                        }
+                    } else {
+                        int id = LabelProvider.Labels[item.Id].Id;
+
+                        if (Classes.ContainsKey(id)) {
+                            list[list.Count - 1].Add(id);
+                        }
+                    }
+                } else if (item.Type == TextBlockType.AND) {
+                    list.Add(new List<int>());
+                }
+            }
+
+            for (int i = 0; i < list.Count; i++) {
+                if (list[i].Count == 0) {
+                    ShowSearchMessageEvent(SearchMessageType.NotFound, "?");
+                    return null;
+                }
+                list[i] = list[i].Distinct().ToList();
+            }
+            return list;
+        }
+
 
         /// <summary>
         /// Parses string of classes (eg. tree+castle*car -> {{tree, castle}, {car}})
