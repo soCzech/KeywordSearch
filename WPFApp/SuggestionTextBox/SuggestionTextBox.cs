@@ -250,7 +250,18 @@ namespace CustomElements {
                 //    SearchProvider?.Search(TextBox_.Text);
                 //    e.Handled = true;
                 //} else 
-                if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
+                if (e.Key == Key.Back && TextBox_.Text == string.Empty) {
+                    if (Query_.Count > 0) {
+                        RasultStack_.Children.Remove(Query_[Query_.Count - 1]);
+                        Query_.RemoveAt(Query_.Count - 1);
+                        if (Query_.Count > 0) {
+                            RasultStack_.Children.Remove(Query_[Query_.Count - 1]);
+                            Query_.RemoveAt(Query_.Count - 1);
+                        }
+                        e.Handled = true;
+                        QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+                    }
+                } else if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
                     Popup_Open();
                     e.Handled = true;
                 }
