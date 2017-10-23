@@ -14,7 +14,7 @@ namespace KeywordSearch {
         public DataTemplate Class { get; set; }
 
         public override DataTemplate SelectTemplate(object item, DependencyObject container) {
-            if (((ImageClass)item).IsHypernym)
+            if (((ImageClass)item).HasOnlyChildren)
                 return Hypernym;
             else if (((ImageClass)item).Hyponyms != null)
                 return Both;

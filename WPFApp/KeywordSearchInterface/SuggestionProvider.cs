@@ -46,6 +46,25 @@ namespace KeywordSearchInterface {
 
         #region Interface Methods
 
+        public IEnumerable<IIdentifiable> GetSuggestions(IEnumerable<int> withClasses, string filter) {
+            List<IIdentifiable> list = new List<IIdentifiable>();
+
+            if (!LabelProvider.LoadTask.IsFaulted && LabelProvider.LoadTask.IsCompleted) {
+                // build Aho-Corasick trie
+                AhoCorasick AC = new AhoCorasick();
+                AC.Add(filter);
+                AC.Build();
+
+                foreach (var item in withClasses) {
+                    Label l = LabelProvider.Labels[item];
+
+                    ImageClass iCls = LabelToImageClass(l, AC, true);
+                    list.Add(iCls);
+                }
+            }
+            return list;
+        }
+
         /// <summary>
         /// Checks if labels are loaded. Creates new task that searches for correct labels. Calls <see cref="SuggestionResultsReadyEvent"/>.
         /// </summary>
@@ -55,10 +74,10 @@ namespace KeywordSearchInterface {
                 ShowSuggestionMessageEvent(SuggestionMessageType.Exception, LabelProvider.LoadTask.Exception.InnerException.Message);
                 return;
             } else if (!LabelProvider.LoadTask.IsCompleted) {
-                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Labels not loaded yet...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.Information, "Labels not loaded yet...");
                 return;
             } else {
-                ShowSuggestionMessageEvent(SuggestionMessageType.ResourcesNotLoadedYet, "Loading...");
+                ShowSuggestionMessageEvent(SuggestionMessageType.Information, "Loading...");
             }
 
             CTS = new CancellationTokenSource();
@@ -118,47 +137,52 @@ namespace KeywordSearchInterface {
                     break;
                 }
 
-                // search in label name
-                var nameEnum = AC.Find(item.Name);
-                // search in description
-                var descriptionEnum = AC.Find(item.Description);
-
-                if (nameEnum.Any() || descriptionEnum.Any()) {
-                    // highlight the search phrase in the text and calculate relevance of the search
-                    var nameRel = HighlightPhrase(nameEnum, item.Name);
-                    var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
-
-                    string[] hyponymNames = null;
-                    if (item.Hyponyms != null) {
-                        hyponymNames = new string[item.Hyponyms.Length];
-
-                        Label l;
-                        for (int i = 0; i < item.Hyponyms.Length; i++) {
-                            l = LabelProvider.Labels[item.Hyponyms[i]];
-                            hyponymNames[i] = l.Names[0];
-                        }
-                    }
-
-                    var suggestion = new ImageClass {
-                        IsHypernym = false,
-                        SearchableName = keepPart + item.Name,
-                        Name = nameRel.HighlightedString,
-                        Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
-                        Description = descriptionRel.HighlightedString,
-                        NameLenghtInWords = item.NameLenghtInWords,
-                        SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
-                    };
-
-                    if (item.Id == -1) {
-                        suggestion.IsHypernym = true;
-                    }
-                    list.Add(suggestion);
+                ImageClass iCls = LabelToImageClass(item, AC);
+                if (iCls != null) {
+                    //iCls.TextRepresentation = keepPart + iCls.TextRepresentation;
+                    list.Add(iCls);
                 }
             }
             if (!token.IsCancellationRequested)
                 list.Sort();
 
             return list;
+        }
+
+
+        private ImageClass LabelToImageClass(Label item, AhoCorasick AC, bool showAll = false) {
+            // search in label name
+            var nameEnum = AC.Find(item.Name);
+            // search in description
+            var descriptionEnum = AC.Find(item.Description);
+
+            if (showAll || nameEnum.Any() || descriptionEnum.Any()) {
+                // highlight the search phrase in the text and calculate relevance of the search
+                var nameRel = HighlightPhrase(nameEnum, item.Name);
+                var descriptionRel = HighlightPhrase(descriptionEnum, item.Description);
+
+                string[] hyponymNames = null;
+                if (item.Hyponyms != null) {
+                    hyponymNames = new string[item.Hyponyms.Length];
+
+                    Label l;
+                    for (int i = 0; i < item.Hyponyms.Length; i++) {
+                        l = LabelProvider.Labels[item.Hyponyms[i]];
+                        hyponymNames[i] = l.Names[0];
+                    }
+                }
+
+                var suggestion = new ImageClass {
+                    Label = item,
+                    Name = nameRel.HighlightedString,
+                    Hyponyms = hyponymNames == null ? null : string.Join(", ", hyponymNames),
+                    Description = descriptionRel.HighlightedString,
+                    SearchRelevance = new Relevance() { NameHits = nameRel.Hits, DescriptionHits = descriptionRel.Hits, Bonus = nameRel.Bonus }
+                };
+
+                return suggestion;
+            }
+            return null;
         }
 
         /// <summary>

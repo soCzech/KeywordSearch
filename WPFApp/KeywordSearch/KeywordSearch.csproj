@@ -58,6 +58,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="KeywordSearchController.cs" />
     <Compile Include="StringConverters\NotFoundMessageConverter.cs" />
     <Compile Include="SuggestionTemplateSelector.cs" />
     <Page Include="MainWindow.xaml">
@@ -104,6 +105,10 @@
     <ProjectReference Include="..\KeywordSearchInterface\KeywordSearchInterface.csproj">
       <Project>{e8c85cb2-c516-4487-9bdd-0b8f5682cabb}</Project>
       <Name>KeywordSearchInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SuggestionPopup\SuggestionPopup.csproj">
+      <Project>{96e29c83-610b-4ed0-833c-7f91ce452bdb}</Project>
+      <Name>SuggestionPopup</Name>
     </ProjectReference>
     <ProjectReference Include="..\SuggestionTextBox\SuggestionTextBox.csproj">
       <Project>{18cb36b1-86fb-4bc0-9a84-d4c9ed6edf8b}</Project>

@@ -7,37 +7,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.IO;
 
 namespace CustomElements {
-    /// <summary>
-    /// Follow steps 1a or 1b and then 2 to use this custom control in a XAML file.
-    ///
-    /// Step 1a) Using this custom control in a XAML file that exists in the current project.
-    /// Add this XmlNamespace attribute to the root element of the markup file where it is 
-    /// to be used:
-    ///
-    ///     xmlns:MyNamespace="clr-namespace:SuggestionTextBox"
-    ///
-    ///
-    /// Step 1b) Using this custom control in a XAML file that exists in a different project.
-    /// Add this XmlNamespace attribute to the root element of the markup file where it is 
-    /// to be used:
-    ///
-    ///     xmlns:MyNamespace="clr-namespace:SuggestionTextBox;assembly=SuggestionTextBox"
-    ///
-    /// You will also need to add a project reference from the project where the XAML file lives
-    /// to this project and Rebuild to avoid compilation errors:
-    ///
-    ///     Right click on the target project in the Solution Explorer and
-    ///     "Add Reference"->"Projects"->[Select this project]
-    ///
-    ///
-    /// Step 2)
-    /// Go ahead and use your control in the XAML file.
-    ///
-    ///     &lt;MyNamespace:SuggestionTextBox/&gt;
-    ///
-    /// </summary>
+
     public class SuggestionTextBox : Control {
 
         static SuggestionTextBox() {
@@ -53,15 +27,16 @@ namespace CustomElements {
         /// <summary>
         /// Indetifies Popup (containing list of suggestions) part of the UI element
         /// </summary>
-        public const string PartPopup = "PART_Popup";
-        /// <summary>
-        /// Indetifies ListBox (with suggestions) part of the UI element
-        /// </summary>
-        public const string PartListBox = "PART_ListBox";
+        public const string PartPopup = "PART_SuggestionPopup";
+
+        public const string PartSourceStack = "PART_SourceStack";
+        public const string PartResultStack = "PART_ResultStack";
 
         private TextBox TextBox_;
-        private Popup Popup_;
-        private Selector Selector_;
+        private List<SuggestionPopup> Popups_;
+        private WrapPanel RasultStack_;
+
+        private List<QueryTextBlock> Query_ = new List<QueryTextBlock>();
 
         /// <summary>
         /// Initialize the UI elements and register events
@@ -70,52 +45,81 @@ namespace CustomElements {
             base.OnApplyTemplate();
 
             TextBox_ = (TextBox)Template.FindName(PartTextBox, this);
-            Popup_ = (Popup)Template.FindName(PartPopup, this);
-            Selector_ = (Selector)Template.FindName(PartListBox, this);
+            Popups_ = new List<SuggestionPopup>();
+            Popups_.Add((SuggestionPopup)Template.FindName(PartPopup, this));
 
             TextBox_.TextChanged += TextBox_OnTextChanged;
             TextBox_.PreviewKeyDown += TextBox_OnKeyDown;
             TextBox_.LostFocus += TextBox_OnLostFocus;
 
-            Popup_.StaysOpen = false;
-            Popup_.Closed += Popup_OnClosed;
+            Popups_[0].OnItemSelected += Popup_OnItemSelected;
+            Popups_[0].OnItemExpanded += Popup_OnItemExpanded;
+
+            RasultStack_ = (WrapPanel)Template.FindName(PartResultStack, this);
+
+            StackPanel s = (StackPanel)Template.FindName(PartSourceStack, this);
+            for (int i = 0; i < AnnotationSources.Length; i++) {
+                RadioButton r = new RadioButton();
+                r.Tag = AnnotationSources[i];
+                r.Content = Path.GetFileName(AnnotationSources[i]);
+                r.GroupName = "AnnotationSources";
+                r.Checked += AnnotationSourceButton_Checked;
+                r.Margin = new Thickness(0, 0, 10, 0);
+                if (i == 0) r.IsChecked = true;
+                s.Children.Add(r);
+            }
         }
 
         #endregion
 
         #region Properties
 
-        public static readonly DependencyProperty IsPopupOpenProperty = DependencyProperty.Register("IsPopupOpen", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
-        public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
-        public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        public delegate void QueryChangedHandler(IEnumerable<IQueryPart> query, string annotationSource);
+        public event QueryChangedHandler QueryChangedEvent;
+
+        public delegate void SuggestionFilterChangedHandler(string filter, string annotationSource);
+        public event SuggestionFilterChangedHandler SuggestionFilterChangedEvent;
+
+        public delegate IEnumerable<IIdentifiable> GetSuggestionSubtreeHandler(IEnumerable<int> subtree, string filter, string annotationSource);
+        public event GetSuggestionSubtreeHandler GetSuggestionSubtreeEvent;
+
+        public delegate void SuggestionsNotNeededHandler();
+        public event SuggestionsNotNeededHandler SuggestionsNotNeededEvent;
+
+        public static readonly DependencyProperty AnnotationSourceProperty = DependencyProperty.Register("AnnotationSource", typeof(string), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        public static readonly DependencyProperty AnnotationSourcesProperty = DependencyProperty.Register("AnnotationSources", typeof(string[]), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(new string[0]));
+        //public static readonly DependencyProperty SuggestionProviderProperty = DependencyProperty.Register("SuggestionProvider", typeof(ISuggestionProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
+        //public static readonly DependencyProperty SearchProviderProperty = DependencyProperty.Register("SearchProvider", typeof(ISearchProvider), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty ItemTemplateSelectorProperty = DependencyProperty.Register("ItemTemplateSelector", typeof(DataTemplateSelector), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
         public static readonly DependencyProperty IsLoadingProperty = DependencyProperty.Register("IsLoading", typeof(bool), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(false));
         public static readonly DependencyProperty MaxNumberOfElementsProperty = DependencyProperty.Register("MaxNumberOfElements", typeof(int), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(50));
         public static readonly DependencyProperty LoadingPlaceholderProperty = DependencyProperty.Register("LoadingPlaceholder", typeof(object), typeof(SuggestionTextBox), new FrameworkPropertyMetadata(null));
 
-        /// <summary>
-        /// Indicates if the suggestions popup is open.
-        /// </summary>
-        public bool IsPopupOpen {
-            get { return (bool)GetValue(IsPopupOpenProperty); }
-            set { SetValue(IsPopupOpenProperty, value); }
+        public string AnnotationSource {
+            get { return (string)GetValue(AnnotationSourceProperty); }
+            set { SetValue(AnnotationSourceProperty, value); }
         }
 
-        /// <summary>
-        /// Suggestion provider responsible for any suggestions
-        /// </summary>
-        public ISuggestionProvider SuggestionProvider {
-            get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
-            set { SetValue(SuggestionProviderProperty, value); }
+        public string[] AnnotationSources {
+            get { return (string[])GetValue(AnnotationSourcesProperty); }
+            set { SetValue(AnnotationSourcesProperty, value); }
         }
 
-        /// <summary>
-        /// Search provider responsibe for any results
-        /// </summary>
-        public ISearchProvider SearchProvider {
-            get { return (ISearchProvider)GetValue(SearchProviderProperty); }
-            set { SetValue(SearchProviderProperty, value); }
-        }
+        ///// <summary>
+        ///// Suggestion provider responsible for any suggestions
+        ///// </summary>
+        //public ISuggestionProvider SuggestionProvider {
+        //    get { return (ISuggestionProvider)GetValue(SuggestionProviderProperty); }
+        //    set { SetValue(SuggestionProviderProperty, value); }
+        //}
+
+        ///// <summary>
+        ///// Search provider responsibe for any results
+        ///// </summary>
+        //public ISearchProvider SearchProvider {
+        //    get { return (ISearchProvider)GetValue(SearchProviderProperty); }
+        //    set { SetValue(SearchProviderProperty, value); }
+        //}
 
         /// <summary>
         /// Template for items in the ListBox
@@ -160,10 +164,8 @@ namespace CustomElements {
         /// <param name="filter">A string, the suggestions are for</param>
         public void OnSuggestionResultsReady(IEnumerable<IIdentifiable> suggestions, string filter) {
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {
-                if (IsPopupOpen && filter == TextBox_.Text) {
-                    IsLoading = false;
-                    Selector_.ItemsSource = MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements);
-                    IsPopupOpen = Selector_.HasItems;
+                if (Popups_[0].IsPopupOpen && filter == TextBox_.Text) {
+                    Popups_[0].Open(MaxNumberOfElements < 0 ? suggestions : suggestions.Take(MaxNumberOfElements));
                 }
             });
         }
@@ -175,10 +177,10 @@ namespace CustomElements {
             Application.Current.Dispatcher.BeginInvoke((Action)delegate {
                 switch (type) {
                     case SuggestionMessageType.Exception:
-                        Popup_Close();
+                        Popup_CloseAll();
                         MessageBox.Show(message, "Exception", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                         return;
-                    case SuggestionMessageType.ResourcesNotLoadedYet:
+                    case SuggestionMessageType.Information:
                         ((TextBlock)LoadingPlaceholder).Text = message;
                         break;
                     default:
@@ -193,121 +195,187 @@ namespace CustomElements {
         #region Control Methods
 
         private void Popup_Open() {
-            IsPopupOpen = true;
-            IsLoading = true;
+            Popups_[0].Open(null);
 
-            Selector_.ItemsSource = null;
-            SuggestionProvider.CancelSuggestions();
-
-            SuggestionProvider.GetSuggestions(TextBox_.Text);
+            SuggestionsNotNeededEvent?.Invoke();
+            SuggestionFilterChangedEvent?.Invoke(TextBox_.Text, AnnotationSource);
         }
 
-        private void Popup_Close() {
-            IsPopupOpen = false;
-            IsLoading = false;
+        private void Popup_CloseAll() {
+            SuggestionsNotNeededEvent?.Invoke();
+
+            while (Popups_.Count > 1) {
+                Popup_CloseOne();
+            }
+            Popup_CloseOne();
+        }
+
+        private void Popup_CloseOne() {
+            Popups_[Popups_.Count - 1].Close();
+
+            if (Popups_.Count > 1) {
+                Popups_.RemoveAt(Popups_.Count - 1);
+            }
         }
 
         #endregion
 
         #region Event Handling Methods
-        
-        /// <summary>
-        /// Cancel suggestion search when suggestions closed
-        /// </summary>
-        private void Popup_OnClosed(object sender, EventArgs e) {
-            SuggestionProvider.CancelSuggestions();
-        }
 
         /// <summary>
         /// Close popup and cancel any pending search for suggestions
         /// </summary>
         private void TextBox_OnLostFocus(object sender, RoutedEventArgs e) {
             if (!IsKeyboardFocusWithin)
-                Popup_Close();
+                Popup_CloseAll();
         }
 
         /// <summary>
         /// Cancel any pending search for suggestions and initiate a new one with new value
         /// </summary>
         private void TextBox_OnTextChanged(object sender, TextChangedEventArgs e) {
-            if (TextBox_.Text.Length == 0) {
-                Popup_Close();
-                return;
-            }
+            Popup_CloseAll();
 
-            Popup_Open();
+            if (TextBox_.Text.Length != 0) {
+                Popup_Open();
+            }
         }
 
         /// <summary>
         /// Manage navigation in suggestions popup and run search if pressed enter
         /// </summary>
         private void TextBox_OnKeyDown(object sender, KeyEventArgs e) {
-            if ((!IsPopupOpen || Selector_.SelectedItem == null) && e.Key == Key.Enter) {
-                if (TextBox_.Text != string.Empty) {
-                    SearchProvider?.Search(TextBox_.Text);
-                    Popup_Close();
+            if (!Popups_[0].IsPopupOpen) {
+                //if (e.Key == Key.Enter) {
+                //    SearchProvider?.Search(TextBox_.Text);
+                //    e.Handled = true;
+                //} else 
+                if (e.Key == Key.Back && TextBox_.Text == string.Empty) {
+                    if (Query_.Count > 0) {
+                        RasultStack_.Children.Remove(Query_[Query_.Count - 1]);
+                        Query_.RemoveAt(Query_.Count - 1);
+                        if (Query_.Count > 0) {
+                            RasultStack_.Children.Remove(Query_[Query_.Count - 1]);
+                            Query_.RemoveAt(Query_.Count - 1);
+                        }
+                        e.Handled = true;
+                        QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+                    }
+                } else if ((e.Key == Key.Up || e.Key == Key.Down) && TextBox_.Text != string.Empty)  {
+                    Popup_Open();
+                    e.Handled = true;
                 }
-                return;
+            } else {
+                if (e.Key == Key.Escape) {
+                    Popup_CloseAll();
+                    e.Handled = true;
+                } else if (e.Key == Key.Left) {
+                    Popup_CloseOne();
+                    e.Handled = true;
+                } else {
+                    Popups_[Popups_.Count - 1].Popup_OnKeyDown(sender, e);
+                }
+            }
+        }
+
+        private void Popup_OnItemSelected(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
+            IIdentifiable item = e.SelectedItem;
+
+            QueryTextBlock b = new QueryTextBlock(item, e.CtrlKeyPressed);
+
+            if (Query_.Count > 0) {
+                QueryTextBlock c = new QueryTextBlock(TextBlockType.OR);
+                RasultStack_.Children.Add(c);
+                Query_.Add(c);
+                c.MouseUp += QueryOperator_MouseUp;
             }
 
-            // reopen suggestions if closed
-            if (TextBox_.Text != string.Empty && !IsPopupOpen && (e.Key == Key.Up || e.Key == Key.Down)) {
-                Popup_Open();
-                return;
-            }
+            RasultStack_.Children.Add(b);
+            Query_.Add(b);
+            b.MouseUp += QueryClass_MouseUp;
 
-            switch (e.Key) {
-                case Key.Enter:
-                case Key.Tab:
-                    if (Selector_.SelectedItem != null) {
-                        TextBox_.Text = ((IIdentifiable)Selector_.SelectedItem).GetTextRepresentation();
-                        TextBox_.SelectionStart = TextBox_.Text.Length;
-                        Popup_Close();
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.Escape:
-                    Popup_Close();
-                    break;
-                case Key.Up:
-                    if (Selector_.SelectedIndex == -1) Selector_.SelectedIndex = Selector_.Items.Count - 1;
-                    else {
-                        if (Selector_.SelectedIndex == 0) Selector_.SelectedIndex = Selector_.Items.Count - 1;
-                        else Selector_.SelectedIndex--;
-                    }
-                    ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                    break;
-                case Key.Down:
-                    if (Selector_.SelectedIndex == -1) Selector_.SelectedIndex = 0;
-                    else {
-                        if (Selector_.SelectedIndex == Selector_.Items.Count - 1) Selector_.SelectedIndex = 0;
-                        else Selector_.SelectedIndex++;
-                    }
-                    ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                    break;
-                case Key.PageUp:
-                    if (Selector_.SelectedIndex != -1) {
-                        int newIndex = Selector_.SelectedIndex - 5;
-                        if (newIndex < 0) newIndex = 0;
-                        Selector_.SelectedIndex = newIndex;
-                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                        e.Handled = true;
-                    }
-                    break;
-                case Key.PageDown:
-                    if (Selector_.SelectedIndex != -1) {
-                        int newIndex = Selector_.SelectedIndex + 5;
-                        if (newIndex >= Selector_.Items.Count) newIndex = Selector_.Items.Count - 1;
-                        Selector_.SelectedIndex = newIndex;
-                        ((ListBox)Selector_).ScrollIntoView(Selector_.SelectedItem);
-                        e.Handled = true;
-                    }
-                    break;
-            }
+
+            TextBox_.Text = string.Empty;
+            //TextBox_.Text = item.TextRepresentation;
+            //TextBox_.SelectionStart = TextBox_.Text.Length;
+            Popup_CloseAll();
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+
+            e.Handled = true;
+        }
+
+        private void Popup_OnItemExpanded(object sender, SuggestionPopup.SelectedItemRoutedEventArgs e) {
+            IIdentifiable item = e.SelectedItem;
+            if (!item.HasChildren) return;
+            e.Handled = true;
+
+            SuggestionPopup p = new SuggestionPopup();
+            p.Open(GetSuggestionSubtreeEvent?.Invoke(item.Children, TextBox_.Text, AnnotationSource));
+            p.ItemTemplateSelector = ItemTemplateSelector;
+
+
+            p.OnItemSelected += Popup_OnItemSelected;
+            p.OnItemExpanded += Popup_OnItemExpanded;
+            p.PopupBorderThickness = new Thickness(0, 1, 1, 1);
+
+            Popups_.Add(p);
+
+            int numberOfPopups = (int)Math.Floor((System.Windows.SystemParameters.PrimaryScreenWidth - 50) / ActualWidth);
+            numberOfPopups = (Popups_.Count-1) % (numberOfPopups);
+            p.HorizontalOffset = ActualWidth * numberOfPopups;
+
+            ((Grid)TextBox_.Parent).Children.Add(p);
+        }
+
+        private void AnnotationSourceButton_Checked(object sender, RoutedEventArgs e) {
+            RadioButton rb = sender as RadioButton;
+            if (rb == null) return;
+
+            AnnotationSource = rb.Tag.ToString();
+
+            ClearQuery();
         }
 
         #endregion
 
+        private void ClearQuery() {
+            RasultStack_.Children.Clear();
+            Query_.Clear();
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+        }
+
+        private void QueryClass_MouseUp(object sender, MouseButtonEventArgs e) {
+            QueryTextBlock b = sender as QueryTextBlock;
+
+            for (int i = 0; i < Query_.Count; i++) {
+                if (Query_[i].Id == b.Id) {
+                    if (i + 1 != Query_.Count) {
+                        RasultStack_.Children.Remove(Query_[i + 1]);
+                        Query_.RemoveAt(i + 1);
+                    }
+                    RasultStack_.Children.Remove(Query_[i]);
+                    Query_.RemoveAt(i);
+
+                    if (i != 0 && i == Query_.Count) {
+                        RasultStack_.Children.Remove(Query_[i - 1]);
+                        Query_.RemoveAt(i - 1);
+                    }
+                    break;
+                }
+            }
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+        }
+
+        private void QueryOperator_MouseUp(object sender, MouseButtonEventArgs e) {
+            QueryTextBlock b = sender as QueryTextBlock;
+
+            b.Type = b.Type == TextBlockType.AND ? TextBlockType.OR : TextBlockType.AND;
+            b.Text = b.Type == TextBlockType.AND ? "AND" : "OR";
+
+            QueryChangedEvent?.Invoke(Query_, AnnotationSource);
+        }
     }
 
     /// <summary>
@@ -321,7 +389,7 @@ namespace CustomElements {
         /// <summary>
         /// Message is shown in Popup underneath the TextBox and disappears when any change to Popup occurs
         /// </summary>
-        ResourcesNotLoadedYet
+        Information
     }
 
 }

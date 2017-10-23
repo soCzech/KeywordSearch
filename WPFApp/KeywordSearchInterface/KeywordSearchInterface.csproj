@@ -52,6 +52,10 @@
     <Compile Include="TextSearch\Occurrence.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SuggestionPopup\SuggestionPopup.csproj">
+      <Project>{96e29c83-610b-4ed0-833c-7f91ce452bdb}</Project>
+      <Name>SuggestionPopup</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SuggestionTextBox\SuggestionTextBox.csproj">
       <Project>{18cb36b1-86fb-4bc0-9a84-d4c9ed6edf8b}</Project>
       <Name>SuggestionTextBox</Name>

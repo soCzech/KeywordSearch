@@ -12,22 +12,25 @@ namespace KeywordSearchInterface {
     /// Used for SearchTextBox suggestions.
     /// </summary>
     public class ImageClass : IIdentifiable, IComparable<ImageClass> {
-        public bool IsHypernym { get; set; }
+        public Label Label { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public string Hyponyms { get; set; }
-        public string SearchableName { get; set; }
-        public int NameLenghtInWords { get; set; }
         public Relevance SearchRelevance { get; set; }
 
+        public string TextRepresentation => Label.Names[0];
+        public string TextDescription => Label.Name;
+        public int Id => Label.SynsetId;
+        public bool HasChildren => Label.Hyponyms != null;
+        public bool HasOnlyChildren => Label.Id == -1; // is only hypernym
+        public IEnumerable<int> Children => Label.Hyponyms;
+        public bool UseChildren { get; set; }
+
         public int CompareTo(ImageClass other) {
-            return (-1) * (((int)SearchRelevance.Bonus + SearchRelevance.NameHits) * 2 / (float)NameLenghtInWords + SearchRelevance.DescriptionHits).CompareTo(
-                ((int)other.SearchRelevance.Bonus + other.SearchRelevance.NameHits) * 2 / (float)other.NameLenghtInWords + other.SearchRelevance.DescriptionHits);
+            return (-1) * (((int)SearchRelevance.Bonus + SearchRelevance.NameHits) * 2 / (float)Label.NameLenghtInWords + SearchRelevance.DescriptionHits).CompareTo(
+                ((int)other.SearchRelevance.Bonus + other.SearchRelevance.NameHits) * 2 / (float)other.Label.NameLenghtInWords + other.SearchRelevance.DescriptionHits);
         }
 
-        public string GetTextRepresentation() {
-            return SearchableName;
-        }
     }
 
     /// <summary>

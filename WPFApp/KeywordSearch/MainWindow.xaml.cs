@@ -24,9 +24,6 @@ namespace KeywordSearch {
         private string ImageFolderPath = ".\\images\\";
         private int MaxImagesOnScreen = 70;
 
-        private LabelProvider labelProvider;
-        private SuggestionProvider suggestionProvider;
-        private ImageProvider imageProvider;
 
         private ItemsControl itemsControl;
         private ContentControl notFoundMessageBox;
@@ -34,25 +31,15 @@ namespace KeywordSearch {
         public MainWindow() {
             InitializeComponent();
 
-            labelProvider = new LabelProvider();
-            suggestionProvider = new SuggestionProvider(labelProvider);
-            imageProvider = new ImageProvider(labelProvider);
-
             var box = (SuggestionTextBox)FindName("SuggestionTextBox");
+            var ksc = new KeywordSearchController(box, new string[] { ".\\GoogLeNet", ".\\YFCC100M" });
 
-            // add SuggestionProvider and SearchProvider to the search box
-            box.SuggestionProvider = suggestionProvider;
-            box.SearchProvider = imageProvider;
-            // add an UI element where to display the results
             itemsControl = (ItemsControl)FindName("ImageList");
             // add an UI element where to display errors
             notFoundMessageBox = (ContentControl)FindName("NotFoundMessageBox");
 
-            imageProvider.ShowSearchMessageEvent += OnShowSearchMessage;
-            imageProvider.SearchResultsReadyEvent += OnSearchResultsReady;
-
-            suggestionProvider.ShowSuggestionMessageEvent += box.OnShowSuggestionMessage;
-            suggestionProvider.SuggestionResultsReadyEvent += box.OnSuggestionResultsReady;
+            ksc.KeywordResultsReadyEvent += OnSearchResultsReady;
+            ksc.ShowSearchMessageEvent += OnShowSearchMessage;
         }
 
         #region Result Event Handling Methods

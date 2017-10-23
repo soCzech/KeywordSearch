@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{18CB36B1-86FB-4BC0-9A84-D4C9ED6EDF8B}</ProjectGuid>
+    <ProjectGuid>{96E29C83-610B-4ED0-833C-7F91CE452BDB}</ProjectGuid>
     <OutputType>library</OutputType>
-    <RootNamespace>SuggestionTextBox</RootNamespace>
-    <AssemblyName>SuggestionTextBox</AssemblyName>
+    <RootNamespace>SuggestionPopup</RootNamespace>
+    <AssemblyName>SuggestionPopup</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -21,8 +21,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
-    <DocumentationFile>bin\Debug\SuggestionTextBox.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -53,11 +51,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="IQueryPart.cs" />
-    <Compile Include="ISearchProvider.cs" />
-    <Compile Include="ISuggestionProvider.cs" />
-    <Compile Include="QueryTextBlock.cs" />
-    <Compile Include="SuggestionTextBox.cs">
+    <Compile Include="IIdentifiable.cs" />
+    <Compile Include="SuggestionPopup.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -78,19 +73,11 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
-    <None Include="DOCS.md" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SuggestionPopup\SuggestionPopup.csproj">
-      <Project>{96e29c83-610b-4ed0-833c-7f91ce452bdb}</Project>
-      <Name>SuggestionPopup</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
