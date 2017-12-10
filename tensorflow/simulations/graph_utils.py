@@ -29,6 +29,7 @@ def pgf_with_latex():
         "ytick.labelsize": 8,
         "figure.figsize": fig_size(0.9),  # default fig size of 0.9 textwidth
         "pgf.preamble": [
+            r"\usepackage[english]{babel}",
             r"\usepackage[utf8x]{inputenc}",  # use utf8 fonts becasue your computer can handle it :)
             r"\usepackage[T1]{fontenc}",  # plots will be generated using this preamble
         ]
@@ -49,27 +50,50 @@ def save_fig(filename):
     plt.savefig('{}.pdf'.format(filename))
 
 
-def plot_accumulative(ranks, graph_filename, figure_size=0.9):
+def plot_histogram(data, bins, graph_filename, title, figure_size=0.9, **kwargs):
+    pt = console.ProgressTracker()
+    pt.info(">> Plotting a histogram...")
+
+    fig, ax = new_fig(figure_size)
+
+    ax.hist(data, bins, **kwargs)
+    plt.title(title)
+
+    ax.grid(linestyle="dashed", color='#eeeeee')
+    ax.set_xscale("log")
+    ax.set_xlabel('Rank')
+    ax.set_ylabel('Number of Images [%]')
+
+    pt.info(">> Saving the graph...")
+    save_fig(graph_filename)
+
+
+def plot_accumulative(plots, graph_filename, title, figure_size=2):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a graph...")
 
     fig, ax = new_fig(figure_size)
 
-    ranks.sort(key=lambda r: r if r is not None else 2147483648 - 1)
-    x, y = [], []
-    i = 0
+    for key in sorted(plots.keys()):
+        plot = plots[key]
+        plot.sort(key=lambda r: r if r is not None else 2147483648 - 1)
+        x, y = [], []
+        i = 0
 
-    for rank in ranks:
-        if rank is None:
-            break
-        i += 1
-        x.append(rank)
-        y.append(i/len(ranks)*100)
+        for rank in plot:
+            if rank is None:
+                break
+            i += 1
+            x.append(rank)
+            y.append(i/len(plot)*100)
 
-    ax.step(x, y, where='post')
+        ax.step(x, y, where='post', label=key)
 
-    # plt.xlim(xmax=2000, xmin=-250)
+    #plt.xlim(xmax=20000, xmin=-200)
     # plt.ylim(ymin=0)
+    plt.title(title)
+    plt.legend(loc='lower right')
+
     ax.grid(linestyle="dashed", color='#eeeeee')
     ax.set_xlabel('Rank')
     ax.set_ylabel('Number of Images [%]')
