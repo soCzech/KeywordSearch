@@ -48,7 +48,7 @@ class UserSimulation:
         with open(filename + '_ranks.pickle', 'wb') as f:
             pickle.dump(self._ranks, f)
         with open(filename + '_samples.pickle', 'wb') as f:
-            pickle.dump(self._samples, f)
+            pickle.dump((self._samples, self._indexes), f)
 
     def restore_ranks(self, filename):
         pt = console.ProgressTracker()
@@ -64,25 +64,95 @@ class UserSimulation:
         pt.info(">> Restoring samples...")
 
         with open(filename + '_samples.pickle', 'rb') as f:
-            self._samples = pickle.load(f)
+            (self._samples, self._indexes) = pickle.load(f)
 
     def graph(self, graph_filename):
-        d = dict()
-        for key in self._ranks.keys():
-            for key2 in self._ranks[key].keys():
-                d[key + " " + str(key2)] = self._ranks[key][key2]
+        graph_utils.plot_accumulative(self._ranks, graph_filename, title='Cumulative Rank')
 
-        graph_utils.plot_accumulative(d, graph_filename, title='Cumulative Rank')
+    def _rank(self, threshold_list, query_length_list, use_idf, byte_representation):
+        pt = console.ProgressTracker()
+
+        if byte_representation:
+            pt.info(">> Converting probabilities from floats to bytes...")
+            pt.reset(len(self._images.CLASSES))
+
+            nonzero = 0
+            for cls_index in range(len(self._images.CLASSES)):
+                self._images.CLASSES[cls_index] = np.round(self._images.CLASSES[cls_index] * 255)
+
+                nonzero += np.sum(self._images.CLASSES[cls_index] > 0)
+                pt.increment()
+            pt.info("\t> Nonzero classes on average: " + str(nonzero / len(self._images.CLASSES[0])))
+
+        for threshold in threshold_list:
+            if threshold is not None:
+                pt.info(">> Updating threshold to " + str(threshold) + "...")
+                pt.reset(len(self._images.CLASSES))
+
+                nonzero = 0
+                for cls_index in range(len(self._images.CLASSES)):
+                    if byte_representation:
+                        nullable = self._images.CLASSES[cls_index] < (threshold * 255)
+                    else:
+                        nullable = self._images.CLASSES[cls_index] < threshold
+                    nonzero += len(self._images.CLASSES[cls_index]) - np.sum(nullable)
+
+                    self._images.CLASSES[cls_index][nullable] = 0
+                    pt.increment()
+                pt.info("\t> Nonzero classes on average: " + str(nonzero / len(self._images.CLASSES[0])))
+
+            pt.info(">> Calculating image ranks...")
+            pt.reset(len(self._samples))
+
+            byte_str = "byte " if byte_representation else ""
+            for index, rand_indexes in zip(self._samples, self._indexes):
+                image = self._images.IMAGES[index]
+
+                if query_length_list is None:
+                    self._rank_image(image, rand_indexes, False,
+                                     'user ' + byte_str + str(threshold))
+                    if use_idf:
+                        self._rank_image(image, rand_indexes, True,
+                                         'user idf ' + byte_str + str(threshold))
+                else:
+                    for query_length in query_length_list:
+                        self._rank_image(image, rand_indexes[:query_length], False,
+                                         'uniform ' + byte_str + str(query_length) + ' ' + str(threshold))
+                        if use_idf and query_length > 1:
+                            self._rank_image(image, rand_indexes[:query_length], True,
+                                             'idf ' + byte_str + str(query_length) + ' ' + str(threshold))
+                pt.increment()
+
+    def _rank_image(self, image, selected_indexes, use_idf, plot_name):
+        rank = None
+
+        if len(selected_indexes) > 0:
+            array = self._images.CLASSES[selected_indexes[0]]
+
+            if len(selected_indexes) > 1:
+                array = self._images.CLASSES[selected_indexes[0]] + self._images.CLASSES[selected_indexes[1]] \
+                    if not use_idf else self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]] + \
+                                        self._idf.IDF[selected_indexes[1]] * self._images.CLASSES[selected_indexes[1]]
+
+                i = 2
+                while i < len(selected_indexes):
+                    array += self._images.CLASSES[selected_indexes[i]] \
+                        if not use_idf else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
+                    i += 1
+
+            if array[image.ID] != 0:
+                rank = self._get_rank_of_image(image, array)
+
+        if plot_name in self._ranks:
+            self._ranks[plot_name].append(rank)
+        else:
+            self._ranks[plot_name] = [rank]
 
 
 class PerfectUserSimulation(UserSimulation):
 
     def __init__(self):
         super(PerfectUserSimulation, self).__init__()
-        self._ranks = {
-            'idf': {},
-            'uniform': {}
-        }
 
     def _gen_indexes(self, query_length):
         pt = console.ProgressTracker()
@@ -98,88 +168,10 @@ class PerfectUserSimulation(UserSimulation):
                     rand_indexes.append(rand)
             self._indexes.append(rand_indexes)
 
-    def rank(self, threshold_list,  query_length_list, use_idf=True, byte_representation=False):
-        pt = console.ProgressTracker()
-
-        for threshold in threshold_list:
-            for query_length in query_length_list:
-                if query_length != 1 and query_length not in self._ranks['idf'] and use_idf:
-                    self._ranks['idf'][str(query_length)+" "+str(threshold)] = []
-                if query_length not in self._ranks['uniform']:
-                    self._ranks['uniform'][str(query_length)+" "+str(threshold)] = []
-
-        self._gen_indexes(max(query_length_list))
-
-        if byte_representation:
-            pt.info(">> Converting probabilities from floats to bytes...")
-            pt.reset(len(self._images.CLASSES))
-
-            for cls_index in range(len(self._images.CLASSES)):
-                self._images.CLASSES[cls_index] = np.round(self._images.CLASSES[cls_index] * 255)
-                pt.increment()
-
-        for threshold in threshold_list:
-
-            if threshold is not None:
-                pt.info(">> Updating threshold to " + str(threshold) + "...")
-                pt.reset(len(self._images.CLASSES))
-
-                nonzero = 0
-                for cls_index in range(len(self._images.CLASSES)):
-                    if byte_representation:
-                        nullable = self._images.CLASSES[cls_index] < (threshold * 255)
-                    else:
-                        nullable = self._images.CLASSES[cls_index] < threshold
-
-                    nonzero += len(self._images.CLASSES[cls_index]) - np.sum(nullable)
-
-                    self._images.CLASSES[cls_index][nullable] = 0
-                    pt.increment()
-                pt.info("\t> Nonzero classes on average: " + str(nonzero/len(self._images.CLASSES[0])))
-
-            pt.info(">> Calculating image ranks...")
-            pt.reset(len(self._samples))
-            for index, rand_indexes in zip(self._samples, self._indexes):
-
-                for query_length in query_length_list:
-                    image = self._images.IMAGES[index]
-
-                    if query_length == 1:
-                        if self._images.CLASSES[rand_indexes[0]][image.ID] != 0:
-                            rank = self._get_rank_of_image(image, self._images.CLASSES[rand_indexes[0]])
-                        else:
-                            rank = None
-
-                        self._ranks['uniform'][str(query_length)+" "+str(threshold)].append(rank)
-                    elif query_length > 1:
-                        array = self._images.CLASSES[rand_indexes[0]] + self._images.CLASSES[rand_indexes[1]]
-                        i = 2
-                        while i < query_length:
-                            array += self._images.CLASSES[rand_indexes[i]]
-                            i += 1
-
-                        if array[image.ID] != 0:
-                            rank = self._get_rank_of_image(image, array)
-                        else:
-                            rank = None
-
-                        self._ranks['uniform'][str(query_length)+" "+str(threshold)].append(rank)
-
-                        if use_idf:
-                            array = self._idf.IDF[rand_indexes[0]] * self._images.CLASSES[rand_indexes[0]] + \
-                                self._idf.IDF[rand_indexes[1]] * self._images.CLASSES[rand_indexes[1]]
-                            i = 2
-                            while i < query_length:
-                                array += self._idf.IDF[rand_indexes[i]] * self._images.CLASSES[rand_indexes[i]]
-                                i += 1
-                            if array[image.ID] != 0:
-                                rank = self._get_rank_of_image(image, array)
-                            else:
-                                rank = None
-
-                            self._ranks['idf'][str(query_length)+" "+str(threshold)].append(rank)
-
-                pt.increment()
+    def rank(self, threshold_list,  query_length_list, use_idf=False, byte_representation=False):
+        if len(self._indexes) == 0:
+            self._gen_indexes(max(query_length_list))
+        self._rank(threshold_list, query_length_list, use_idf, byte_representation)
 
 
 class HumanUserSimulation(UserSimulation):
@@ -187,9 +179,6 @@ class HumanUserSimulation(UserSimulation):
     def __init__(self):
         super(HumanUserSimulation, self).__init__()
         self._labels = dict()
-        self._ranks = {
-            'user': {}
-        }
 
     @staticmethod
     def _read_queries(filename):
@@ -230,6 +219,9 @@ class HumanUserSimulation(UserSimulation):
         return queries
 
     def parse_queries(self, query_log_filename, label_filename):
+        pt = console.ProgressTracker()
+        pt.info(">> Parsing queries...")
+
         self._labels = simulation_utils.Label.read_labels(label_filename)
         self._samples = []
         self._indexes = []
@@ -274,45 +266,11 @@ class HumanUserSimulation(UserSimulation):
                     hits.append(len(indexes) - i)
             h.extend(hits)
             h_rand.extend(hits_rand)
-        graph_utils.plot_accumulative({'hits': h, 'top hits': t, 'hits rand': h_rand, 'top hits rand': t_rand}, graph_filename, title='Hits')
+        graph_utils.plot_accumulative({'hits': h, 'top hits': t, 'hits rand': h_rand, 'top hits rand': t_rand},
+                                      graph_filename, title='Hits')
 
-    def rank(self):
-        pt = console.ProgressTracker()
-        pt.reset(len(self._samples))
-        pt.info(">> Calculating image ranks...")
-
-        self._ranks['user']['uniform'] = []
-        self._ranks['user']['idf'] = []
-
-        for index, rand_indexes in zip(self._samples, self._indexes):
-            image = self._images.IMAGES[index]
-
-            if len(rand_indexes) == 1:
-                rank = self._get_rank_of_image(image, self._images.CLASSES[rand_indexes[0]])
-
-                self._ranks['user']['uniform'].append(rank)
-                self._ranks['user']['idf'].append(rank)
-            elif len(rand_indexes) > 1:
-                array = self._images.CLASSES[rand_indexes[0]] + self._images.CLASSES[rand_indexes[1]]
-                i = 2
-                while i < len(rand_indexes):
-                    array += self._images.CLASSES[rand_indexes[i]]
-                    i += 1
-                rank = self._get_rank_of_image(image, array)
-
-                self._ranks['user']['uniform'].append(rank)
-
-                array = self._idf.IDF[rand_indexes[0]] * self._images.CLASSES[rand_indexes[0]] + \
-                    self._idf.IDF[rand_indexes[1]] * self._images.CLASSES[rand_indexes[1]]
-                i = 2
-                while i < len(rand_indexes):
-                    array += self._idf.IDF[rand_indexes[i]] * self._images.CLASSES[rand_indexes[i]]
-                    i += 1
-                rank = self._get_rank_of_image(image, array)
-
-                self._ranks['user']['idf'].append(rank)
-
-            pt.increment()
+    def rank(self, threshold_list, use_idf=False, byte_representation=False):
+        self._rank(threshold_list, query_length_list=None, use_idf=use_idf, byte_representation=byte_representation)
 
 
 if __name__ == '__main__':
@@ -321,8 +279,10 @@ if __name__ == '__main__':
     parser.add_argument('-i', type=str, default=None)
     parser.add_argument('-u', type=str, default=None)
     parser.add_argument('-g', type=str, default=None)
+    parser.add_argument('-s', type=str, default=None)
     parser.add_argument('--rank', action='store_true', default=False)
-    parser.add_argument('--save', type=str, default=None)
+    parser.add_argument('--idf', action='store_true', default=False)
+    parser.add_argument('--byte', action='store_true', default=False)
     # perfect
     parser.add_argument('--perfect_user', action='store_true', default=False)
     parser.add_argument('--sample_size', type=int, default=None)
@@ -353,12 +313,13 @@ if __name__ == '__main__':
         if args.label_file is not None and args.log_file is not None:
             h.parse_queries(args.log_file, args.label_file)
 
-        if args.rank and args.i is not None:
+        if args.rank and args.i is not None and args.thresholds is not None:
             h.invert_index(args.i)
-            h.rank()
+            h.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
+                   use_idf=args.idf, byte_representation=args.byte)
 
-        if args.save is not None:
-            h.save(args.save)
+        if args.s is not None:
+            h.save(args.s)
 
         if args.g is not None:
             h.graph(args.g)
@@ -384,10 +345,10 @@ if __name__ == '__main__':
         if args.rank and args.query_lengths is not None and args.thresholds is not None and args.i is not None:
             u.invert_index(args.i)
             u.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
-                   [int(i) for i in args.query_lengths.split(',')], use_idf=False, byte_representation=False)
+                   [int(i) for i in args.query_lengths.split(',')], use_idf=args.idf, byte_representation=args.byte)
 
-        if args.save is not None:
-            u.save(args.save)
+        if args.s is not None:
+            u.save(args.s)
 
         if args.g is not None:
             u.graph(args.g)

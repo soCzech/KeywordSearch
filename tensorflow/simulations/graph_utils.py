@@ -89,8 +89,8 @@ def plot_accumulative(plots, graph_filename, title, figure_size=2):
 
         ax.step(x, y, where='post', label=key)
 
-    #plt.xlim(xmax=20000, xmin=-200)
-    # plt.ylim(ymin=0)
+    plt.xlim(xmax=20000, xmin=-200)
+    plt.ylim(ymin=-2, ymax=102)
     plt.title(title)
     plt.legend(loc='lower right')
 
