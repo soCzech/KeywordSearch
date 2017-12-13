@@ -15,9 +15,11 @@ class Singleton(_Singleton('SingletonMeta', (object,), {})): pass
 
 
 class ProgressTracker(Singleton):
-    _current = 0
-    _total = 0
-    _digits = 0
+
+    def __init__(self):
+        self._current = 0
+        self._total = 0
+        self._digits = 0
 
     def reset(self, total):
         self._current = 0

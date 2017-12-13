@@ -1,3 +1,4 @@
+import os
 import struct
 import random
 import numpy as np
@@ -114,16 +115,40 @@ class Images:
                 self.IMAGES[i.ID] = i
                 id_no = f.read(4)
 
-    def invert_index(self):
+    def invert_index(self, filename):
         pt = console.ProgressTracker()
-        pt.info(">> Inverting image vectors...")
-        pt.reset(self.DIMENSION)
 
-        for i in range(self.DIMENSION):
-            self.CLASSES[i] = np.zeros(len(self.IMAGES))
-            for image in self.IMAGES.values():
-                self.CLASSES[i][image.ID] = image.DISTRIBUTION[i]
-            pt.increment()
+        if not os.path.isfile(filename):
+            pt.info(">> Inverting image vectors...")
+            pt.reset(self.DIMENSION)
+
+            for i in range(self.DIMENSION):
+                self.CLASSES[i] = np.zeros(len(self.IMAGES))
+                for image in self.IMAGES.values():
+                    self.CLASSES[i][image.ID] = image.DISTRIBUTION[i]
+                pt.increment()
+            pt.info(">> Saving inverted vectors...")
+            pt.reset(self.DIMENSION)
+
+            with open(filename, 'wb') as f:
+                f.write(struct.pack('<I', len(self.CLASSES)))
+                f.write(struct.pack('<I', len(self.CLASSES[0])))
+                for i in range(self.DIMENSION):
+                    f.write(struct.pack('<' + 'f' * len(self.CLASSES[i]), *self.CLASSES[i]))
+                    pt.increment()
+        else:
+            with open(filename, 'rb') as f:
+                pt.info(">> Reading inverted vectors...")
+                pt.reset(self.DIMENSION)
+
+                assert self.DIMENSION == struct.unpack('<I', f.read(4))[0]
+                assert len(self.IMAGES) == struct.unpack('<I', f.read(4))[0]
+
+                dt = np.dtype(np.float32).newbyteorder('<')
+                for i in range(self.DIMENSION):
+                    self.CLASSES[i] = np.frombuffer(f.read(len(self.IMAGES) * 4), dtype=dt)
+                    self.CLASSES[i].setflags(write=1)
+                    pt.increment()
 
 
 class IDF:
