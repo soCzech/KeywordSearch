@@ -37,32 +37,83 @@ def pgf_with_latex():
 mpl.rcParams.update(pgf_with_latex())
 
 
-def new_fig(width):
+def new_fig(width, no_plots=1):
     plt.clf()
     fig = plt.figure(figsize=fig_size(width))
-    ax = fig.add_subplot(111)
+
+    plot_dim = no_plots * 100 + 11
+    if no_plots % 2 == 0:
+        plot_dim = 201 + no_plots / 2 * 10
+    elif no_plots % 3 == 0:
+        plot_dim = 301 + no_plots / 3 * 10
+
+    axs = []
+    for i in range(no_plots):
+        ax = fig.add_subplot(plot_dim)
+        axs.append(ax)
+        plot_dim += 1
     # plt.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9)
-    return fig, ax
+    if len(axs) == 1:
+        return fig, axs[0]
+    return fig, axs
 
 
 def save_fig(filename):
-    plt.savefig('{}.pgf'.format(filename))
+    # plt.savefig('{}.pgf'.format(filename))
     plt.savefig('{}.pdf'.format(filename))
 
 
-def plot_histogram(data, bins, graph_filename, title, figure_size=0.9, **kwargs):
+def plot_histogram(plots, bins, graph_filename, title, figure_size=2):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a histogram...")
 
     fig, ax = new_fig(figure_size)
 
-    ax.hist(data, bins, **kwargs)
-    plt.title(title)
-
     ax.grid(linestyle="dashed", color='#eeeeee')
-    ax.set_xscale("log")
-    ax.set_xlabel('Rank')
-    ax.set_ylabel('Number of Images [%]')
+    ax.set_xlabel('Distance')
+    ax.set_ylabel('Number of Images (normed)')
+
+    for key in plots.keys():
+        plot = plots[key]
+        ax.hist(plot, bins=bins, label=key, normed=True)
+
+    plt.title(title)
+    plt.legend(loc='lower right')
+
+    pt.info(">> Saving the graph...")
+    save_fig(graph_filename)
+
+
+def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
+    pt = console.ProgressTracker()
+    pt.info(">> Plotting a histogram...")
+
+    fig, axs = new_fig(figure_size, no_plots=len(plots))
+
+    # fig.suptitle(title)
+
+    for index, key in enumerate(sorted(plots.keys())):
+        plot = plots[key]
+        y = np.zeros(bins)
+
+        for rank in plot:
+            y[rank-1] += 1
+        x = np.arange(1, bins + 1)
+
+        axs[index].set_title("\\textsc{" + key + "}")
+        axs[index].grid(linestyle="dashed", color='#eeeeee')
+
+        y = y / np.sum(y)
+        axs[index].bar(x, y, color='C9', label="Histogram")
+
+        lmbda = len(plot) / np.sum(plot)
+        # ax = np.linspace(np.min(x), np.max(x), 200)
+        ay = lmbda * np.exp(-lmbda * x)
+        axs[index].plot(x, ay, label="Exp $\\lambda e^{\\lambda x}$")
+
+        axs[index].legend(loc='upper right')
+        # axs[index].set_xlabel('Rank')
+        # axs[index].set_ylabel('Number of Images [%]')
 
     pt.info(">> Saving the graph...")
     save_fig(graph_filename)
@@ -89,8 +140,8 @@ def plot_accumulative(plots, graph_filename, title, figure_size=2):
 
         ax.step(x, y, where='post', label=key)
 
-    plt.xlim(xmax=20000, xmin=-200)
-    plt.ylim(ymin=-2, ymax=102)
+    #plt.xlim(xmax=20000, xmin=-200)
+    #plt.ylim(ymin=-2, ymax=102)
     plt.title(title)
     plt.legend(loc='lower right')
 

@@ -61,8 +61,8 @@ class ProgressTracker(Singleton):
         if self._current == self._total:
             self.reset(0)
 
-    def increment(self):
-        self.set_progress(self._current + 1)
+    def increment(self, val=1):
+        self.set_progress(self._current + val)
 
     def info(self, message):
         self._clear()

@@ -168,3 +168,71 @@ class IDF:
     def print(self):
         for i in range(len(self.TERM_COUNT)):
             print(str(self.TERM_COUNT[i]) + " -> " + str(self.IDF[i]))
+
+
+class Similarity:
+    VECTORS = []
+    DIMENSION = 0
+
+    def read_vectors(self, filename, astype=None):
+        pt = console.ProgressTracker()
+        pt.info(">> Reading similarity vectors...")
+
+        dt = np.dtype(np.byte).newbyteorder('<')
+
+        with open(filename, 'rb') as f:
+            pt.info("\t> Dataset ID: " + str(struct.unpack('<I', f.read(4))[0]))
+            count = struct.unpack('<I', f.read(4))[0]
+            self.DIMENSION = struct.unpack('<I', f.read(4))[0]
+
+            for i in range(count):
+                vec = np.frombuffer(f.read(self.DIMENSION), dtype=dt)
+                if astype is not None:
+                    self.VECTORS.append(vec.astype(astype))
+                else:
+                    self.VECTORS.append(vec)
+
+    @staticmethod
+    def cos_dist(x, y):
+        return np.dot(x, y) / (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y)))
+
+    @staticmethod
+    def l2_dist(x, y):
+        dxy = x - y
+        return np.sqrt(np.dot(dxy, dxy))
+
+    def get_distance_vector(self, query_image_index):
+        rank = np.zeros(len(self.VECTORS))
+
+        for i in range(len(self.VECTORS)):
+            rank[i] = self.cos_dist(self.VECTORS[query_image_index].astype(np.float32), self.VECTORS[i].astype(np.float32))
+        return rank
+
+    def get_rank_vector(self, query_image_index):
+        return np.argsort(self.get_distance_vector(query_image_index))
+
+    def get_rank(self, query_image_index, searched_image_index):
+        if not isinstance(searched_image_index, list):
+            searched_image_index = [searched_image_index]
+
+        rank_vec = self.get_rank_vector(query_image_index)
+        ret_list = []
+
+        for index in searched_image_index:
+            for i in range(len(rank_vec)):
+                if rank_vec[i] == index:
+                    ret_list.append(i)
+                    break
+
+        if len(ret_list) == 1:
+            return ret_list[0]
+        return ret_list
+
+    def get_best_rank(self, query_image_indexes, searched_image_index):
+        best_rank = None, 2147483647
+        for index in query_image_indexes:
+            dist = self.cos_dist(self.VECTORS[index].astype(np.float32), self.VECTORS[searched_image_index].astype(np.float32))
+            if best_rank[1] > dist:
+                best_rank = index, dist
+
+        return self.get_rank(best_rank[0], searched_image_index)
