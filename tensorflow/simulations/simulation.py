@@ -92,10 +92,10 @@ class UserSimulation:
 
     @staticmethod
     def _get_rank_of_image(image, array):
-        indexes = np.argsort(array)
-        for i in reversed(range(len(indexes))):
+        indexes = np.argsort(array)[::-1]
+        for i in range(len(indexes)):
             if indexes[i] == image.ID:
-                return len(indexes) - i, indexes
+                return i + 1, indexes
 
     def save(self, filename):
         pt = console.ProgressTracker()
@@ -125,7 +125,7 @@ class UserSimulation:
     def graph(self, graph_filename):
         graph_utils.plot_accumulative(self._ranks, graph_filename, title='Cumulative Rank')
 
-    def _rank(self, threshold_list, query_length_list, use_idf, byte_representation, use_similarity):
+    def _rank(self, threshold_list, query_length_list, use_idf, byte_representation, similarity):
         pt = console.ProgressTracker()
 
         if byte_representation:
@@ -165,21 +165,21 @@ class UserSimulation:
                 image = self._images.IMAGES[index]
 
                 if query_length_list is None:
-                    self._rank_image(image, rand_indexes, False, use_similarity,
+                    self._rank_image(image, rand_indexes, False, similarity,
                                      'user ' + byte_str + str(threshold))
                     if use_idf:
-                        self._rank_image(image, rand_indexes, True, use_similarity,
+                        self._rank_image(image, rand_indexes, True, similarity,
                                          'user idf ' + byte_str + str(threshold))
                 else:
                     for query_length in query_length_list:
-                        self._rank_image(image, rand_indexes[:query_length], False, use_similarity,
+                        self._rank_image(image, rand_indexes[:query_length], False, similarity,
                                          'uniform ' + byte_str + str(query_length) + ' ' + str(threshold))
                         if use_idf and query_length > 1:
-                            self._rank_image(image, rand_indexes[:query_length], True, use_similarity,
+                            self._rank_image(image, rand_indexes[:query_length], True, similarity,
                                              'idf ' + byte_str + str(query_length) + ' ' + str(threshold))
                 pt.increment()
 
-    def _rank_image(self, image, selected_indexes, use_idf, use_similarity, plot_name):
+    def _rank_image(self, image, selected_indexes, use_idf, similarity, plot_name):
         rank, sim_rank = None, None
 
         if len(selected_indexes) > 0:
@@ -198,48 +198,26 @@ class UserSimulation:
 
             if array[image.ID] != 0:
                 rank, indexes = self._get_rank_of_image(image, array)
-                if use_similarity: sim_rank = self._similarity.get_best_rank(indexes[-300:], image.ID)
+                if similarity is not None:
+                    sim_rank = self._similarity.get_best_rank(indexes, image.ID, similarity)
 
         if plot_name in self._ranks:
             self._ranks[plot_name].append(rank)
-            if use_similarity:
-                self._ranks[plot_name + " sim"].append(sim_rank)
         else:
             self._ranks[plot_name] = [rank]
-            if use_similarity:
-                self._ranks[plot_name + " sim"] = [sim_rank]
 
-
-class PerfectUserSimulation(UserSimulation):
-
-    def __init__(self):
-        super(PerfectUserSimulation, self).__init__()
-
-    def _gen_indexes(self, query_length):
-        pt = console.ProgressTracker()
-        pt.info(">> Generating random indexes for samples...")
-        self._indexes = []
-
-        for index in self._samples:
-            image = self._images.IMAGES[index]
-
-            rand_indexes = []
-            while len(rand_indexes) < query_length:
-                rand = simulation_utils.get_random_index_from_dist(image.DISTRIBUTION)
-                if rand not in rand_indexes:
-                    rand_indexes.append(rand)
-            self._indexes.append(rand_indexes)
-
-    def rank(self, threshold_list,  query_length_list, use_idf=False, byte_representation=False, use_similarity=False):
-        if len(self._indexes) == 0:
-            self._gen_indexes(max(query_length_list))
-        self._rank(threshold_list, query_length_list, use_idf, byte_representation, use_similarity)
-
-
-class HumanUserSimulation(UserSimulation):
-
-    def __init__(self):
-        super(HumanUserSimulation, self).__init__()
+        if similarity is not None:
+            if sim_rank is not None:
+                for key in sim_rank.keys():
+                    if plot_name + " " + key not in self._ranks:
+                        self._ranks[plot_name + " " + key] = []
+                    self._ranks[plot_name + " " + key].append(sim_rank[key])
+            else:
+                for disp_size, n_closest, reranks in zip(similarity.DISPLAY_SIZE, similarity.N_CLOSEST, similarity.N_RERANKS):
+                    p_name = plot_name + " " + str(disp_size) + ":" + str(n_closest) + " " + str(reranks) + "x"
+                    if p_name not in self._ranks:
+                        self._ranks[p_name] = []
+                    self._ranks[p_name].append(None)
 
     def histogram_of_hits(self, graph_filename):
         pt = console.ProgressTracker()
@@ -277,30 +255,48 @@ class HumanUserSimulation(UserSimulation):
         graph_utils.plot_discrete_histogram({'hits': h, 'top hits': t, 'hits rand': h_rand, 'top hits rand': t_rand},
                                             self._images.DIMENSION, graph_filename, title='Hits')
 
-    def rank(self, threshold_list, use_idf=False, byte_representation=False, use_similarity=False):
-        self._rank(threshold_list, None, use_idf, byte_representation, use_similarity)
+    def _gen_indexes(self, query_length):
+        pt = console.ProgressTracker()
+        pt.info(">> Generating random indexes for samples...")
+        self._indexes = []
+
+        for index in self._samples:
+            image = self._images.IMAGES[index]
+
+            rand_indexes = []
+            while len(rand_indexes) < query_length:
+                rand = simulation_utils.get_random_index_from_dist(image.DISTRIBUTION)
+                if rand not in rand_indexes:
+                    rand_indexes.append(rand)
+            self._indexes.append(rand_indexes)
+
+    def rank(self, threshold_list,  query_length_list, use_idf=False, byte_representation=False, similarity=None):
+        if len(self._indexes) == 0:
+            self._gen_indexes(max(query_length_list))
+        self._rank(threshold_list, query_length_list, use_idf, byte_representation, similarity)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # common
-    parser.add_argument('-i', type=str, default=None)
-    parser.add_argument('-u', type=str, default=None)
-    parser.add_argument('-g', type=str, default=None)
-    parser.add_argument('-s', type=str, default=None)
+    parser.add_argument('-i', type=str, default=False)
+    parser.add_argument('-u', type=str, default=False)
+    parser.add_argument('-g', type=str, default=False)
+    parser.add_argument('-s', type=str, default=False)
     parser.add_argument('--rank', action='store_true', default=False)
     parser.add_argument('--idf', action='store_true', default=False)
     parser.add_argument('--byte', action='store_true', default=False)
     parser.add_argument('--similarity', type=str, default=False)
+    parser.add_argument('--sim_closest', type=str, default="")
+    parser.add_argument('--sim_disp_size', type=str, default="")
+    parser.add_argument('--sim_reranks', type=str, default="")
     # perfect
-    parser.add_argument('--perfect_user', action='store_true', default=False)
-    parser.add_argument('--sample_size', type=int, default=None)
+    parser.add_argument('--sample_size', type=int, default=False)
     parser.add_argument('--thresholds', type=str, default=None)
     parser.add_argument('--query_lengths', type=str, default=None)
-    parser.add_argument('--restore_ranks', type=str, default=None)
-    parser.add_argument('--restore_samples', type=str, default=None)
+    parser.add_argument('--restore_ranks', type=str, default=False)
+    parser.add_argument('--restore_samples', type=str, default=False)
     # human
-    parser.add_argument('--human_user', action='store_true', default=False)
     parser.add_argument('--label_file', type=str, default=None)
     parser.add_argument('--log_file', type=str, default=None)
     parser.add_argument('--hist', type=str, default=None)
@@ -312,64 +308,48 @@ if __name__ == '__main__':
     # read_labels
     #   'C:\\Users\\Tom\\Workspace\\ViretTool\\TestData\\TRECVid\\TRECVid-GoogLeNet.label'
 
-    if args.human_user:
-        h = HumanUserSimulation()
-        if args.i is not None:
-            h.read_images(args.i)
-        if args.u is not None:
-            h.compute_idf(args.u)
+    u = UserSimulation()
+    if args.i:
+        u.read_images(args.i)
+    if args.u:
+        u.compute_idf(args.u)
+    if args.similarity:
+        u.read_similarity(args.similarity)
+
+    if args.restore_samples:
+        u.restore_samples(args.restore_samples)
+
+    elif args.sample_size:
+        u.gen_samples(args.sample_size)
+
+    if args.label_file is not None and args.log_file is not None:
+        u.parse_queries(args.log_file, args.label_file)
+
+    if args.restore_ranks:
+        u.restore_ranks(args.restore_ranks)
+
+    if args.rank and args.thresholds is not None and args.i:
+        u.invert_index(args.i)
+
+        sim = None
         if args.similarity:
-            h.read_similarity(args.similarity)
+            sim = simulation_utils.SimilaritySettings()
+            sim.N_CLOSEST = [int(i) for i in args.sim_closest.split(',')]
+            sim.DISPLAY_SIZE = [int(i) for i in args.sim_disp_size.split(',')]
+            sim.N_RERANKS = [int(i) for i in args.sim_reranks.split(',')]
 
-        if args.label_file is not None and args.log_file is not None:
-            h.parse_queries(args.log_file, args.label_file)
+        u.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
+               None if args.query_lengths is None else [int(i) for i in args.query_lengths.split(',')],
+               use_idf=args.idf, byte_representation=args.byte, similarity=sim)
 
-        if args.rank and args.i is not None and args.thresholds is not None:
-            h.invert_index(args.i)
-            h.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
-                   use_idf=args.idf, byte_representation=args.byte, use_similarity=args.similarity)
+    if args.s:
+        u.save(args.s)
 
-        if args.s is not None:
-            h.save(args.s)
+    if args.g:
+        u.graph(args.g)
 
-        if args.g is not None:
-            h.graph(args.g)
-
-        if args.hist is not None:
-            h.histogram_of_hits(args.hist)
-
-    if args.perfect_user:
-        u = PerfectUserSimulation()
-        if args.i is not None:
-            u.read_images(args.i)
-        if args.u is not None:
-            u.compute_idf(args.u)
-        if args.similarity:
-            u.read_similarity(args.similarity)
-
-        if args.restore_samples is not None:
-            u.restore_samples(args.restore_samples)
-        elif args.sample_size is not None:
-            u.gen_samples(args.sample_size)
-
-        if args.label_file is not None and args.log_file is not None:
-            u.parse_queries(args.log_file, args.label_file)
-
-        if args.restore_ranks is not None:
-            u.restore_ranks(args.restore_ranks)
-
-        if args.rank and args.query_lengths is not None and args.thresholds is not None and args.i is not None:
-            u.invert_index(args.i)
-            u.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
-                   [int(i) for i in args.query_lengths.split(',')], use_idf=args.idf, byte_representation=args.byte,
-                   use_similarity=args.similarity)
-
-        if args.s is not None:
-            u.save(args.s)
-
-        if args.g is not None:
-            u.graph(args.g)
-
+    if args.hist is not None:
+        u.histogram_of_hits(args.hist)
 
 # histogram of user hits
 # py simulations/simulation.py --human_user
@@ -394,3 +374,7 @@ if __name__ == '__main__':
 #   --perfect_user
 #   -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
 #   --restore_ranks=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
+
+
+
+# --rank -i=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\TrecVidKF.softmax -u=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\covariance\mean_unorm-TrecVidKF.bin -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex -s=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex --thresholds=None --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\KeywordSelector_2017-12-04_14-35-45.txt" --label_file="C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid-GoogLeNet.label" --similarity=C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid.vector --sim_closest=1,2 --sim_disp_size=50,300 --sim_reranks=1,3
