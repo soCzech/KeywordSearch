@@ -3,6 +3,8 @@ import struct
 import random
 import numpy as np
 from common_utils import console
+from PIL import Image as pImage, ImageDraw as pDraw, ImageFont as pFont
+import shutil
 
 
 class Label:
@@ -170,102 +172,79 @@ class IDF:
             print(str(self.TERM_COUNT[i]) + " -> " + str(self.IDF[i]))
 
 
-class Similarity:
-    VECTORS = []
-    DIMENSION = 0
+class SimilarityVisualization(console.Singleton):
+    MAX_IMAGES = None
+    MAX_ITERATIONS = None
+    IMAGE_DIMS = None
+    IMAGE = None
+    CANVAS = None
+    CURRENT = None
+    ITERATION = None
+    IMAGE_DIR = None
 
-    def read_vectors(self, filename, astype=None):
-        pt = console.ProgressTracker()
-        pt.info(">> Reading similarity vectors...")
+    def initialize(self, max_images, max_iterations, image_dims, image_dir):
+        self.MAX_IMAGES = max_images
+        self.MAX_ITERATIONS = max_iterations
+        self.IMAGE_DIMS = image_dims
+        self.IMAGE = pImage.new('RGB', (image_dims[0] * max_iterations, image_dims[1] * max_images), (255, 255, 255))
+        self.CANVAS = pDraw.Draw(self.IMAGE)
+        self.CURRENT = -1
+        self.ITERATION = -1
+        self.IMAGE_DIR = image_dir
 
-        dt = np.dtype(np.byte).newbyteorder('<')
+    def new_image(self, image_id):
+        if self.CURRENT >= self.MAX_IMAGES:
+            return
 
-        with open(filename, 'rb') as f:
-            pt.info("\t> Dataset ID: " + str(struct.unpack('<I', f.read(4))[0]))
-            count = struct.unpack('<I', f.read(4))[0]
-            self.DIMENSION = struct.unpack('<I', f.read(4))[0]
+        self.CURRENT += 1
+        self.ITERATION = 0
+        self.new_iteration(image_id, text="ID " + str(image_id))
 
-            for i in range(count):
-                vec = np.frombuffer(f.read(self.DIMENSION), dtype=dt)
-                if astype is not None:
-                    self.VECTORS.append(vec.astype(astype))
-                else:
-                    self.VECTORS.append(vec)
+    def new_iteration(self, image_id, text=None):
+        if self.ITERATION >= self.MAX_ITERATIONS:
+            return
 
-    @staticmethod
-    def cos_dist(x, y):
-        return np.dot(x, y)  # / (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y)))
+        x = self.ITERATION * self.IMAGE_DIMS[0]
+        y = self.CURRENT * self.IMAGE_DIMS[1]
 
-    @staticmethod
-    def l2_dist(x, y):
-        dxy = x - y
-        return np.sqrt(np.dot(dxy, dxy))
+        img = pImage.open(os.path.join(self.IMAGE_DIR, str(image_id).zfill(7) + ".jpg"))
+        img = img.resize((self.IMAGE_DIMS[0], self.IMAGE_DIMS[1]))
+        self.IMAGE.paste(img, (x, y, x + self.IMAGE_DIMS[0], y + self.IMAGE_DIMS[1]))
 
-    def get_distance_vector(self, query_image_index):
-        rank = np.zeros(len(self.VECTORS))
+        if text is not None:
+            font = pFont.truetype("courbd", 18)
+            if isinstance(text, list):
+                self.CANVAS.text((x, y), text[0], fill=(0, 255, 0, 255), font=font)
+                self.CANVAS.text((x, y + self.IMAGE_DIMS[1] - 18), text[1], fill=(0, 255, 0, 255), font=font)
+            else:
+                self.CANVAS.text((x, y), text, fill=(0, 255, 0, 255), font=font)
+        self.ITERATION += 1
 
-        for i in range(len(self.VECTORS)):
-            rank[i] = self.cos_dist(self.VECTORS[query_image_index].astype(np.float32), self.VECTORS[i].astype(np.float32))
-        return rank
-
-    def get_rank(self, query_image_index, searched_image_index):
-        if not isinstance(searched_image_index, list):
-            searched_image_index = [searched_image_index]
-
-        if not isinstance(query_image_index, list):
-            query_image_index = [query_image_index]
-
-        rank_vec = np.zeros(len(self.VECTORS))
-        for index in query_image_index:
-            rank_vec += self.get_distance_vector(index)
-
-        rank_vec = np.argsort(rank_vec)
-        ret_list = []
-
-        for index in searched_image_index:
-            for i in range(len(rank_vec)):
-                if rank_vec[i] == index:
-                    ret_list.append(i)
-                    break
-
-        if len(ret_list) == 1:
-            return ret_list[0], rank_vec
-        return ret_list, rank_vec
-
-    def _get_best_rank(self, image_indexes, searched_image_index, sim_settings, n_reranks = 1):
-        if max(sim_settings.N_RERANKS) < n_reranks:
-            return []
-
-        distances = []
-        for index in image_indexes[:sim_settings.DISPLAY_SIZE]:
-            dist = self.cos_dist(self.VECTORS[index].astype(np.float32), self.VECTORS[searched_image_index].astype(np.float32))
-            distances.append(dist)
-        best_ranks = [image_indexes[i] for i in np.argsort(distances)[:sim_settings.N_CLOSEST]]
-
-        searched_image_rank, rank_vector = self.get_rank(best_ranks, searched_image_index)
-        for rerank in sim_settings.N_RERANKS:
-            if rerank == n_reranks:
-                l = self._get_best_rank(rank_vector, searched_image_index, sim_settings, n_reranks + 1)
-                l.append((n_reranks, searched_image_rank))
-                return l
-        return self._get_best_rank(rank_vector, searched_image_index, sim_settings, n_reranks + 1)
-
-    def get_best_rank(self, image_indexes, searched_image_index, sim_settings):
-        ranks = {}
-        for disp_size in sim_settings.DISPLAY_SIZE:
-            for n_closest in sim_settings.N_CLOSEST:
-                sim = SimilaritySettings()
-                sim.DISPLAY_SIZE = disp_size
-                sim.N_CLOSEST = n_closest
-                sim.N_RERANKS = sim_settings.N_RERANKS
-
-                results = self._get_best_rank(image_indexes, searched_image_index, sim)
-                for reranks, image_rank in results:
-                    ranks[str(disp_size) + ":" + str(n_closest) + " " + str(reranks) + "x"] = image_rank
-        return ranks
+    def save(self, filename):
+        self.IMAGE.save("C:\\Users\\Tom\\Workspace\\KeywordSearch\\image" + filename + ".jpg", "JPEG")
 
 
-class SimilaritySettings:
-    N_CLOSEST = []
-    DISPLAY_SIZE = []
-    N_RERANKS = []
+def copy_files(from_dir, to_dir):
+    pt = console.ProgressTracker()
+
+    if not os.path.exists(to_dir):
+        os.mkdir(to_dir)
+
+    dirs = os.listdir(from_dir)
+    dirs.sort(key=int)
+
+    pt.info(">> Copying files...")
+    pt.reset(len(dirs))
+
+    i = 0
+    for d in dirs:
+        directory = os.path.join(from_dir, d)
+        for file in sorted(os.listdir(directory)):
+            filename = os.path.join(directory, file)
+            destination = os.path.join(to_dir, str(i).zfill(7) + ".jpg")
+            shutil.copyfile(filename, destination)
+            i += 1
+        pt.increment()
+
+
+#copy_files("E:\\VIRET\\Keyframes", "C:\\Users\\Tom\\Workspace\\KeywordSearch\\kw")

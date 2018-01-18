@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from simulations import simulation_utils, graph_utils
+from simulations import simulation_utils, graph_utils, similarity
 from common_utils import console
 import random
 import pickle
@@ -15,7 +15,7 @@ class UserSimulation:
         self._samples = []
         self._indexes = []
         self._labels = dict()
-        self._similarity = simulation_utils.Similarity()
+        self._similarity = similarity.Similarity()
 
     @staticmethod
     def _read_queries(filename):
@@ -93,9 +93,11 @@ class UserSimulation:
     @staticmethod
     def _get_rank_of_image(image, array):
         indexes = np.argsort(array)[::-1]
-        for i in range(len(indexes)):
-            if indexes[i] == image.ID:
-                return i + 1, indexes
+        array_of_indexes = np.where(indexes == image.ID)[0]
+
+        if len(array_of_indexes) != 1:
+            raise Exception("Image ID " + image.ID + " not found in array_of_indexes")
+        return array_of_indexes[0] + 1, indexes
 
     def save(self, filename):
         pt = console.ProgressTracker()
@@ -161,8 +163,11 @@ class UserSimulation:
             pt.reset(len(self._samples))
 
             byte_str = "byte " if byte_representation else ""
+
+            sv = simulation_utils.SimilarityVisualization()
             for index, rand_indexes in zip(self._samples, self._indexes):
                 image = self._images.IMAGES[index]
+                sv.new_image(image.ID)
 
                 if query_length_list is None:
                     self._rank_image(image, rand_indexes, False, similarity,
@@ -187,17 +192,20 @@ class UserSimulation:
 
             if len(selected_indexes) > 1:
                 array = self._images.CLASSES[selected_indexes[0]] + self._images.CLASSES[selected_indexes[1]] \
-                    if not use_idf else self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]] + \
-                                        self._idf.IDF[selected_indexes[1]] * self._images.CLASSES[selected_indexes[1]]
+                    if not use_idf \
+                    else self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]] + \
+                         self._idf.IDF[selected_indexes[1]] * self._images.CLASSES[selected_indexes[1]]
 
                 i = 2
                 while i < len(selected_indexes):
                     array += self._images.CLASSES[selected_indexes[i]] \
-                        if not use_idf else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
+                        if not use_idf \
+                        else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
                     i += 1
 
             if array[image.ID] != 0:
                 rank, indexes = self._get_rank_of_image(image, array)
+                simulation_utils.SimilarityVisualization().new_iteration(indexes[0], text="K " + str(rank))
                 if similarity is not None:
                     sim_rank = self._similarity.get_best_rank(indexes, image.ID, similarity)
 
@@ -270,10 +278,42 @@ class UserSimulation:
                     rand_indexes.append(rand)
             self._indexes.append(rand_indexes)
 
-    def rank(self, threshold_list,  query_length_list, use_idf=False, byte_representation=False, similarity=None):
+    def _gen_indexes_exp(self, query_length, lmbda=0.004):
+        pt = console.ProgressTracker()
+        pt.info(">> Generating indexes from exponential distribution for samples...")
+        pt.info("\t> Lambda: " + str(lmbda))
+
+        exp = np.arange(1, self._images.DIMENSION + 1)
+        exp = lmbda * np.exp(-lmbda * exp)
+        exp = exp / np.sum(exp)
+
+        self._indexes = []
+
+        for index in self._samples:
+            image = self._images.IMAGES[index]
+
+            rand_indexes = []
+            while len(rand_indexes) < query_length:
+                rand = simulation_utils.get_random_index_from_dist(exp)
+                if rand not in rand_indexes:
+                    rand_indexes.append(rand)
+
+            cls_indexes = np.argsort(image.DISTRIBUTION)[::-1]
+            self._indexes.append([cls_indexes[i] for i in rand_indexes])
+
+    def rank(self, threshold_list, query_length_list, use_idf=False, byte_representation=False, similarity=None):
+        sv = simulation_utils.SimilarityVisualization()
+        sv_width = 2
+        if similarity is not None:
+            sv_width = max(similarity.N_RERANKS) + 2
+        sv.initialize(min(len(self._samples), 100), sv_width, (120, 90), "C:\\Users\\Tom\\Workspace\\kw")
+
+        #self._gen_indexes_exp(4)
         if len(self._indexes) == 0:
             self._gen_indexes(max(query_length_list))
         self._rank(threshold_list, query_length_list, use_idf, byte_representation, similarity)
+
+        sv.save("")
 
 
 if __name__ == '__main__':
@@ -333,7 +373,7 @@ if __name__ == '__main__':
 
         sim = None
         if args.similarity:
-            sim = simulation_utils.SimilaritySettings()
+            sim = similarity.SimilaritySettings()
             sim.N_CLOSEST = [int(i) for i in args.sim_closest.split(',')]
             sim.DISPLAY_SIZE = [int(i) for i in args.sim_disp_size.split(',')]
             sim.N_RERANKS = [int(i) for i in args.sim_reranks.split(',')]

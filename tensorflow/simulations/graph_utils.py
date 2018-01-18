@@ -107,6 +107,7 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
         axs[index].bar(x, y, color='C9', label="Histogram")
 
         lmbda = len(plot) / np.sum(plot)
+        pt.info("\t> " + key + " lambda: " + str(lmbda))
         # ax = np.linspace(np.min(x), np.max(x), 200)
         ay = lmbda * np.exp(-lmbda * x)
         axs[index].plot(x, ay, label="Exp $\\lambda e^{\\lambda x}$")
