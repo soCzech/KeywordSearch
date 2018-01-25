@@ -52,6 +52,19 @@ def get_images_from_dir(directory):
     return [os.path.join(directory, filename) for filename in os.listdir(directory)]
 
 
+def get_images_recursively(directory):
+    directory = os.path.normpath(directory)
+    image_id = 0
+    res = dict()
+    for folder in sorted(os.listdir(directory)):
+        if os.path.isdir(os.path.join(directory, folder)):
+            for image in sorted(os.listdir(os.path.join(directory, folder))):
+                res[os.path.join(directory, folder, image)] = image_id
+                image_id += 1
+            break
+    return res
+
+
 def write_evaluation(filename, results):
     exists = os.path.isfile(filename)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S ')

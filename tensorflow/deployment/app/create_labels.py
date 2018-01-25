@@ -172,7 +172,7 @@ def create_labels_from_annotations(directory, label_file, pseudo_index_file):
     classes = set()
     files = []
 
-    for index, file in enumerate(annotations):
+    for index, file in enumerate(sorted(annotations)):
         sys.stdout.write('\rSearching for labels in {} ({:d}/{:d}).'.format(file, index, len(annotations)))
         sys.stdout.flush()
 
@@ -183,7 +183,7 @@ def create_labels_from_annotations(directory, label_file, pseudo_index_file):
                 classes.add(cls)
                 file_cls.append(cls)
                 file_prob.append(prob)
-        files.append((file, file_cls, file_prob))
+        files.append((index, file_cls, file_prob))
 
     sys.stdout.write('\rCreating label file.\n')
     sys.stdout.flush()
@@ -197,27 +197,27 @@ def create_labels_from_annotations(directory, label_file, pseudo_index_file):
 
     with open(pseudo_index_file, 'wb') as f:
         for file, cls, prob in files:
-            f.write(struct.pack('<I', index_utils.filename_to_id(file)))
+            f.write(struct.pack('<I', file))
             for c in cls:
                 f.write(struct.pack('<I', dictionary[c]))
             for p in prob:
                 f.write(struct.pack('<f', p))
 
 
-#create_labels_from_annotations("c:\\Users\\Tom\\Workspace\\KeywordSearch\\annotation\\", "bin/classes.labels-deepfeatures", "bin/files.pseudo-index-deepfeatures")
+create_labels_from_annotations("C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\annotation\\", "bin/TRECVidData/TRECVid-YFCC100M.label", "bin/TRECVidData/TRECVid-YFCC100M.pseudo-index")
 
 # 1740 is entity - should contain all classes
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--synset_id_file', required=True,
-                        help='path to a file containing WordNet ids')
-    parser.add_argument('--create_labels',
-                        help='creates label file with name as an argument')
-    parser.add_argument('--print_hyponyms', type=int,
-                        help='print tree of hyponyms given a synset id')
-    args = parser.parse_args()
-
-    if args.create_labels:
-        create_labels(args.synset_id_file, args.create_labels)
-    if args.print_hyponyms:
-        print_hyponyms(args.synset_id_file, args.print_hyponyms)
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('--synset_id_file', required=True,
+#                         help='path to a file containing WordNet ids')
+#     parser.add_argument('--create_labels',
+#                         help='creates label file with name as an argument')
+#     parser.add_argument('--print_hyponyms', type=int,
+#                         help='print tree of hyponyms given a synset id')
+#     args = parser.parse_args()
+#
+#     if args.create_labels:
+#         create_labels(args.synset_id_file, args.create_labels)
+#     if args.print_hyponyms:
+#         print_hyponyms(args.synset_id_file, args.print_hyponyms)

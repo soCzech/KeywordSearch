@@ -8,7 +8,7 @@ from diagnostics import heatmap_utils
 from models import network, model_utils, inception_v1
 
 
-def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True):
+def run(filenames, num_classes, take_top_n, bin_dir, restore_all, run_name, calc_cov=True):
     if calc_cov:
         mean = np.zeros(num_classes, dtype=np.float)
         cov = np.zeros((num_classes, num_classes), dtype=np.float)
@@ -33,8 +33,6 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True)
 
     """ Covariance """
     if calc_cov:
-        probabilities = tf.nn.softmax(logits)
-
         last_mean = tf.placeholder(tf.float32, shape=num_classes)
         last_cov = tf.placeholder(tf.float32, shape=(num_classes, num_classes))
 
@@ -49,10 +47,14 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True)
     else:
         model_utils.restore_model(session, bin_dir, inception_vars, generalist_vars)
 
-    pi_filename = os.path.join(os.path.normpath(bin_dir), 'files.pseudo-index')
+    pi_filename = os.path.join(os.path.normpath(bin_dir), run_name + '.pseudo-index')
     if os.path.isfile(pi_filename):
         raise Exception(pi_filename + ' exists.')
     file = open(pi_filename, 'wb')
+
+    pi_filename2 = os.path.join(os.path.normpath(bin_dir), run_name + '.softmax')
+    file2 = open(pi_filename2, 'wb')
+    file2.write(struct.pack('<I', num_classes))
 
     indices_format = '<' + 'I' * take_top_n
     values_format = '<' + 'f' * take_top_n
@@ -61,20 +63,26 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True)
     try:
         while not coord.should_stop():
             if calc_cov:
-                r_keys, r_top_v, r_top_i, mean, cov = session.run([
-                    keys, top_values, top_indices, add_to_mean, add_to_cov
+                r_keys, r_top_v, r_top_i, mean, cov, prob = session.run([
+                    keys, top_values, top_indices, add_to_mean, add_to_cov, probabilities
                 ], feed_dict={last_mean: mean, last_cov: cov})
             else:
-                r_keys, r_top_v, r_top_i = session.run([keys, top_values, top_indices])
+                r_keys, r_top_v, r_top_i, prob = session.run([keys, top_values, top_indices, probabilities])
 
             for a in range(len(r_keys)):
                 _, filename = os.path.split(r_keys[a])
-                file_id = int(filename[:-4])
+                if isinstance(filenames, dict):
+                    file_id = filenames[r_keys[a].decode("utf-8")]
+                else:
+                    file_id = int(filename[:-4])
 
                 data = struct.pack(indices_format, *r_top_i[a]) + struct.pack(values_format, *r_top_v[a])
 
                 file.write(struct.pack('<I', file_id))
                 file.write(data)
+
+                file2.write(struct.pack('<I', file_id))
+                file2.write(struct.pack('<' + 'f' * num_classes, *prob[a]))
 
             i += len(r_keys)
             sys.stdout.write('\r>> Classifying... {} ({:d}/{:d})'.format(filename, i, len(filenames)))
@@ -85,9 +93,10 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True)
     finally:
         if calc_cov:
             heatmap_utils.store_covariance_matrix(
-                mean, cov, len(filenames), os.path.join(bin_dir, 'covariance'), 'classification'
+                mean, cov, len(filenames), os.path.join(bin_dir, 'covariance'), run_name
             )
         file.close()
+        file2.close()
 
         # When done, ask the threads to stop.
         coord.request_stop()
@@ -98,6 +107,8 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, calc_cov=True)
 
 
 # py actions/classify.py --image_dir=../_test/classification --num_classes=2
+# py actions/classify.py --image_dir=C:\Users\Tom\Workspace\ViretTool\TestData\ITEC\keyframes
+#   --num_classes=1390 --take_top_n=10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--image_dir', required=True,
@@ -110,5 +121,5 @@ if __name__ == '__main__':
                         help='directory containing checkpoints and logs folder')
     args = parser.parse_args()
 
-    images = model_utils.get_images_from_dir(args.image_dir)
-    run(images, args.num_classes, args.take_top_n, args.bin_dir, restore_all=True)
+    images = model_utils.get_images_recursively(args.image_dir)
+    run(images, args.num_classes, args.take_top_n, args.bin_dir, restore_all=True, run_name='TrecVidKF-Test', calc_cov=True)

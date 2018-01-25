@@ -165,7 +165,7 @@ class IDF:
             self.TERM_COUNT = np.frombuffer(f.read(dimension * 4), dtype=dt)
 
     def compute_idf(self):
-        self.IDF = np.log2(np.amax(self.TERM_COUNT)*2 / self.TERM_COUNT)
+        self.IDF = 1 + np.log2(np.amax(self.TERM_COUNT) / self.TERM_COUNT)
 
     def print(self):
         for i in range(len(self.TERM_COUNT)):

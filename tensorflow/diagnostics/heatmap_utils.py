@@ -32,6 +32,9 @@ def read_matrix(file, text_dtype, dtype):
 
 
 def store_covariance_matrix(mean, cov, no_images, folder, dataset_name):
+    store_vector(mean, os.path.join(folder, 'mean_unorm-{}.bin'.format(dataset_name)), 'f')
+    store_matrix(cov, os.path.join(folder, 'covariance_unorm-{}.bin'.format(dataset_name)), 'f')
+
     # E[XX^T]-E[X]E[X]^T
     mean = mean / no_images
     cov = cov / no_images - np.outer(mean, mean)

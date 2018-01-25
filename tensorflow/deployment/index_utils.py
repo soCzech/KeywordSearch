@@ -16,6 +16,10 @@ def get_class_representatives(filename, num_classes_per_image):
             image_values = struct.unpack(values_format, f.read(4 * num_classes_per_image))
             raw_id = f.read(4)
 
+            # annotate only videos [0,699]
+            # if image_id > 47148:
+            #     continue
+
             for ind, val in zip(image_indices, image_values):
                 if ind not in classes:
                     classes[ind] = [(image_id, val)]

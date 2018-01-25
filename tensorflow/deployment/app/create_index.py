@@ -27,7 +27,8 @@ def create_index_file(pseudo_index_filename, index_filename, num_classes_per_ima
 
     file.close()
 
-# py actions/create_index.py --pseudo_index_filename="files.pseudo-index" --index_filename="files.index" --num_classes=2
+# py deployment/app/create_index.py --pseudo_index_filename="bin/files.pseudo-index"
+#   --index_filename="bin/files.index" --take_top_n=10
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--pseudo_index_filename', required=True,

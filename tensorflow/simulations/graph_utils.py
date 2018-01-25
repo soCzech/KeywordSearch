@@ -112,6 +112,13 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
         ay = lmbda * np.exp(-lmbda * x)
         axs[index].plot(x, ay, label="Exp $\\lambda e^{\\lambda x}$")
 
+        smoothed = np.zeros(bins)
+        for i in range(bins):
+            for j in range(max(0, i-10), min(i+10, bins)):
+                smoothed[i] += y[j]
+            smoothed[i] /= min(i+10, bins) - max(0, i-10)
+        axs[index].plot(x, smoothed, label="Smoothed")
+
         axs[index].legend(loc='upper right')
         # axs[index].set_xlabel('Rank')
         # axs[index].set_ylabel('Number of Images [%]')

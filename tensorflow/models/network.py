@@ -58,6 +58,9 @@ def get_batch(tfrecord_dir, dataset_name, batch_size, image_size, is_training):
 
 def get_image_as_batch(filenames, image_size):
     with tf.name_scope('InceptionPreprocessing'):
+        if isinstance(filenames, dict):
+            filenames = list(filenames.keys())
+
         filename_queue = tf.train.string_input_producer(filenames, shuffle=False, num_epochs=1)
 
         key, image = tf.WholeFileReader().read(filename_queue)
