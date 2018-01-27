@@ -6,9 +6,13 @@ import numpy as np
 import tensorflow as tf
 from diagnostics import heatmap_utils
 from models import network, model_utils, inception_v1
+from common_utils import console
 
 
 def run(filenames, num_classes, take_top_n, bin_dir, restore_all, run_name, calc_cov=True):
+    pt = console.ProgressTracker()
+    pt.info(">> Initializing TensorFlow model...")
+
     if calc_cov:
         mean = np.zeros(num_classes, dtype=np.float)
         cov = np.zeros((num_classes, num_classes), dtype=np.float)
@@ -52,14 +56,16 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, run_name, calc
         raise Exception(pi_filename + ' exists.')
     file = open(pi_filename, 'wb')
 
-    pi_filename2 = os.path.join(os.path.normpath(bin_dir), run_name + '.softmax')
-    file2 = open(pi_filename2, 'wb')
-    file2.write(struct.pack('<I', num_classes))
+    # pi_filename2 = os.path.join(os.path.normpath(bin_dir), run_name + '.softmax')
+    # file2 = open(pi_filename2, 'wb')
+    # file2.write(struct.pack('<I', num_classes))
 
-    indices_format = '<' + 'I' * take_top_n
-    values_format = '<' + 'f' * take_top_n
+    # indices_format = '<' + 'I' * take_top_n
+    # values_format = '<' + 'f' * take_top_n
 
-    i = 0
+    pt.info(">> Classifying...")
+    pt.reset(len(filenames))
+
     try:
         while not coord.should_stop():
             if calc_cov:
@@ -76,27 +82,33 @@ def run(filenames, num_classes, take_top_n, bin_dir, restore_all, run_name, calc
                 else:
                     file_id = int(filename[:-4])
 
-                data = struct.pack(indices_format, *r_top_i[a]) + struct.pack(values_format, *r_top_v[a])
+                r_top_indexes = np.where(prob[a] >= 0.001)[0]
+                m_len = len(r_top_indexes)
+                r_top_vals = np.zeros(m_len)
 
+                for b in range(m_len):
+                    r_top_vals[b] = prob[a][r_top_indexes[b]]
+
+                # data = struct.pack(indices_format, *r_top_i[a]) + struct.pack(values_format, *r_top_v[a])
                 file.write(struct.pack('<I', file_id))
-                file.write(data)
+                # file.write(data)
 
-                file2.write(struct.pack('<I', file_id))
-                file2.write(struct.pack('<' + 'f' * num_classes, *prob[a]))
+                file.write(struct.pack('<I', m_len))
+                file.write(struct.pack('<' + 'I' * m_len, *r_top_indexes) + struct.pack('<' + 'f' * m_len, *r_top_vals))
 
-            i += len(r_keys)
-            sys.stdout.write('\r>> Classifying... {} ({:d}/{:d})'.format(filename, i, len(filenames)))
-            sys.stdout.flush()
+                # file2.write(struct.pack('<I', file_id))
+                # file2.write(struct.pack('<' + 'f' * num_classes, *prob[a]))
+
+            pt.increment(len(r_keys))
     except tf.errors.OutOfRangeError:
-        sys.stdout.write('\r>> Classification completed.\n')
-        sys.stdout.flush()
+        pt.info(">> Classification completed.")
     finally:
         if calc_cov:
             heatmap_utils.store_covariance_matrix(
                 mean, cov, len(filenames), os.path.join(bin_dir, 'covariance'), run_name
             )
         file.close()
-        file2.close()
+        # file2.close()
 
         # When done, ask the threads to stop.
         coord.request_stop()
@@ -122,4 +134,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     images = model_utils.get_images_recursively(args.image_dir)
-    run(images, args.num_classes, args.take_top_n, args.bin_dir, restore_all=True, run_name='TrecVidKF-Test', calc_cov=True)
+    run(images, args.num_classes, args.take_top_n, args.bin_dir, restore_all=True, run_name='TrecVid3K', calc_cov=True)

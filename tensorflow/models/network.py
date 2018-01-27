@@ -68,6 +68,6 @@ def get_image_as_batch(filenames, image_size):
         image = tf.image.decode_jpeg(image, channels=3)
 
         image = inception_preprocessing.preprocess_image(image, image_size, image_size, is_training=False)
-        #return key, tf.expand_dims(image, 0)
+        # return key, tf.expand_dims(image, 0)
         return tf.train.batch([key, image], batch_size=80, num_threads=1,
                               allow_smaller_final_batch=True)

@@ -4,8 +4,11 @@ import argparse
 
 
 def create_index_file(pseudo_index_filename, index_filename, num_classes_per_image):
-    classes = index_utils.get_class_representatives(pseudo_index_filename, num_classes_per_image)
+    classes = index_utils.get_class_representatives_v2(pseudo_index_filename)
     file = open(index_filename, 'wb')
+
+    file.write(b'TRECVid\0\0\0\0\0\0\0\0\0')
+    file.write(b'2018-01-26 10:00:00\n')
 
     file.write(b'KS INDEX')
     file.write(b'\xff\xff\xff\xff\xff\xff\xff\xff')

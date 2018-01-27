@@ -3,6 +3,26 @@ import sys
 import struct
 
 
+def get_class_representatives_v2(filename):
+    classes = {}
+
+    with open(filename, 'rb') as f:
+        raw_id = f.read(4)
+        while raw_id != b'':
+            image_id = struct.unpack('<I', raw_id)[0]
+            no_indexes = struct.unpack('<I', f.read(4))[0]
+            image_indices = struct.unpack("<" + "I" * no_indexes, f.read(4 * no_indexes))
+            image_values = struct.unpack("<" + "f" * no_indexes, f.read(4 * no_indexes))
+            raw_id = f.read(4)
+
+            for ind, val in zip(image_indices, image_values):
+                if ind not in classes:
+                    classes[ind] = [(image_id, val)]
+                else:
+                    classes[ind].append((image_id, val))
+    return classes
+
+
 def get_class_representatives(filename, num_classes_per_image):
     classes = {}
     indices_format = '<' + 'I' * num_classes_per_image

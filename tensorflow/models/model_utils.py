@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 import tensorflow as tf
+from common_utils import console
 
 
 def _get_ckpt_path(bin_dir):
@@ -56,12 +57,18 @@ def get_images_recursively(directory):
     directory = os.path.normpath(directory)
     image_id = 0
     res = dict()
-    for folder in sorted(os.listdir(directory)):
+
+    sorted_list = sorted(os.listdir(directory))
+    pt = console.ProgressTracker()
+    pt.info(">> Reading image files...")
+    pt.reset(len(sorted_list))
+
+    for folder in sorted_list:
         if os.path.isdir(os.path.join(directory, folder)):
             for image in sorted(os.listdir(os.path.join(directory, folder))):
                 res[os.path.join(directory, folder, image)] = image_id
                 image_id += 1
-            break
+        pt.increment()
     return res
 
 
