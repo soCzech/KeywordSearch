@@ -1,34 +1,54 @@
 import numpy as np
-from simulations import simulation_utils, graph_utils
+from simulations import similarity, graph_utils
 from common_utils import console
 import random
+import argparse
 
 
 class Distance:
+    """
+    Computes distances between all vectors.
+    """
 
     def __init__(self):
         self._ranks = {}
-        self._similarity = simulation_utils.Similarity()
+        self._similarity = similarity.Similarity()
 
-    def read_vectors(self, filename):
-        self._similarity.read_vectors(filename, astype=np.float32)
+    def read_vectors(self, filename, val_type=np.float32):
+        """
+        Loads vectors from a file.
+
+        Args:
+            filename: vectors' filename.
+            val_type: vector format, default *np.float32*.
+        """
+        self._similarity.read_vectors(filename, val_type)
 
     def distances(self, sample_size):
+        """
+        Computes distances between randomly selected vectors.
+
+        Args:
+            sample_size: number of vectors to select. If *None*, all vectors are selected.
+        Returns:
+            List of distances between all pairs of selected vectors.
+        """
         pt = console.ProgressTracker()
         pt.info(">> Calculating distances...")
 
         if sample_size is None:
-            samples = range(len(self._similarity.VECTORS))
+            samples = range(len(self._similarity.vectors))
         else:
-            samples = [random.randint(0, len(self._similarity.VECTORS) - 1) for _ in range(sample_size)]
+            samples = [random.randint(0, len(self._similarity.vectors) - 1) for _ in range(sample_size)]
 
         pt.reset(len(samples) * (len(samples) - 1) / 2)
 
         dists = []
         for i in range(len(samples)):
             for j in range(i + 1, len(samples)):
-                dist = simulation_utils.Similarity.cos_dist(
-                    self._similarity.VECTORS[samples[i]], self._similarity.VECTORS[samples[j]])
+                dist = similarity.cos_dist(
+                    self._similarity.vectors[samples[i]], self._similarity.vectors[samples[j]]
+                )
                 dists.append(dist)
             pt.increment(len(samples) - (i+1))
 
@@ -40,12 +60,26 @@ class Distance:
         return dists
 
     def graph(self, graph_filename):
+        """
+        Plots histogram and accumulative graph of distances.
+
+        Args:
+            graph_filename: filename without extension,
+        """
         graph_utils.plot_histogram(self._ranks, 200, graph_filename, title='Distance')
         graph_utils.plot_accumulative(self._ranks, graph_filename+"-accum", title='Distance')
 
 
-a = Distance()
-a.read_vectors("C:\\Users\\Tom\\Workspace\\ViretTool\\TestData\\TRECVid\\TRECVid.vector")
-d = a.distances(3000)
-a.graph("C:\\Users\\Tom\\Workspace\\KeywordSearch\\tensorflow\\text\\cos_distance-VGG_Vectors")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-vf', type=str, required=True)
+    parser.add_argument('-gf', type=str, default=False)
+    parser.add_argument('--sample_size', type=int, default=None)
 
+    args = parser.parse_args()
+
+    d = Distance()
+    d.read_vectors(args.vf)
+    d.distances(args.sample_size)
+    if args.gf:
+        d.graph(args.gf)
