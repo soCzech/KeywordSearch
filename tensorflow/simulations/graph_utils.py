@@ -117,7 +117,26 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
             for j in range(max(0, i-10), min(i+10, bins)):
                 smoothed[i] += y[j]
             smoothed[i] /= min(i+10, bins) - max(0, i-10)
+
         axs[index].plot(x, smoothed, label="Smoothed")
+
+        min_reached = smoothed[0]
+        accumulated = 0.0
+        for i in range(1, bins):
+            if min_reached < smoothed[i]:
+                accumulated += smoothed[i] - min_reached
+                smoothed[i] = min_reached
+            elif smoothed[i] + accumulated > min_reached:
+                accumulated -= min_reached - smoothed[i]
+                smoothed[i] = min_reached
+            else:
+                smoothed[i] += accumulated
+                accumulated = 0
+                min_reached = smoothed[i]
+
+        smoothed /= np.sum(smoothed)
+
+        axs[index].plot(x, smoothed, label="Smoothed Dec")
 
         axs[index].legend(loc='upper right')
         # axs[index].set_xlabel('Rank')

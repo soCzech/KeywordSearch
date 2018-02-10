@@ -1,3 +1,4 @@
+import sys
 import argparse
 import numpy as np
 from simulations import simulation_utils, graph_utils, similarity, visualization, user_queries
@@ -30,7 +31,6 @@ class Simulation:
         self._images = simulation_utils.Keywords()
         self._images.read_images(filename)
 
-
     # region Sample & index generation
 
     def gen_samples(self, filename, sample_size, max_query_len, distribution=None):
@@ -54,6 +54,9 @@ class Simulation:
                 (self.samples, self.indexes) = pickle.load(f)
             return
 
+        if self._images is None:
+            pt.error('Missing image keyword vectors to generate samples.')
+            exit(1)
         pt.info(">> Generating samples...")
         self.samples = [random.randint(0, len(self._images) - 1) for _ in range(sample_size)]
         self.__gen_indexes(max_query_len, distribution)
@@ -131,15 +134,9 @@ class Simulation:
             disp_size, n_closest, n_reranks
         )
         self._similarity = similarity.Similarity()
-        self._similarity.read_vectors(filename)
+        self._similarity.read_vectors(filename, val_type=np.int8)
 
     def use_visualization(self, image_dir, filename, no_iterations, no_images):
-        # sv = simulation_utils.SimilarityVisualization()
-        # sv_width = 2
-        # if similarity is not None:
-        #     sv_width = max(similarity.N_RERANKS) + 2
-        # sv.initialize(min(len(self.samples), 100), sv_width, (120, 90), "C:\\Users\\Tom\\Workspace\\kw")
-
         filename += '-visualization'
         self._visualization = visualization.SimilarityVisualization(filename, [120, 90], no_images,
                                                                     no_iterations, image_dir)
@@ -164,6 +161,21 @@ class Simulation:
             r = pickle.load(f)
             for k in r.keys():
                 self._ranks[k] = r[k]
+
+    def save_ranks(self, filename):
+        """
+        Restore ranks from previous runs to use them in graph.
+
+        Args:
+            filename: a location of ranks pickle file.
+        """
+        pt = console.ProgressTracker()
+        pt.info(">> Saving ranks...")
+
+        filename += '-ranks.pickle'
+
+        with open(filename, 'wb') as f:
+            pickle.dump(self._ranks, f)
 
     # endregion
 
@@ -206,7 +218,7 @@ class Simulation:
                 self._images.CLASSES[cls_index] = np.round(self._images.CLASSES[cls_index] * 255)
 
                 nonzero += np.sum(self._images.CLASSES[cls_index] > 0)
-                pt.increment()
+                if cls_index % 10 == 9: pt.increment(10)
             pt.info("\t> Nonzero classes on average: " + str(nonzero / len(self._images.CLASSES[0])))
 
         for threshold in self.thresholds:
@@ -247,6 +259,7 @@ class Simulation:
 
         if self._visualization is not None:
             self._visualization.save()
+        pt.info(">> Image ranks calculated.")
 
     def _rank_image(self, image_id, selected_indexes, use_idf, plot_name):
         """
@@ -279,8 +292,8 @@ class Simulation:
                     self._visualization.new_iteration(indexes[0], text="K " + str(rank))
 
                 if self._similarity is not None:
-                    sim_rank = self._similarity.get_best_rank(indexes, image_id, self._visualization,
-                                                              self._similarity_settings)
+                    sim_rank = self._similarity.get_best_rank(indexes, image_id, self._similarity_settings,
+                                                              self._visualization)
 
         if plot_name not in self._ranks:
             self._ranks[plot_name] = []
@@ -296,6 +309,40 @@ class Simulation:
                 self._ranks[plot_name + " " + key].append(sim_rank[key])
 
     # endregion
+
+    def distribution_from_indexes(self):
+        dist = np.zeros(self._images.NO_CLASSES)
+
+        for image_id, user_indexes in zip(self.samples, self.indexes):
+            image = self._images[image_id]
+            indexes = np.argsort(image.DISTRIBUTION)[::-1]
+
+            for i in range(self._images.NO_CLASSES):
+                if indexes[i] in user_indexes:
+                    dist[i] += 1
+
+        smoothed = np.zeros(self._images.NO_CLASSES)
+        for i in range(self._images.NO_CLASSES):
+            for j in range(max(0, i-10), min(i+10, self._images.NO_CLASSES)):
+                smoothed[i] += dist[j]
+            smoothed[i] /= min(i+10, self._images.NO_CLASSES) - max(0, i-10)
+
+        min_reached = smoothed[0]
+        accumulated = 0.0
+        for i in range(1, self._images.NO_CLASSES):
+            if min_reached < smoothed[i]:
+                accumulated += smoothed[i] - min_reached
+                smoothed[i] = min_reached
+            elif smoothed[i] + accumulated > min_reached:
+                accumulated -= min_reached - smoothed[i]
+                smoothed[i] = min_reached
+            else:
+                smoothed[i] += accumulated
+                accumulated = 0
+                min_reached = smoothed[i]
+
+        smoothed /= np.sum(smoothed)
+        return smoothed
 
     def histogram_of_hits(self, graph_filename):
         """
@@ -336,7 +383,7 @@ class Simulation:
             h.extend(hits)
             h_rand.extend(hits_rand)
         graph_utils.plot_discrete_histogram({'hits': h, 'top hits': t, 'hits rand': h_rand, 'top hits rand': t_rand},
-                                            self._images.DIMENSION, graph_filename, title='Hits')
+                                            self._images.NO_CLASSES, graph_filename, title='Hits')
 
     def graph(self, filename):
         """
@@ -379,10 +426,12 @@ if __name__ == '__main__':
     parser.add_argument('--gen_samples', type=int, default=False, help='number of samples to generate')
     parser.add_argument('--query_lengths', type=str, default=False, help='query lengths')
 
-    parser.add_argument('--label_file', type=str, default=None)
-    parser.add_argument('--log_file', type=str, default=None)
+    parser.add_argument('--label_file', type=str, default=False)
+    parser.add_argument('--log_file', type=str, default=False)
     parser.add_argument('--rank', action='store_true', default=False)
+    parser.add_argument('--use_user_dist', action='store_true', default=False)
 
+    parser.add_argument('--graph', action='store_true', default=False)
     # parser.add_argument('--hist', type=str, default=None)
     args = parser.parse_args()
 
@@ -391,6 +440,12 @@ if __name__ == '__main__':
     #   'KeywordSelector\\bin\\Debug\\Log\\KeywordSelector_2017-12-04_14-35-45.txt'
     # read_labels
     #   'C:\\Users\\Tom\\Workspace\\ViretTool\\TestData\\TRECVid\\TRECVid-GoogLeNet.label'
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        exit(1)
+
+    pt = console.ProgressTracker()
 
     u = Simulation()
 
@@ -406,16 +461,37 @@ if __name__ == '__main__':
 
     if args.restore_ranks:
         if not args.filename:
-            print('filename must be specified to restore rankings.')
+            pt.error('\'filename\' must be specified to restore rankings.')
             exit(1)
         u.restore_ranks(args.filename)
 
-    if args.label_file is not None and args.log_file is not None:
+    if args.label_file and args.log_file:
         u.samples, u.indexes = user_queries.parse_queries(args.log_file, args.label_file)
+
+    if args.keyword:
+        u.read_keyword(args.keyword)
+
+    if args.gen_samples:
+        if not args.filename or not args.query_lengths:
+            pt.error('\'filename\' and \'query_lengths\' must be specified to create or restore generated samples.')
+            exit(1)
+        if args.use_user_dist and not (args.label_file and args.log_file):
+                pt.error('\'label_file\' and \'log_file\' must be specified to generate custom user distribution.')
+                exit(1)
+        u.gen_samples(args.filename, args.gen_samples,
+                      max([int(i) for i in args.query_lengths.split(',')]),
+                      u.distribution_from_indexes() if args.use_user_dist else None)
+
+    if args.visualization:
+        if not args.filename or not args.n_reranks:
+            pt.error('\'filename\' and \'n_reranks\' must be specified to use visualization.')
+            exit(1)
+        u.use_visualization(args.visualization, args.filename, max([int(i) for i in args.n_reranks.split(',')]) + 2,
+                            min(200, len(u.samples)))
 
     if args.similarity:
         if not (args.disp_size and args.n_closest and args.n_reranks):
-            print('disp_size, n_closest and n_reranks must be specified to use similarity reranking.')
+            pt.error('\'disp_size\', \'n_closest\' and \'n_reranks\' must be specified to use similarity reranking.')
             exit(1)
 
         u.use_similarity(args.similarity,
@@ -423,32 +499,18 @@ if __name__ == '__main__':
                          [int(i) for i in args.n_closest.split(',')],
                          [int(i) for i in args.n_reranks.split(',')])
 
-    if args.keyword:
-        u.read_keyword(args.keyword)
-
-    if args.gen_samples:
-        if not args.filename or not args.query_lengths:
-            print('filename and query_lengths must be specified to restore generate samples.')
-            exit(1)
-        u.gen_samples(args.filename, args.gen_samples,
-                      max([int(i) for i in args.query_lengths.split(',')]))
-
-    if args.visualization:
-        if not args.filename or not args.query_lengths:
-            print('filename and query_lengths must be specified to use visualization.')
-            exit(1)
-        u.use_visualization(args.visualization, args.filename, max([int(i) for i in args.query_lengths.split(',')]),
-                            min(100, len(u.samples)))
-
     if args.rank:
-        if not args.query_lengths:
-            print('query_lengths must be specified to rank.')
+        if not args.keyword or len(u.samples) == 0:
+            pt.error('\'keyword\' and samples must be specified to rank.')
             exit(1)
         u.rank([int(i) for i in args.query_lengths.split(',')] if args.query_lengths else None)
 
+        if args.filename:
+            u.save_ranks(args.filename)
+
     if args.graph:
         if not args.filename:
-            print('filename must be specified to graph rankings.')
+            pt.error('\'filename\' must be specified to graph rankings.')
             exit(1)
         u.graph(args.filename)
 

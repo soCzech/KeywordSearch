@@ -104,6 +104,11 @@ class ProgressTracker(Singleton):
         print(message)
         self._draw()
 
+    def error(self, message):
+        self._clear()
+        print("ERROR:", message)
+        self._draw()
+
     # http://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
     @staticmethod
     def _terminal_size():

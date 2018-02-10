@@ -1,7 +1,5 @@
-import os
 import struct
 import numpy as np
-import multiprocessing as mp
 from common_utils import console
 
 
@@ -15,7 +13,7 @@ def cos_dist(x, y):
     Returns:
         :math:`1-\\frac{\\langle x,y\\rangle}{|x||y|}`
     """
-    return 1 - np.dot(x, y) / (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y)))
+    return - np.dot(x, y)  # 1 - np.dot(x, y) / (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y)))
 
 
 def l2_dist(x, y):
@@ -74,34 +72,12 @@ class Similarity:
         Returns:
             Vector of distances to the argument vector.
         """
-        ranks = []
+        rank = np.zeros(self.len)
+        query_vector = self.vectors[query_index].astype(np.float32)
 
-        def calc_distance(indexes):
-            res = np.zeros(len(indexes))
-            for i0, iv in enumerate(indexes):
-                res[i0] = cos_dist(self.vectors[query_index], self.vectors[iv])
-            return res, indexes
-
-        def calc_callback(vector, indexes):
-            ranks.append((indexes[0], vector))
-
-        r = range(self.len)
-        processes = os.cpu_count()
-        ind = []
-
-        for i in range(processes - 1):
-            ind.append(r[self.len // processes * i: self.len // processes * (i + 1)])
-        ind.append(r[self.len // processes * (processes - 1):])
-
-        with mp.Pool(processes=processes) as pool:
-            for i in range(processes):
-                pool.apply_async(calc_distance, args=(ind[i],), callback=calc_callback)
-
-            pool.close()
-            pool.join()
-
-        ranks.sort(key=lambda t: t[0])
-        return np.concatenate([t[1] for t in ranks])
+        for i in range(self.len):
+            rank[i] = cos_dist(query_vector, self.vectors[i].astype(np.float32))
+        return rank
 
     def get_rank(self, query_index, searched_index):
         """
@@ -162,14 +138,14 @@ class Similarity:
 
         distances = []
         for index in image_indexes[:similarity_settings.display_size]:
-            dist = cos_dist(self.vectors[index], self.vectors[searched_index])
+            dist = cos_dist(self.vectors[index].astype(np.float32), self.vectors[searched_index].astype(np.float32))
             distances.append(dist)
 
         query_candidates = [image_indexes[i] for i in np.argsort(distances)[:similarity_settings.n_closest]]
         rank, distance, vector = self.get_rank(query_candidates, searched_index)
 
         if visualization is not None:
-            visualization.new_iteration(vector[0], instance=similarity_settings, text=[
+            visualization.new_iteration(vector[0], text=[
                 "S {:d}".format(rank), "d={:}".format(distance)
             ])
 
@@ -207,17 +183,26 @@ class Similarity:
                                               SimilaritySettings(disp_size, n_closest, similarity_settings.n_reranks))
 
                 for n_reranks, image_rank in results:
-                    text = self.gen_text_string_from_similarity(disp_size, n_closest, n_reranks)
+                    text = SimilaritySettings.gen_text_string_from_similarity(disp_size, n_closest, n_reranks)
                     ranks[text] = image_rank
         return ranks
+
+
+class SimilaritySettings:
+
+    def __init__(self, disp_size, n_closest, n_reranks):
+        self.display_size = disp_size
+        self.n_closest = n_closest
+        self.n_reranks = n_reranks
 
     @staticmethod
     def gen_text_string_from_similarity(disp_size, n_closest, n_reranks):
         return "{:d}:{:d} {:d}x".format(disp_size, n_closest, n_reranks)
 
-
-class SimilaritySettings:
-    def __init__(self, disp_size, n_closest, n_reranks):
-        self.display_size = disp_size
-        self.n_closest = n_closest
-        self.n_reranks = n_reranks
+    def get_empty_configurations(self):
+        r = {}
+        for disp_size in self.display_size:
+            for n_closest in self.n_closest:
+                for n_reranks in self.n_reranks:
+                    r[self.gen_text_string_from_similarity(disp_size, n_closest, n_reranks)] = None
+        return r

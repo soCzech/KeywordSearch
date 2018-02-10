@@ -28,13 +28,13 @@ class SimilarityVisualization:
         if plot_name not in self.instances:
             self.instances[plot_name] = VisImgInstance(self.image_dims, self.max_iterations, self.max_images)
 
-        inst = self.instances[plot_name]
+        self.curr_instance = self.instances[plot_name]
 
-        if inst.current >= self.max_images:
+        if self.curr_instance.current >= self.max_images:
             return
 
-        inst.current += 1
-        inst.iteration = 0
+        self.curr_instance.current += 1
+        self.curr_instance.iteration = 0
         self.new_iteration(image_id, text="ID " + str(image_id))
 
     def new_iteration(self, image_id, text=None):
