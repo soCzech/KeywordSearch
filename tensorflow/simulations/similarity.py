@@ -3,7 +3,6 @@ import struct
 import numpy as np
 import multiprocessing as mp
 from common_utils import console
-from simulations import simulation_utils
 
 
 def cos_dist(x, y):
@@ -143,13 +142,14 @@ class Similarity:
             return ret_list[0], ret_distances[0], index_vec
         return ret_list, ret_distances, index_vec
 
-    def _get_best_rank(self, image_indexes, searched_index, similarity_settings, n_reranks = 1):
+    def _get_best_rank(self, image_indexes, searched_index, visualization, similarity_settings, n_reranks = 1):
         """
         Takes initial ordering of a database and, given similarity settings,
         simulates user by iterative search for searched image.
 
         Args:
             image_indexes: initial ordering of a database.
+            visualization:
             searched_index: index of the searched image.
             similarity_settings:
             n_reranks: current depth of recursion.
@@ -168,12 +168,13 @@ class Similarity:
         query_candidates = [image_indexes[i] for i in np.argsort(distances)[:similarity_settings.n_closest]]
         rank, distance, vector = self.get_rank(query_candidates, searched_index)
 
-        simulation_utils.SimilarityVisualization().new_iteration(vector[0], instance=similarity_settings, text=[
-            "S {:d}".format(rank), "d={:}".format(distance)
-        ])
+        if visualization is not None:
+            visualization.new_iteration(vector[0], instance=similarity_settings, text=[
+                "S {:d}".format(rank), "d={:}".format(distance)
+            ])
 
         if distance > 0:
-            l = self._get_best_rank(vector, searched_index, similarity_settings, n_reranks + 1)
+            l = self._get_best_rank(vector, searched_index, visualization, similarity_settings, n_reranks + 1)
 
             for rerank in similarity_settings.n_reranks:
                 if rerank == n_reranks:
@@ -185,7 +186,7 @@ class Similarity:
                     l.append((rerank, rank))
         return l
 
-    def get_best_rank(self, image_indexes, searched_index, similarity_settings):
+    def get_best_rank(self, image_indexes, searched_index, similarity_settings, visualization=None):
         """
         Takes initial ordering of a database and, given similarity settings,
         simulates user by iterative search for searched image.
@@ -194,6 +195,7 @@ class Similarity:
             image_indexes: initial ordering of a database.
             searched_index: index of the searched image.
             similarity_settings:
+            visualization:
         Returns:
             Dictionary of ranks for each similarity setting.
         """
@@ -201,7 +203,7 @@ class Similarity:
 
         for disp_size in similarity_settings.display_size:
             for n_closest in similarity_settings.n_closest:
-                results = self._get_best_rank(image_indexes, searched_index,
+                results = self._get_best_rank(image_indexes, searched_index, visualization,
                                               SimilaritySettings(disp_size, n_closest, similarity_settings.n_reranks))
 
                 for n_reranks, image_rank in results:

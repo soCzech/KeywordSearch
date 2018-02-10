@@ -1,136 +1,203 @@
 import argparse
 import numpy as np
-from simulations import simulation_utils, graph_utils, similarity
+from simulations import simulation_utils, graph_utils, similarity, visualization, user_queries
 from common_utils import console
 import random
 import pickle
+import os
 
 
-class UserSimulation:
+class Simulation:
+    """
+    """
 
     def __init__(self):
-        self._images = simulation_utils.Images()
-        self._idf = simulation_utils.IDF()
+        """
+
+        """
+        self._images = None
         self._ranks = {}
-        self._samples = []
-        self._indexes = []
-        self._labels = dict()
-        self._similarity = similarity.Similarity()
+        self._idf = None
+        self.use_byte = False
+        self._visualization = None
+        self.samples = []
+        self.indexes = []
+        self._similarity = None
+        self._similarity_settings = None
+        self.thresholds = [None]
 
-    @staticmethod
-    def _read_queries(filename):
-        queries = []
-        no_keyword, not_recognized = 0, 0
+    def read_keyword(self, filename):
+        self._images = simulation_utils.Keywords()
+        self._images.read_images(filename)
 
-        def process_query(lines):
-            if len(lines) >= 3:
-                frame_id = int(lines[0].split(';')[0].split(':')[1])
-                if lines[2].startswith("Query:"):
-                    return frame_id, [
-                        (int(or_part.split(',')[0]), int(or_part.split(',')[1]) == 1)
-                        for or_part in lines[2].split(':')[1].split('or')
-                    ]
-                elif lines[2].startswith("Keyword"):
-                    return frame_id, []
-            return None, None
 
-        with open(filename, 'r') as f:
-            lines = []
-            for line in f:
-                if line[0] == '#' or line == "--- QUERY ---\n":
-                    continue
-                if line == "--- END ---\n":
-                    frame_id, query = process_query(lines)
-                    if frame_id is None:
-                        not_recognized += 1
-                        lines.clear()
-                        continue
+    # region Sample & index generation
 
-                    if len(query) == 0:
-                        no_keyword += 1
-                    queries.append((frame_id, query))
-                    lines.clear()
-                    continue
+    def gen_samples(self, filename, sample_size, max_query_len, distribution=None):
+        """
+        Loads samples and indexes from a file.
+        Generates samples and indexes if file does not exist.
 
-                lines.append(line)
-        return queries
-
-    def parse_queries(self, query_log_filename, label_filename):
+        Args:
+            filename: pickle file to load samples and indexes from.
+            sample_size: number of samples to generate.
+            max_query_len: number of indexes to generate for each sample.
+            distribution: custom probability distribution vector.
+        """
         pt = console.ProgressTracker()
-        pt.info(">> Parsing queries...")
 
-        self._labels = simulation_utils.Label.read_labels(label_filename)
-        self._samples = []
-        self._indexes = []
-        queries = self._read_queries(query_log_filename)
+        filename += '-samples.pickle'
 
-        for frame_id, query in queries:
-            self._samples.append(frame_id)
-            self._indexes.append(simulation_utils.Label.expand_query(self._labels, query))
+        if os.path.isfile(filename):
+            pt.info(">> Restoring samples...")
+            with open(filename, 'rb') as f:
+                (self.samples, self.indexes) = pickle.load(f)
+            return
 
-    def read_similarity(self, filename):
-        self._similarity.read_vectors(filename)
+        pt.info(">> Generating samples...")
+        self.samples = [random.randint(0, len(self._images) - 1) for _ in range(sample_size)]
+        self.__gen_indexes(max_query_len, distribution)
 
-    def read_images(self, images_filename):
-        self._images.read_images(images_filename)
+        with open(filename, 'wb') as f:
+            pickle.dump((self.samples, self.indexes), f)
 
-    def invert_index(self, images_filename):
-        self._images.invert_index(images_filename + "-inverted")
+    def __gen_indexes(self, max_query_len, distribution):
+        """
+        Generates indexes for all samples from a distribution
+        by generating i-th best index of images' distribution based on a given distribution.
 
-    def compute_idf(self, unnormalized_mean_filename):
+        Args:
+            max_query_len: number of indexes to generate.
+            distribution: probability distribution vector.
+                          If none, indexes are generated directly from images' distribution.
+        """
+        pt = console.ProgressTracker()
+        pt.info(">> Generating random indexes for samples...")
+        self.indexes = []
+
+        for index in self.samples:
+            image = self._images[index]
+            dist = image.DISTRIBUTION if distribution is None else distribution
+
+            rand_indexes = []
+            while len(rand_indexes) < max_query_len:
+                rand = simulation_utils.get_random_index_from_dist(dist)
+                if rand not in rand_indexes:
+                    rand_indexes.append(rand)
+
+            if distribution is not None:
+                cls_indexes = np.argsort(image.DISTRIBUTION)[::-1]
+                self.indexes.append([cls_indexes[i] for i in rand_indexes])
+            else:
+                self.indexes.append(rand_indexes)
+
+        # lmbda=0.004
+        # pt.info(">> Generating indexes from exponential distribution for samples...")
+        # pt.info("\t> Lambda: " + str(lmbda))
+        #
+        # exp = np.arange(1, self._images.DIMENSION + 1)
+        # exp = lmbda * np.exp(-lmbda * exp)
+        # exp = exp / np.sum(exp)
+
+    # endregion
+
+    # region Modifiers
+
+    def use_idf(self, unnormalized_mean_filename):
+        """
+        Use inverted document frequency technique.
+
+        Args:
+            unnormalized_mean_filename: a location of unnormalized mean file.
+        """
         pt = console.ProgressTracker()
         pt.info(">> Computing IDF...")
 
+        self._idf = simulation_utils.IDF()
         self._idf.read_term_count(unnormalized_mean_filename)
         self._idf.compute_idf()
 
-    def gen_samples(self, sample_size):
-        pt = console.ProgressTracker()
-        pt.info(">> Generating samples...")
+    def use_similarity(self, filename, disp_size, n_closest, n_reranks):
+        """
+        Use similarity reranking.
 
-        self._samples = [random.randint(0, len(self._images.IMAGES) - 1) for _ in range(sample_size)]
+        Args:
+            filename: a location of similarity vector file.
+            disp_size: a list - display size to use.
+            n_closest: a list - number of closest images to use when reranking.
+            n_reranks: a list - number of similarity reranks to perform.
+        """
+        self._similarity_settings = similarity.SimilaritySettings(
+            disp_size, n_closest, n_reranks
+        )
+        self._similarity = similarity.Similarity()
+        self._similarity.read_vectors(filename)
 
-    @staticmethod
-    def _get_rank_of_image(image, array):
-        indexes = np.argsort(array)[::-1]
-        array_of_indexes = np.where(indexes == image.ID)[0]
+    def use_visualization(self, image_dir, filename, no_iterations, no_images):
+        # sv = simulation_utils.SimilarityVisualization()
+        # sv_width = 2
+        # if similarity is not None:
+        #     sv_width = max(similarity.N_RERANKS) + 2
+        # sv.initialize(min(len(self.samples), 100), sv_width, (120, 90), "C:\\Users\\Tom\\Workspace\\kw")
 
-        if len(array_of_indexes) != 1:
-            raise Exception("Image ID " + image.ID + " not found in array_of_indexes")
-        return array_of_indexes[0] + 1, indexes
-
-    def save(self, filename):
-        pt = console.ProgressTracker()
-        pt.info(">> Saving ranks and samples...")
-
-        with open(filename + '_ranks.pickle', 'wb') as f:
-            pickle.dump(self._ranks, f)
-        with open(filename + '_samples.pickle', 'wb') as f:
-            pickle.dump((self._samples, self._indexes), f)
+        filename += '-visualization'
+        self._visualization = visualization.SimilarityVisualization(filename, [120, 90], no_images,
+                                                                    no_iterations, image_dir)
 
     def restore_ranks(self, filename):
+        """
+        Restore ranks from previous runs to use them in graph.
+
+        Args:
+            filename: a location of ranks pickle file.
+        """
         pt = console.ProgressTracker()
         pt.info(">> Restoring ranks...")
 
-        with open(filename + '_ranks.pickle', 'rb') as f:
+        filename += '-ranks.pickle'
+
+        if not os.path.isfile(filename):
+            pt.info("\t> Filename " + filename + " does not exist, ranks cannot be restored.")
+            return
+
+        with open(filename, 'rb') as f:
             r = pickle.load(f)
             for k in r.keys():
                 self._ranks[k] = r[k]
 
-    def restore_samples(self, filename):
+    # endregion
+
+    # region Image ranking
+
+    @staticmethod
+    def _get_rank_of_image(image_id, array):
+        """
+        Calculates rank of an image in an array.
+
+        Args:
+            image_id:
+            array: array of distances.
+        Returns:
+            A tuple.
+            A rank of an image.
+            Sorted indexes by array value.
+        """
+        indexes = np.argsort(array)[::-1]
+        array_of_indexes = np.where(indexes == image_id)[0]
+
+        if len(array_of_indexes) != 1:
+            raise Exception("Image ID " + image_id + " not found in array_of_indexes")
+        return array_of_indexes[0] + 1, indexes
+
+    def rank(self, query_length_list):
+        """
+
+        Args:
+            query_length_list:
+        """
         pt = console.ProgressTracker()
-        pt.info(">> Restoring samples...")
 
-        with open(filename + '_samples.pickle', 'rb') as f:
-            (self._samples, self._indexes) = pickle.load(f)
-
-    def graph(self, graph_filename):
-        graph_utils.plot_accumulative(self._ranks, graph_filename, title='Cumulative Rank')
-
-    def _rank(self, threshold_list, query_length_list, use_idf, byte_representation, similarity):
-        pt = console.ProgressTracker()
-
-        if byte_representation:
+        if self.use_byte:
             pt.info(">> Converting probabilities from floats to bytes...")
             pt.reset(len(self._images.CLASSES))
 
@@ -142,17 +209,17 @@ class UserSimulation:
                 pt.increment()
             pt.info("\t> Nonzero classes on average: " + str(nonzero / len(self._images.CLASSES[0])))
 
-        for threshold in threshold_list:
+        for threshold in self.thresholds:
             if threshold is not None:
                 pt.info(">> Updating threshold to " + str(threshold) + "...")
                 pt.reset(len(self._images.CLASSES))
 
+                if self.use_byte:
+                    threshold *= 255
+
                 nonzero = 0
                 for cls_index in range(len(self._images.CLASSES)):
-                    if byte_representation:
-                        nullable = self._images.CLASSES[cls_index] < (threshold * 255)
-                    else:
-                        nullable = self._images.CLASSES[cls_index] < threshold
+                    nullable = self._images.CLASSES[cls_index] < threshold
                     nonzero += len(self._images.CLASSES[cls_index]) - np.sum(nullable)
 
                     self._images.CLASSES[cls_index][nullable] = 0
@@ -160,81 +227,89 @@ class UserSimulation:
                 pt.info("\t> Nonzero classes on average: " + str(nonzero / len(self._images.CLASSES[0])))
 
             pt.info(">> Calculating image ranks...")
-            pt.reset(len(self._samples))
+            pt.reset(len(self.samples))
 
-            byte_str = "byte " if byte_representation else ""
+            rank_str = ('usr' if query_length_list is None else 'sim') + ' ' + \
+                       ('byte' if self.use_byte else '') + ' ' + str(threshold)
 
-            sv = simulation_utils.SimilarityVisualization()
-            for index, rand_indexes in zip(self._samples, self._indexes):
-                image = self._images.IMAGES[index]
-                sv.new_image(image.ID)
-
+            for image_id, indexes in zip(self.samples, self.indexes):
                 if query_length_list is None:
-                    self._rank_image(image, rand_indexes, False, similarity,
-                                     'user ' + byte_str + str(threshold))
-                    if use_idf:
-                        self._rank_image(image, rand_indexes, True, similarity,
-                                         'user idf ' + byte_str + str(threshold))
+                    self._rank_image(image_id, indexes, False, rank_str)
+                    if self._idf is not None:
+                        self._rank_image(image_id, indexes, True, rank_str + ' idf')
                 else:
                     for query_length in query_length_list:
-                        self._rank_image(image, rand_indexes[:query_length], False, similarity,
-                                         'uniform ' + byte_str + str(query_length) + ' ' + str(threshold))
-                        if use_idf and query_length > 1:
-                            self._rank_image(image, rand_indexes[:query_length], True, similarity,
-                                             'idf ' + byte_str + str(query_length) + ' ' + str(threshold))
+                        self._rank_image(image_id, indexes[:query_length], False, rank_str + ' ' + str(query_length))
+                        if self._idf is not None and query_length > 1:
+                            self._rank_image(image_id, indexes[:query_length], True,
+                                             rank_str + ' ' + str(query_length) + ' idf')
                 pt.increment()
 
-    def _rank_image(self, image, selected_indexes, use_idf, similarity, plot_name):
+        if self._visualization is not None:
+            self._visualization.save()
+
+    def _rank_image(self, image_id, selected_indexes, use_idf, plot_name):
+        """
+
+        Args:
+            image_id:
+            selected_indexes:
+            use_idf:
+            plot_name:
+        """
         rank, sim_rank = None, None
 
         if len(selected_indexes) > 0:
             array = self._images.CLASSES[selected_indexes[0]]
 
             if len(selected_indexes) > 1:
-                array = self._images.CLASSES[selected_indexes[0]] + self._images.CLASSES[selected_indexes[1]] \
-                    if not use_idf \
-                    else self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]] + \
-                         self._idf.IDF[selected_indexes[1]] * self._images.CLASSES[selected_indexes[1]]
+                if use_idf:
+                    array = self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]]
 
-                i = 2
-                while i < len(selected_indexes):
+                for i in range(1, len(selected_indexes)):
                     array += self._images.CLASSES[selected_indexes[i]] \
                         if not use_idf \
                         else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
-                    i += 1
 
-            if array[image.ID] != 0:
-                rank, indexes = self._get_rank_of_image(image, array)
-                simulation_utils.SimilarityVisualization().new_iteration(indexes[0], text="K " + str(rank))
-                if similarity is not None:
-                    sim_rank = self._similarity.get_best_rank(indexes, image.ID, similarity)
+            if array[image_id] != 0:
+                rank, indexes = self._get_rank_of_image(image_id, array)
 
-        if plot_name in self._ranks:
-            self._ranks[plot_name].append(rank)
-        else:
-            self._ranks[plot_name] = [rank]
+                if self._visualization is not None:
+                    self._visualization.new_image(plot_name, image_id)
+                    self._visualization.new_iteration(indexes[0], text="K " + str(rank))
 
-        if similarity is not None:
-            if sim_rank is not None:
-                for key in sim_rank.keys():
-                    if plot_name + " " + key not in self._ranks:
-                        self._ranks[plot_name + " " + key] = []
-                    self._ranks[plot_name + " " + key].append(sim_rank[key])
-            else:
-                for disp_size, n_closest, reranks in zip(similarity.DISPLAY_SIZE, similarity.N_CLOSEST, similarity.N_RERANKS):
-                    p_name = plot_name + " " + str(disp_size) + ":" + str(n_closest) + " " + str(reranks) + "x"
-                    if p_name not in self._ranks:
-                        self._ranks[p_name] = []
-                    self._ranks[p_name].append(None)
+                if self._similarity is not None:
+                    sim_rank = self._similarity.get_best_rank(indexes, image_id, self._visualization,
+                                                              self._similarity_settings)
+
+        if plot_name not in self._ranks:
+            self._ranks[plot_name] = []
+        self._ranks[plot_name].append(rank)
+
+        if self._similarity is not None:
+            if sim_rank is None:
+                sim_rank = self._similarity_settings.get_empty_configurations()
+
+            for key in sim_rank.keys():
+                if plot_name + " " + key not in self._ranks:
+                    self._ranks[plot_name + " " + key] = []
+                self._ranks[plot_name + " " + key].append(sim_rank[key])
+
+    # endregion
 
     def histogram_of_hits(self, graph_filename):
+        """
+
+        Args:
+            graph_filename:
+        """
         pt = console.ProgressTracker()
         pt.info(">> Calculating histogram of hits...")
 
         h, h_rand, t, t_rand = [], [], [], []
 
-        for index, user_indexes in zip(self._samples, self._indexes):
-            image = self._images.IMAGES[index]
+        for index, user_indexes in zip(self.samples, self.indexes):
+            image = self._images[index]
             indexes = np.argsort(image.DISTRIBUTION)
 
             rand_indexes = []
@@ -263,83 +338,52 @@ class UserSimulation:
         graph_utils.plot_discrete_histogram({'hits': h, 'top hits': t, 'hits rand': h_rand, 'top hits rand': t_rand},
                                             self._images.DIMENSION, graph_filename, title='Hits')
 
-    def _gen_indexes(self, query_length):
-        pt = console.ProgressTracker()
-        pt.info(">> Generating random indexes for samples...")
-        self._indexes = []
+    def graph(self, filename):
+        """
+        Plot ranks.
 
-        for index in self._samples:
-            image = self._images.IMAGES[index]
-
-            rand_indexes = []
-            while len(rand_indexes) < query_length:
-                rand = simulation_utils.get_random_index_from_dist(image.DISTRIBUTION)
-                if rand not in rand_indexes:
-                    rand_indexes.append(rand)
-            self._indexes.append(rand_indexes)
-
-    def _gen_indexes_exp(self, query_length, lmbda=0.004):
-        pt = console.ProgressTracker()
-        pt.info(">> Generating indexes from exponential distribution for samples...")
-        pt.info("\t> Lambda: " + str(lmbda))
-
-        exp = np.arange(1, self._images.DIMENSION + 1)
-        exp = lmbda * np.exp(-lmbda * exp)
-        exp = exp / np.sum(exp)
-
-        self._indexes = []
-
-        for index in self._samples:
-            image = self._images.IMAGES[index]
-
-            rand_indexes = []
-            while len(rand_indexes) < query_length:
-                rand = simulation_utils.get_random_index_from_dist(exp)
-                if rand not in rand_indexes:
-                    rand_indexes.append(rand)
-
-            cls_indexes = np.argsort(image.DISTRIBUTION)[::-1]
-            self._indexes.append([cls_indexes[i] for i in rand_indexes])
-
-    def rank(self, threshold_list, query_length_list, use_idf=False, byte_representation=False, similarity=None):
-        sv = simulation_utils.SimilarityVisualization()
-        sv_width = 2
-        if similarity is not None:
-            sv_width = max(similarity.N_RERANKS) + 2
-        sv.initialize(min(len(self._samples), 100), sv_width, (120, 90), "C:\\Users\\Tom\\Workspace\\kw")
-
-        #self._gen_indexes_exp(4)
-        if len(self._indexes) == 0:
-            self._gen_indexes(max(query_length_list))
-        self._rank(threshold_list, query_length_list, use_idf, byte_representation, similarity)
-
-        sv.save("")
+        Args:
+            filename: a location where to store a graph.
+        """
+        graph_utils.plot_accumulative(self._ranks, filename, title='Cumulative Rank', x_axis='Rank',
+                                      y_axis='Number of Images [%]', viewbox=None)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # common
-    parser.add_argument('-i', type=str, default=False)
-    parser.add_argument('-u', type=str, default=False)
-    parser.add_argument('-g', type=str, default=False)
-    parser.add_argument('-s', type=str, default=False)
-    parser.add_argument('--rank', action='store_true', default=False)
-    parser.add_argument('--idf', action='store_true', default=False)
-    parser.add_argument('--byte', action='store_true', default=False)
-    parser.add_argument('--similarity', type=str, default=False)
-    parser.add_argument('--sim_closest', type=str, default="")
-    parser.add_argument('--sim_disp_size', type=str, default="")
-    parser.add_argument('--sim_reranks', type=str, default="")
-    # perfect
-    parser.add_argument('--sample_size', type=int, default=False)
-    parser.add_argument('--thresholds', type=str, default=None)
-    parser.add_argument('--query_lengths', type=str, default=None)
-    parser.add_argument('--restore_ranks', type=str, default=False)
-    parser.add_argument('--restore_samples', type=str, default=False)
-    # human
+    parser.add_argument('--keyword', type=str, default=False, help='keyword vector filename')
+
+    parser.add_argument('--byte', action='store_true', default=False,
+                        help='convert keyword vectors to byte representation')
+    parser.add_argument('--idf', type=str, default=False, help='unnormalized mean filename if IDF should be used')
+    parser.add_argument('--thresholds', type=str, default=False,
+                        help='ignore indexes with values smaller than threshold, multiple thresholds divided by comma, '
+                             'default \'None\' for no threshold')
+
+    # similarity
+    parser.add_argument('--similarity', type=str, default=False,
+                        help='similarity vector filename if similarity reranking should be used')
+    parser.add_argument('--disp_size', type=str, default=False)
+    parser.add_argument('--n_closest', type=str, default=False)
+    parser.add_argument('--n_reranks', type=str, default=False)
+
+    #
+    parser.add_argument('--filename', type=str, default=False,
+                        help='common filename used for storing and restoring samples, rankings and visualization')
+    parser.add_argument('--visualization', type=str, default=False,
+                        help='location of images if visualization should be used')
+    parser.add_argument('--restore_ranks', action='store_true', default=False, help='restore ranks from filename')
+
+    #
+    parser.add_argument('--gen_samples', type=int, default=False, help='number of samples to generate')
+    parser.add_argument('--query_lengths', type=str, default=False, help='query lengths')
+
     parser.add_argument('--label_file', type=str, default=None)
     parser.add_argument('--log_file', type=str, default=None)
-    parser.add_argument('--hist', type=str, default=None)
+    parser.add_argument('--rank', action='store_true', default=False)
+
+    # parser.add_argument('--hist', type=str, default=None)
     args = parser.parse_args()
 
     # read_queries
@@ -348,48 +392,68 @@ if __name__ == '__main__':
     # read_labels
     #   'C:\\Users\\Tom\\Workspace\\ViretTool\\TestData\\TRECVid\\TRECVid-GoogLeNet.label'
 
-    u = UserSimulation()
-    if args.i:
-        u.read_images(args.i)
-    if args.u:
-        u.compute_idf(args.u)
-    if args.similarity:
-        u.read_similarity(args.similarity)
+    u = Simulation()
 
-    if args.restore_samples:
-        u.restore_samples(args.restore_samples)
+    if args.byte:
+        u.use_byte = True
 
-    elif args.sample_size:
-        u.gen_samples(args.sample_size)
+    if args.idf:
+        u.use_idf(args.idf)
 
-    if args.label_file is not None and args.log_file is not None:
-        u.parse_queries(args.log_file, args.label_file)
+    if args.thresholds:
+        u.thresholds = [None if i == "None" else float(i) for i in args.thresholds.split(',')]
+        u.thresholds.sort(key=lambda x: -1 if x is None else x)
 
     if args.restore_ranks:
-        u.restore_ranks(args.restore_ranks)
+        if not args.filename:
+            print('filename must be specified to restore rankings.')
+            exit(1)
+        u.restore_ranks(args.filename)
 
-    if args.rank and args.thresholds is not None and args.i:
-        u.invert_index(args.i)
+    if args.label_file is not None and args.log_file is not None:
+        u.samples, u.indexes = user_queries.parse_queries(args.log_file, args.label_file)
 
-        sim = None
-        if args.similarity:
-            sim = similarity.SimilaritySettings()
-            sim.N_CLOSEST = [int(i) for i in args.sim_closest.split(',')]
-            sim.DISPLAY_SIZE = [int(i) for i in args.sim_disp_size.split(',')]
-            sim.N_RERANKS = [int(i) for i in args.sim_reranks.split(',')]
+    if args.similarity:
+        if not (args.disp_size and args.n_closest and args.n_reranks):
+            print('disp_size, n_closest and n_reranks must be specified to use similarity reranking.')
+            exit(1)
 
-        u.rank([None if i == "None" else float(i) for i in args.thresholds.split(',')],
-               None if args.query_lengths is None else [int(i) for i in args.query_lengths.split(',')],
-               use_idf=args.idf, byte_representation=args.byte, similarity=sim)
+        u.use_similarity(args.similarity,
+                         [int(i) for i in args.disp_size.split(',')],
+                         [int(i) for i in args.n_closest.split(',')],
+                         [int(i) for i in args.n_reranks.split(',')])
 
-    if args.s:
-        u.save(args.s)
+    if args.keyword:
+        u.read_keyword(args.keyword)
 
-    if args.g:
-        u.graph(args.g)
+    if args.gen_samples:
+        if not args.filename or not args.query_lengths:
+            print('filename and query_lengths must be specified to restore generate samples.')
+            exit(1)
+        u.gen_samples(args.filename, args.gen_samples,
+                      max([int(i) for i in args.query_lengths.split(',')]))
 
-    if args.hist is not None:
-        u.histogram_of_hits(args.hist)
+    if args.visualization:
+        if not args.filename or not args.query_lengths:
+            print('filename and query_lengths must be specified to use visualization.')
+            exit(1)
+        u.use_visualization(args.visualization, args.filename, max([int(i) for i in args.query_lengths.split(',')]),
+                            min(100, len(u.samples)))
+
+    if args.rank:
+        if not args.query_lengths:
+            print('query_lengths must be specified to rank.')
+            exit(1)
+        u.rank([int(i) for i in args.query_lengths.split(',')] if args.query_lengths else None)
+
+    if args.graph:
+        if not args.filename:
+            print('filename must be specified to graph rankings.')
+            exit(1)
+        u.graph(args.filename)
+
+    # if args.hist is not None:
+    #     u.histogram_of_hits(args.hist)
 
 # histogram of user hits
 # py simulations/simulation.py --human_user

@@ -127,7 +127,7 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
     save_fig(graph_filename)
 
 
-def plot_accumulative(plots, graph_filename, title, figure_size=2):
+def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None, figure_size=2):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a graph...")
 
@@ -148,14 +148,16 @@ def plot_accumulative(plots, graph_filename, title, figure_size=2):
 
         ax.step(x, y, where='post', label=key)
 
-    #plt.xlim(xmax=20000, xmin=-200)
-    #plt.ylim(ymin=-2, ymax=102)
+    if viewbox is not None:
+        plt.xlim(xmin=viewbox[0][0], xmax=viewbox[0][1])
+        plt.ylim(ymin=viewbox[1][0], ymax=viewbox[1][1])
+
     plt.title(title)
     plt.legend(loc='lower right')
 
     ax.grid(linestyle="dashed", color='#eeeeee')
-    ax.set_xlabel('Rank')
-    ax.set_ylabel('Number of Images [%]')
+    ax.set_xlabel(x_axis)
+    ax.set_ylabel(y_axis)
 
     pt.info(">> Saving the graph...")
     save_fig(graph_filename)

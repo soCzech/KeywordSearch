@@ -10,8 +10,8 @@ fi
 DIRECTORY="${1}"
 
 if [ ! -d "${DIRECTORY}" ]; then
-  mkdir -p "${DIRECTORY}"
-  echo "Directory ${DIRECTORY} created."
+    mkdir -p "${DIRECTORY}"
+    echo "Directory ${DIRECTORY} created."
 fi
 cd "${DIRECTORY}"
 

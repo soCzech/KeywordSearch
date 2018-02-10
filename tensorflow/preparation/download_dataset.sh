@@ -13,8 +13,8 @@ USERNAME="${2}"
 ACCESS_KEY="${3}"
 
 if [ ! -d "${DIRECTORY}" ]; then
-  mkdir -p "${DIRECTORY}"
-  echo "Directory ${DIRECTORY} created."
+    mkdir -p "${DIRECTORY}"
+    echo "Directory ${DIRECTORY} created."
 fi
 cd "${DIRECTORY}"
 
@@ -48,7 +48,7 @@ echo "Downloading images from ImageNet"
 while read synset_id
 do
     url="http://www.image-net.org/download/synset?wnid=${synset_id}&username=${USERNAME}&accesskey=${ACCESS_KEY}&release=latest&src=stanford"
-	wget --no-verbose -c -O synsets.tar/${synset_id}.tar ${url}
+    wget --no-verbose -c -O synsets.tar/${synset_id}.tar ${url}
 done < labels/ids_over_1000.txt
 
 
@@ -58,17 +58,17 @@ echo "Unpacking images from ImageNet"
 
 while read synset_id
 do
-	if [ ! -f synsets.tar/${synset_id}.tar ]; then
-		echo "Skipping ${synset_id}."
-		continue
-	fi
+    if [ ! -f synsets.tar/${synset_id}.tar ]; then
+        echo "Skipping ${synset_id}."
+        continue
+    fi
 
-	echo "Processing ${synset_id}."
-	mkdir -p synsets.unpacked/${synset_id}
+    echo "Processing ${synset_id}."
+    mkdir -p synsets.unpacked/${synset_id}
 
-	tar -xf synsets.tar/${synset_id}.tar -C synsets.unpacked/${synset_id}
+    tar -xf synsets.tar/${synset_id}.tar -C synsets.unpacked/${synset_id}
 
-	ls synsets.unpacked/${synset_id}/*.JPEG | tail -n +1001 | xargs -d '\n' rm --
-	mogrify -resize "400^" synsets.unpacked/${synset_id}/*.JPEG
+    ls synsets.unpacked/${synset_id}/*.JPEG | tail -n +1001 | xargs -d '\n' rm --
+    mogrify -resize "400^" synsets.unpacked/${synset_id}/*.JPEG
 
 done < labels/ids_over_1000.txt
