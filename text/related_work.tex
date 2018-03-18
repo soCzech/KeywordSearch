@@ -1,2 +1,15 @@
 \chapter{Related Work}
-[Hierarchical Visualization of Video Search Results for Topic-Based Browsing]
+In this section, we review recent approaches towards textual annotation. First we discuss available datasets, then multiple approaches in image classification. Lastly we examine object localization in an image. Unfortunately we did not include video annotation in out work since video processing and training creates unfeasible demands on computational power.
+
+% and finally we look on image sequence annotation. Last part will be just a list of possible methods since all of them require unfeasible demands on computational power.
+
+\section*{Datasets}
+\addcontentsline{toc}{section}{Datasets}
+Recent breakthroughs in machine learning could not happened without large-scale datasets since they are necessary to train and evaluate algorithms. Image datasets can be divided into three groups depending on what they are addressing:~image classification, object localization and semantic segmentation.
+
+Objective of image classification tasks is to decide whether given object is or is not present on an image. There are multiple low-resolution datasets such as CIFAR-100~\cite{krizhevsky2009learning} containing 60,000 images in 100 categories with resolution 32-by-32 pixels, but in 2009 ImageNet~\cite{ILSVRC15} was introduced. It is a large-scale high resolution dataset with aims to populate the majority of the 80,000 WordNet synsets with 500 to 1000 images. In research a subset of the ImageNet database called ILSVRC2012 containing 1000 categories is usually used.
+
+Task of object localization embodies stating what is in an image and where in the image it is. The location is usually given as an bounding box. As of 2018, ImageNet database holds bounding boxes for over 3000 synsets with an average of 150 images per synset. Similarly to ImageNet, Open Images Dataset~\cite{openimages} contains over one and half million annotated images with more than twice as many bounding boxes belonging into 600 categories. Semantic segmentation goes a step further. Its goal is to not only distinguish and localize object in an image but to assign each pixel to an object it is belonging to. Probably the most recognized dataset The Microsoft Common Objects in COntext (MS COCO)~\cite{lin2014microsoft} contains 91 common object categories with 82 of them having more than 5,000 labeled instances.
+
+% other datasets
+%[Hierarchical Visualization of Video Search Results for Topic-Based Browsing]
