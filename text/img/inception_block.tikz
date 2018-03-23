@@ -1,0 +1,45 @@
+\begin{tikzpicture}[
+box/.style={
+	draw,
+	minimum width=1cm,
+	minimum height=1cm,
+	font=\scriptsize,
+	align=center
+}, pil/.style={
+	->,
+	shorten <=2pt,
+	shorten >=2pt
+}]
+
+\node[] (out) at (0,2.7) {};
+
+\node[box] (concat) at (0,1.5) {concat};
+
+\node[box] (bll) at (-2.25,-0.65) {conv \\ 1x1};
+
+\node[box] (tl) at (-.75,0) {conv \\ 3x3};
+\node[box] (tr) at (.75,0) {conv \\ 5x5};
+\node[box] (trr) at (2.25,0) {conv \\ 1x1};
+
+\node[box] (bl) at (-.75,-1.3) {conv \\ 1x1};
+\node[box] (br) at (.75,-1.3) {conv \\ 1x1};
+\node[box] (brr) at (2.25,-1.3) {max \\ 3x3};
+
+\node[draw,circle] (input) at (0,-2.8) {};
+
+\draw[pil] (concat) edge (out);
+
+\draw[pil, bend left=20] (input) edge (bll);
+\draw[pil] (input) edge (bl);
+\draw[pil] (input) edge (br);
+\draw[pil, bend right=10] (input) edge (brr);
+
+\draw[pil] (bl) edge (tl);
+\draw[pil] (br) edge (tr);
+\draw[pil] (brr) edge (trr);
+
+\draw[pil, bend left=20] (bll) edge (concat);
+\draw[pil] (tl) edge (concat);
+\draw[pil] (tr) edge (concat);
+\draw[pil, bend right=10] (trr) edge (concat);
+\end{tikzpicture}

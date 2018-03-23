@@ -7,9 +7,25 @@ In this section, we review recent approaches towards textual annotation. First w
 \addcontentsline{toc}{section}{Datasets}
 Recent breakthroughs in machine learning could not happened without large-scale datasets since they are necessary to train and evaluate algorithms. Image datasets can be divided into three groups depending on what they are addressing:~image classification, object localization and semantic segmentation.
 
-Objective of image classification tasks is to decide whether given object is or is not present on an image. There are multiple low-resolution datasets such as CIFAR-100~\cite{krizhevsky2009learning} containing 60,000 images in 100 categories with resolution 32-by-32 pixels, but in 2009 ImageNet~\cite{ILSVRC15} was introduced. It is a large-scale high resolution dataset with aims to populate the majority of the 80,000 WordNet synsets with 500 to 1000 images. In research a subset of the ImageNet database called ILSVRC2012 containing 1000 categories is usually used.
+Objective of image classification tasks is to decide whether given object is or is not present on an image. There are multiple low-resolution datasets such as CIFAR-100~\cite{krizhevsky2009learning} containing 60,000 images in 100 categories with resolution 32-by-32 pixels. Since 2009 there is ImageNet~\cite{ILSVRC15}, a large-scale high resolution dataset with aims to populate the majority of the 80,000 WordNet synsets with 500 to 1000 images. In research a subset of the ImageNet database called ILSVRC2012 containing 1000 categories is usually used.
 
-Task of object localization embodies stating what is in an image and where in the image it is. The location is usually given as an bounding box. As of 2018, ImageNet database holds bounding boxes for over 3000 synsets with an average of 150 images per synset. Similarly to ImageNet, Open Images Dataset~\cite{openimages} contains over one and half million annotated images with more than twice as many bounding boxes belonging into 600 categories. Semantic segmentation goes a step further. Its goal is to not only distinguish and localize object in an image but to assign each pixel to an object it is belonging to. Probably the most recognized dataset The Microsoft Common Objects in COntext (MS COCO)~\cite{lin2014microsoft} contains 91 common object categories with 82 of them having more than 5,000 labeled instances.
+Task of object localization embodies stating what is in an image and where in the image it is. The location is usually given as an bounding box. As of 2018, ImageNet database holds bounding boxes for over 3000 synsets with an average of 150 images per synset. Similarly to ImageNet, Open Images Dataset~\cite{openimages} contains over one and half million annotated images with more than twice as many bounding boxes belonging into 600 categories. Semantic segmentation goes a step further. Its goal is to not only distinguish and localize object in an image but to assign each pixel to an object it is belonging to. Probably the most recognized dataset The Microsoft Common Objects in COntext (MS COCO)~\cite{lin2014microsoft} contains 91 common object categories with 82 of them having more than 5,000 labeled instances. There are also many more datasets focused on specific task such as Places~\cite{zhou2017places}, designed for scene recognition, or YFCC100M~\cite{YFCC100M} used for unsupervised learning.
 
-% other datasets
-%[Hierarchical Visualization of Video Search Results for Topic-Based Browsing]
+\section*{Image Classification}
+\addcontentsline{toc}{section}{Image Classification}
+Prior to 2012 state-of-the-art approaches towards image classification involved using SVM classifiers trained on handcrafted features. Even though those methods can be tweaked, they rise and fall with a quality of the features. Since 2010 ImageNet Large Scale Visual Recognition Challenge (ILSVRC)~\cite{ILSVRC15} has been used to benchmark computer vision systems. Their dataset contains 1000 categories, each with around 1000 high resolution images. Top-5 error rate for the SVM classifiers hovered at over 25\% until in 2012 an entry from A.~Krizhevsky,~et~al.~\cite{AlexNet} disturbed machine learning community with by far the best result of 15.3\% using deep convolution neural network (DCNN) and pushed the whole industry towards neural networks, which until then were used only in limited number of cases such as handwritten character recognition. The main advantage of neural networks is that they, in contrast to a SVM classifiers, can learn the best features themselves and thus they seem ideal for such tasks. But we were unable to train larger models due to multiple issues that were overcome in the last few years.
+
+Fast graphic cards, novel stochastic optimization algorithms \cite{kingma2014adam}, clever weight initialization \cite{glorot2010understanding}, non-saturating activation functions, dropout \cite{srivastava2014dropout} and many other techniques allowed for deeper and bigger networks.
+
+\begin{figure}
+	\centering
+
+	\subfloat{
+		\input{img/inception_block.tikz}
+	}
+	\hfill
+	\subfloat{}
+
+	\caption[Various advanced DCNN architectures]{Inception block of GoogLeNet (2014, left)~\cite{szegedy2015going} and state-of-the-art block of NASNet-A (2017, right)~\cite{zoph2017learning}. The later designed by a recurrent neural network.}
+	\label{fig:inception_block}
+\end{figure}
