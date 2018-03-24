@@ -20,12 +20,17 @@ Fast graphic cards, novel stochastic optimization algorithms \cite{kingma2014ada
 \begin{figure}
 	\centering
 
-	\subfloat{
-		\input{img/inception_block.tikz}
-	}
-	\hfill
-	\subfloat{}
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/inception_block.tikz}
+		}
+	\end{tabular}\qquad
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/nasnet_block.tikz}
+		}
+	\end{tabular}
 
-	\caption[Various advanced DCNN architectures]{Inception block of GoogLeNet (2014, left)~\cite{szegedy2015going} and state-of-the-art block of NASNet-A (2017, right)~\cite{zoph2017learning}. The later designed by a recurrent neural network.}
+	\caption[Various advanced DCNN architectures]{Inception block of GoogLeNet~\cite{szegedy2015going} (2014, left) and state-of-the-art block of NASNet-A~\cite{zoph2017learning} (2017, right). The later, created by a recurrent neural network, outperformed all blocks ever designed by people.}
 	\label{fig:inception_block}
 \end{figure}

@@ -1,0 +1,88 @@
+\begin{tikzpicture}[scale=0.8,
+box/.style={
+	draw,
+	minimum width=0.7cm,
+	minimum height=0.7cm,
+	font=\tiny,
+	inner sep = 0pt,
+	align=center
+}, pil/.style={
+	->,
+	shorten <=2pt,
+	shorten >=2pt
+}, add/.style={
+	draw,
+	circle,
+	inner sep = 0.2pt,
+	font=\small,
+	align=center
+}]
+
+
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (out) at (0,3.9) {$h_{i+1}$};
+
+\node[box, inner sep=2pt] (concat) at (0,2.5) {concat};
+
+\draw[pil] (concat) edge (out);
+
+\node[add] (rr) at (4.2,1.1) {+};
+\node[add] (r) at (2.1,1.1) {+};
+\node[add] (c) at (0,1.1) {+};
+\node[add] (l) at (-2.1,1.1) {+};
+\node[add] (ll) at (-4.2,1.1) {+};
+
+\draw[pil] (rr) edge (concat);
+\draw[pil] (r) edge (concat);
+\draw[pil] (c) edge (concat);
+\draw[pil] (l) edge (concat);
+\draw[pil] (ll) edge (concat);
+
+
+\node[box] (rr1) at (4.68,0) {sep \\ 3x3};
+\node[box] (rr2) at (3.72,0) {sep \\ 5x5};
+
+\node[box] (r1) at (2.58,0) {avg \\ 3x3};
+\node[box] (r2) at (1.62,0) {avg \\ 3x3};
+
+\node[box] (c1) at (.48,0) {iden \\ tity};
+\node[box] (c2) at (-.48,0) {avg \\ 3x3};
+
+\node[box] (l1) at (-1.62,0) {sep \\ 5x5};
+\node[box] (l2) at (-2.58,0) {sep \\ 3x3};
+
+\node[box] (ll1) at (-3.72,0) {iden \\ tity};
+\node[box] (ll2) at (-4.68,0) {sep \\ 3x3};
+
+\draw[pil,out=90,in=315] (rr1) edge (rr);
+\draw[pil,out=90,in=225] (rr2) edge (rr);
+
+\draw[pil,out=90,in=315] (r1) edge (r);
+\draw[pil,out=90,in=225] (r2) edge (r);
+
+\draw[pil,out=90,in=315] (c1) edge (c);
+\draw[pil,out=90,in=225] (c2) edge (c);
+
+\draw[pil,out=90,in=315] (l1) edge (l);
+\draw[pil,out=90,in=225] (l2) edge (l);
+
+\draw[pil,out=90,in=315] (ll1) edge (ll);
+\draw[pil,out=90,in=225] (ll2) edge (ll);
+
+
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (h1) at (0,-1.4) {$h_{i-1}$};
+\node[text height=0.333cm, execute at begin node=\color{black}$\vdots$] (hidden) at (0,-2.3) {};
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (h2) at (0,-3.2) {$h_{i-2}$};
+
+\draw[pil,out=135,in=270] (h1) edge (c2);
+\draw[pil,out=180,in=270] (h1) edge (l1);
+\draw[pil,out=180,in=270] (h1) edge (ll1);
+\draw[pil,out=180,in=270] (h1) edge (ll2);
+
+
+\draw[pil,out=30,in=270,dashed] (h2) edge (c1);
+\draw[pil,out=180,in=270,dashed] (h2) edge (l2);
+\draw[pil,out=0,in=270,dashed] (h2) edge (r1);
+\draw[pil,out=0,in=270,dashed] (h2) edge (r2);
+\draw[pil,out=0,in=270,dashed] (h2) edge (rr1);
+\draw[pil,out=0,in=270,dashed] (h2) edge (rr2);
+\end{tikzpicture}
