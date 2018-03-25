@@ -15,22 +15,40 @@ Task of object localization embodies stating what is in an image and where in th
 \addcontentsline{toc}{section}{Image Classification}
 Prior to 2012 state-of-the-art approaches towards image classification involved using SVM classifiers trained on handcrafted features. Even though those methods can be tweaked, they rise and fall with a quality of the features. Since 2010 ImageNet Large Scale Visual Recognition Challenge (ILSVRC)~\cite{ILSVRC15} has been used to benchmark computer vision systems. Their dataset contains 1000 categories, each with around 1000 high resolution images. Top-5 error rate for the SVM classifiers hovered at over 25\% until in 2012 an entry from A.~Krizhevsky,~et~al.~\cite{AlexNet} disturbed machine learning community with by far the best result of 15.3\% using deep convolution neural network (DCNN) and pushed the whole industry towards neural networks, which until then were used only in limited number of cases such as handwritten character recognition. The main advantage of neural networks is that they, in contrast to a SVM classifiers, can learn the best features themselves and thus they seem ideal for such tasks. But we were unable to train larger models due to multiple issues that were overcome in the last few years.
 
-Fast graphic cards, novel stochastic optimization algorithms \cite{kingma2014adam}, clever weight initialization \cite{glorot2010understanding}, non-saturating activation functions, dropout \cite{srivastava2014dropout} and many other techniques allowed for deeper and bigger networks.
+Fast graphic cards, novel stochastic optimization algorithms \cite{kingma2014adam}, clever weight initialization \cite{glorot2010understanding}, non-saturating activation functions, dropout \cite{srivastava2014dropout} and many other techniques allowed for deeper and bigger networks. One of the key ideas, so called network in network, takes elementary building blocks such as convolutional and max pooling operations with different filter sizes and stacks them into larger, more complex layers, sometimes called blocks or cells. This idea has been used in efficient deep neural network architecture codenamed Inception~\cite{szegedy2015going} which uses 1x1, 3x3 and 5x5 convolution layers together with max pooling side-by-side (Figure \ref{fig:inception_block}). Additional pointwise (1x1) convolution (in gray) is used to project the output of a previous layer onto a new filter space, greatly reducing number of trainable parameters in 3x3 and 5x5 convolutions. This enabled GoogLeNet~\cite{szegedy2015going}, comprised of these blocks, to win with 6.7 top-5 error rate ILSVRC competition in 2014, defeating 20 times larger DCNN by Simonyan and Zisserman~\cite{simonyan2014very} only made of classical convolutional layers.
 
 \begin{figure}
 	\centering
-
+	
 	\begin{tabular}{@{}c@{}}
 		\subfloat{
 			\input{img/inception_block.tikz}
 		}
-	\end{tabular}\qquad
+	\end{tabular}
+	\qquad\qquad
 	\begin{tabular}{@{}c@{}}
 		\subfloat{
-			\input{img/nasnet_block.tikz}
+			\input{img/residual_connection.tikz}
 		}
 	\end{tabular}
-
-	\caption[Various advanced DCNN architectures]{Inception block of GoogLeNet~\cite{szegedy2015going} (2014, left) and state-of-the-art block of NASNet-A~\cite{zoph2017learning} (2017, right). The later, created by a recurrent neural network, outperformed all blocks ever designed by people.}
+	
+	\caption[Various advanced DCNN architectures]{Inception block of GoogLeNet~\cite{szegedy2015going} (2014, left) and skip connection of a residual network~\cite{he2016deep} (2015, right).}
 	\label{fig:inception_block}
 \end{figure}
+
+By looking at those described networks it seems that adding more layers is beneficial. But increasing depth of suitably deep models can lead to accuracy degradation~\cite{he2016deep}. Yet this is not caused by overfitting since we can also observe higher training error. It could be partly due to vanishing or exploding gradients even though there are methods to moderate the problem such as clever weight initialization or gradient normalization. To tackle the problem a deep residual learning framework~\cite{he2016deep} was proposed. Instead of training a set of layers to fit a desired underlying mapping $\mathcal{H}(\bm{x})$ directly, it lets layers to fit a residual mapping $\mathcal{F}(\bm{x})-\bm{x}$ such that $\mathcal{H}(\bm{x}) = \mathcal{F}(\bm{x})+\bm{x}$. In neural networks it can be realized by ``skip connections'' (Figure~\ref{fig:inception_block}). ResNet-152, a DCNN utilizing this idea  with whooping 152 layers, achieved 4.49\% top-5 error rate on ILSVRC in 2015.
+
+The most recently, attempts to automate network's architecture engineering process were made using reinforcement learning (RL)~\cite{zoph2016neural,zoph2017learning}. The methods utilize a controller recurrent neural network (RNN) that predicts a network architecture. This architecture is then trained and its achieved accuracy is used to scale the gradients to update the RNN controller. Despite being extremely computationally demanding needing thousands of GPU-hours even on small datasets, \cite{zoph2017learning} shows that architectures learned on CIFAR-10 can translate easily to ImageNet's ILSVRC achieving best results ever with 3.8\% top-5 error rate. Even smaller networks using the same structure outperform equivalently-sized human-designed models. A cell of the best performing architecture can be seen in Figure~\ref{fig:nasnet_block}.
+
+\begin{figure}
+	\centering
+	\input{img/nasnet_block.tikz}
+	
+	\caption[A state-of-the-art block of NASNet-A]{A state-of-the-art block of NASNet-A~\cite{zoph2017learning} (2017), created by a recurrent neural network, outperformed all blocks ever designed by humans.}
+	\label{fig:nasnet_block}
+\end{figure}
+
+\section*{Other Approaches to Annotation}
+\addcontentsline{toc}{section}{Other Approaches to Annotation}
+
+It is not uncommon an image given for annotation contains dozens of objects, then the classical approach to image classification starts to fall apart since a standard softmax classification layer prefers to assign only one class. Ordinarily multiple cutouts of an image are taken and annotated separately, the final classification is a mean of distributions for each cutout. It may be sufficient for the task but it does not give us locations of the objects. To obtain a bounding box of an object in an image, a region-based convolutional network (R-CNN) has been proposed~\cite{ren2015faster}. It utilizes two deep convolutional networks, a region proposal network (RPN) suggesting regions of interest and a standard classification DCNN annotating suggested regions. RPN uses first convolutional layers of a standard DCNN such as \cite{simonyan2014very} to generate a feature map. Then a small network takes a $n\times n$ spatial window of the feature map and predicts $k$ bounding boxes, for each box also stating probability the it contains an object.

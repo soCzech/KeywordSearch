@@ -1,0 +1,39 @@
+\begin{tikzpicture}[scale=0.8,
+box/.style={
+	draw,
+	minimum width=0.7cm,
+	minimum height=0.7cm,
+	font=\tiny,
+	inner sep = 0pt,
+	align=center
+}, pil/.style={
+	->,
+	shorten <=2pt,
+	shorten >=2pt
+}, add/.style={
+	draw,
+	circle,
+	inner sep = 0.2pt,
+	font=\small,
+	align=center
+}]
+
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (out) at (0,4) {$h_{4+1}$};
+\node[add] (add) at (0,2.75) {+};
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (layer2) at (0,1.5) {$h_{3+i}$};
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (layer1) at (0,0) {$h_{2+i}$};
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (input) at (0,-1.5) {$h_{1+i}$};
+
+\draw[decorate,decoration={brace,mirror}] (-.7,2) -- (-.7,-.5);
+\node[] at (-1.6,.75) {$\mathcal{F}(\bm{x})$};
+\node[] at (-1.2,-1.5) {$\bm{x}$};
+\node[] at (-1.2,2.75) {$\mathcal{H}(\bm{x})$};
+
+\draw[pil] (input) edge (layer1);
+\draw[pil] (layer1) edge (layer2);
+\draw[pil] (layer2) edge (add);
+\draw[pil] (add) edge (out);
+
+\draw[pil,out=0,in=0] (input) edge (add);
+
+\end{tikzpicture}

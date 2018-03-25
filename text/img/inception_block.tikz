@@ -39,8 +39,8 @@ box/.style={
 \draw[pil] (br) edge (tr);
 \draw[pil] (brr) edge (trr);
 
-\draw[pil, bend left=10] (bll) edge (concat);
+\draw[pil] (bll) edge (concat);
 \draw[pil] (tl) edge (concat);
 \draw[pil] (tr) edge (concat);
-\draw[pil, bend right=10] (trr) edge (concat);
+\draw[pil] (trr) edge (concat);
 \end{tikzpicture}
