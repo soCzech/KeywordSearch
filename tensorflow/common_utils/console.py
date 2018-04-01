@@ -74,7 +74,12 @@ class ProgressTracker(Singleton):
         if self._current == self._total:
             self.reset(0)
 
-    def _update_time(self):
+    def _update_time(self, current=None, total=None):
+        if current is None:
+            current = self._current
+        if total is None:
+            total = self._total
+
         if self._last_time is None:
             self._last_time = datetime.datetime.now()
             self._remaining_time = "?"
@@ -82,8 +87,8 @@ class ProgressTracker(Singleton):
             diff = datetime.datetime.now() - self._last_time
             self._last_time = datetime.datetime.now()
             diff = (diff.seconds * 1E6 + diff.microseconds) /\
-                   (self._current - self._last_current) * (self._total - self._current) / 1E6
-            self._last_current = self._current
+                   (current - self._last_current) * (total - current) / 1E6
+            self._last_current = current
 
             if diff > 3600:
                 h = round(diff//3600)
@@ -103,6 +108,13 @@ class ProgressTracker(Singleton):
         self._clear()
         print(message)
         self._draw()
+
+    def progress_info(self, message, params, current, total):
+        self._clear()
+        if self._last_time is None or (datetime.datetime.now() - self._last_time).seconds > 1:
+            self._update_time(current, total)
+
+        print(message.format(*params) + " ETA {}".format(self._remaining_time), end="\r")
 
     def error(self, message):
         self._clear()

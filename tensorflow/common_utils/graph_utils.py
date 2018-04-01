@@ -1,8 +1,10 @@
 import numpy as np
-import matplotlib as mpl
+#import matplotlib as mpl
 from common_utils import console
-mpl.use("pgf")
+#mpl.use("pgf")
 import matplotlib.pyplot as plt
+import random
+from matplotlib import colors as mcolors
 
 
 def fig_size(scale):
@@ -34,7 +36,7 @@ def pgf_with_latex():
             r"\usepackage[T1]{fontenc}",  # plots will be generated using this preamble
         ]
     }
-mpl.rcParams.update(pgf_with_latex())
+#mpl.rcParams.update(pgf_with_latex())
 
 
 def new_fig(width, no_plots=1):
@@ -59,8 +61,8 @@ def new_fig(width, no_plots=1):
 
 
 def save_fig(filename):
-    # plt.savefig('{}.pgf'.format(filename))
-    plt.savefig('{}.pdf'.format(filename))
+    plt.savefig('{}.pgf'.format(filename), bbox_inches='tight')
+    plt.savefig('{}.pdf'.format(filename), bbox_inches='tight')
 
 
 def plot_histogram(plots, bins, graph_filename, title, figure_size=2):
@@ -146,7 +148,7 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
     save_fig(graph_filename)
 
 
-def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None, figure_size=2):
+def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None, figure_size=0.5):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a graph...")
 
@@ -171,7 +173,8 @@ def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None
         plt.xlim(xmin=viewbox[0][0], xmax=viewbox[0][1])
         plt.ylim(ymin=viewbox[1][0], ymax=viewbox[1][1])
 
-    plt.title(title)
+    if title is not None:
+        plt.title(title)
     plt.legend(loc='lower right')
 
     ax.grid(linestyle="dashed", color='#eeeeee')
@@ -179,4 +182,25 @@ def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None
     ax.set_ylabel(y_axis)
 
     pt.info(">> Saving the graph...")
+    save_fig(graph_filename)
+
+
+def plot_scatter(plots, centroids, graph_filename, figure_size=1):
+    fig, ax = new_fig(figure_size)
+
+    colors = [mcolors.to_rgba(color) for name, color in mcolors.CSS4_COLORS.items()]
+    random.shuffle(colors)
+    ncolors = []
+    for c in colors:
+        if not (c[0] > 0.8 and c[1] > 0.8 and c[2] > 0.8):
+            ncolors.append(c)
+
+    for i, color in zip(range(len(plots)), ncolors):
+        ax.scatter(plots[i][:, 0], plots[i][:, 1], color=color, s=0.15, alpha=0.9)
+        ax.scatter(centroids[i, 0], centroids[i, 1], marker='x', s=20, color=color, zorder=10)
+        ax.text(centroids[i, 0], centroids[i, 1], str(i), size=6, zorder=20)
+
+    plt.xticks(())
+    plt.yticks(())
+
     save_fig(graph_filename)
