@@ -2,7 +2,7 @@ import os
 import struct
 import random
 import numpy as np
-from common_utils import console
+from common_utils import console, dataset
 import shutil
 
 
@@ -45,7 +45,7 @@ class Keywords:
     def __len__(self):
         return self.NO_IMAGES
 
-    def read_images(self, filename):
+    def read_images(self, filename, header):
         if os.path.isfile(filename + '.inverted'):
             self._read_inverted_index(filename + '.inverted')
             return
@@ -53,7 +53,7 @@ class Keywords:
         images = dict()
         dt = np.dtype(np.float32).newbyteorder('<')
 
-        with open(filename, 'rb') as f:
+        with dataset.read_file(filename, header) as f:
             self.NO_CLASSES = struct.unpack('<I', f.read(4))[0]
             id_no = f.read(4)
 
@@ -112,18 +112,20 @@ class Keywords:
 
 
 class IDF:
-    TERM_COUNT = None
-    IDF = None
 
-    def read_term_count(self, filename):
+    def __init__(self):
+        self.TERM_COUNT = None
+        self.IDF = None
+
+    def read_term_count(self, filename, header):
         dt = np.dtype(np.float32).newbyteorder('<')
 
-        with open(filename, 'rb') as f:
+        with dataset.read_file(filename, header) as f:
             dimension = struct.unpack('<I', f.read(4))[0]
             self.TERM_COUNT = np.frombuffer(f.read(dimension * 4), dtype=dt)
 
     def compute_idf(self):
-        self.IDF = 1 + np.log2(np.amax(self.TERM_COUNT) / self.TERM_COUNT)
+        self.IDF = np.log(np.amax(self.TERM_COUNT) / (self.TERM_COUNT + 0.00001) + 1)
 
     def print(self):
         for i in range(len(self.TERM_COUNT)):

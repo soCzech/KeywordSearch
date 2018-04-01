@@ -1,6 +1,6 @@
 import numpy as np
-from simulations import similarity, graph_utils
-from common_utils import console
+from simulations import similarity
+from common_utils import console, graph_utils
 import random
 import argparse
 

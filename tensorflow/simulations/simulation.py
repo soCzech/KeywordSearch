@@ -1,11 +1,13 @@
 import sys
 import argparse
 import numpy as np
-from simulations import simulation_utils, graph_utils, similarity, visualization, user_queries
-from common_utils import console
+from simulations import simulation_utils, similarity, visualization, user_queries
+from common_utils import console, graph_utils
 import random
 import pickle
 import os
+from common_utils.dataset import VBS2018_HEADER
+HEADER = VBS2018_HEADER
 
 
 class Simulation:
@@ -29,7 +31,7 @@ class Simulation:
 
     def read_keyword(self, filename):
         self._images = simulation_utils.Keywords()
-        self._images.read_images(filename)
+        self._images.read_images(filename, HEADER)
 
     # region Sample & index generation
 
@@ -117,7 +119,7 @@ class Simulation:
         pt.info(">> Computing IDF...")
 
         self._idf = simulation_utils.IDF()
-        self._idf.read_term_count(unnormalized_mean_filename)
+        self._idf.read_term_count(unnormalized_mean_filename, HEADER)
         self._idf.compute_idf()
 
     def use_similarity(self, filename, disp_size, n_closest, n_reranks):
@@ -273,7 +275,7 @@ class Simulation:
         rank, sim_rank = None, None
 
         if len(selected_indexes) > 0:
-            array = self._images.CLASSES[selected_indexes[0]]
+            array = np.copy(self._images.CLASSES[selected_indexes[0]])
 
             if len(selected_indexes) > 1:
                 if use_idf:
@@ -310,7 +312,14 @@ class Simulation:
 
     # endregion
 
-    def distribution_from_indexes(self):
+    def distribution_from_indexes(self, filename):
+        if os.path.exists(filename + '-distribution.pickle'):
+            pt = console.ProgressTracker()
+            pt.info(">> Restoring distribution from {}-distribution.pickle".format(filename))
+
+            with open(filename + '-distribution.pickle', 'rb') as f:
+                return pickle.load(f)
+
         dist = np.zeros(self._images.NO_CLASSES)
 
         for image_id, user_indexes in zip(self.samples, self.indexes):
@@ -342,6 +351,12 @@ class Simulation:
                 min_reached = smoothed[i]
 
         smoothed /= np.sum(smoothed)
+
+        with open(filename + '-distribution-raw.pickle', 'wb') as f:
+            pickle.dump(dist, f)
+        with open(filename + '-distribution.pickle', 'wb') as f:
+            pickle.dump(smoothed, f)
+
         return smoothed
 
     def histogram_of_hits(self, graph_filename):
@@ -393,7 +408,7 @@ class Simulation:
             filename: a location where to store a graph.
         """
         graph_utils.plot_accumulative(self._ranks, filename, title='Cumulative Rank', x_axis='Rank',
-                                      y_axis='Number of Images [%]', viewbox=None)
+                                      y_axis='Number of Images [%]', viewbox=[(-100, 20100), (-2, 102)])
 
 
 if __name__ == '__main__':
@@ -475,12 +490,12 @@ if __name__ == '__main__':
         if not args.filename or not args.query_lengths:
             pt.error('\'filename\' and \'query_lengths\' must be specified to create or restore generated samples.')
             exit(1)
-        if args.use_user_dist and not (args.label_file and args.log_file):
-                pt.error('\'label_file\' and \'log_file\' must be specified to generate custom user distribution.')
-                exit(1)
+        if args.use_user_dist:  # and not (args.label_file and args.log_file):
+                pt.info('\t> \'label_file\' and \'log_file\' must be specified to generate custom user distribution '
+                        'if distribution file does not exist.')
         u.gen_samples(args.filename, args.gen_samples,
                       max([int(i) for i in args.query_lengths.split(',')]),
-                      u.distribution_from_indexes() if args.use_user_dist else None)
+                      u.distribution_from_indexes(args.filename) if args.use_user_dist else None)
 
     if args.visualization:
         if not args.filename or not args.n_reranks:
@@ -544,3 +559,11 @@ if __name__ == '__main__':
 
 
 # --rank -i=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\TrecVidKF.softmax -u=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\covariance\mean_unorm-TrecVidKF.bin -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex -s=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex --thresholds=None --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\KeywordSelector_2017-12-04_14-35-45.txt" --label_file="C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid-GoogLeNet.label" --similarity=C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid.vector --sim_closest=1,2 --sim_disp_size=50,300 --sim_reranks=1,3
+
+
+# python simulations/simulation.py --keyword=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\preparation\bin\LSC2018Dataset.softmax --idf=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\preparation\bin\LSC2018Dataset.sumX --th
+# resholds=None,0.001,0.01 --gen_samples=100 --query_lengths=4 --label_file=C:\Users\Tom\Workspace\ViretTool\TestData\LSC2018\LSC2018-GoogLeNet.label --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\KeywordSelector
+# _2017-12-04_14-35-45.txt" --use_user_dist --rank --graph --filename=LSC2018Dataset-usersim-idf-threshold
+
+
+# python preparation/classify.py --image_dir="E:\VIRET\Keyframes" --num_classes=1390 --model_path=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\checkpoints\model_v1.ckpt-280000 --run_name=TRECVidOldKeyframes
