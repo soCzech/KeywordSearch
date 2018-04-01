@@ -7,8 +7,8 @@ def create_index_file(pseudo_index_filename, index_filename, num_classes_per_ima
     classes = index_utils.get_class_representatives_v2(pseudo_index_filename)
     file = open(index_filename, 'wb')
 
-    file.write(b'TRECVid\0\0\0\0\0\0\0\0\0')
-    file.write(b'2018-01-26 10:00:00\n')
+    # file.write(b'TRECVid\0\0\0\0\0\0\0\0\0')
+    # file.write(b'2018-01-26 10:00:00\n')
 
     file.write(b'KS INDEX')
     file.write(b'\xff\xff\xff\xff\xff\xff\xff\xff')
@@ -22,7 +22,7 @@ def create_index_file(pseudo_index_filename, index_filename, num_classes_per_ima
     file.write(b'\xff\xff\xff\xff\xff\xff\xff\xff')
 
     for key in sorted_classes:
-        photos = classes[key]
+        photos = list(zip(classes[key]["img_ids"], classes[key]["values"]))
         photos.sort(key=lambda tup: -tup[1])
         for photo_id, photo_val in photos:
             file.write(struct.pack('I', photo_id) + struct.pack('f', photo_val))

@@ -1,25 +1,69 @@
 import os
 import sys
 import struct
+import numpy as np
+from common_utils import dataset
 
 
 def get_class_representatives_v2(filename):
     classes = {}
 
-    with open(filename, 'rb') as f:
+    with dataset.read_file(filename) as f:
         raw_id = f.read(4)
+        no_classes = struct.unpack('<I', raw_id)[0]
+        print("Number of classes:", no_classes)
+        raw_id = f.read(4)
+
+        no_images = 800000
+
+        dti = np.dtype(np.int32)
+        dti = dti.newbyteorder('<')
+
+        dtf = np.dtype(np.float32)
+        dtf = dtf.newbyteorder('<')
+
+        for i in range(no_classes):
+            print(i, end="\r")
+            classes[i] = {
+                "len": 0,
+                "img_ids": np.zeros([no_images], np.int32),
+                "values": np.zeros([no_images], np.float32)
+            }
+
+        i = 0
         while raw_id != b'':
+            i += 1
             image_id = struct.unpack('<I', raw_id)[0]
             no_indexes = struct.unpack('<I', f.read(4))[0]
-            image_indices = struct.unpack("<" + "I" * no_indexes, f.read(4 * no_indexes))
-            image_values = struct.unpack("<" + "f" * no_indexes, f.read(4 * no_indexes))
+
+            image_indices = np.frombuffer(f.read(4 * no_indexes), dtype=dti) # struct.unpack("<" + "I" * no_indexes, f.read(4 * no_indexes))
+            image_values = np.frombuffer(f.read(4 * no_indexes), dtype=dtf) # struct.unpack("<" + "f" * no_indexes, f.read(4 * no_indexes))
+            if i % 10000 == 0:
+                print(i, end="\r")
+
             raw_id = f.read(4)
 
-            for ind, val in zip(image_indices, image_values):
-                if ind not in classes:
-                    classes[ind] = [(image_id, val)]
-                else:
-                    classes[ind].append((image_id, val))
+            for j in range(no_indexes):
+                index = image_indices[j]
+                val = image_values[j]
+
+                length = classes[index]["len"]
+
+                classes[index]["img_ids"][length] = image_id
+                classes[index]["values"][length] = val
+
+                classes[index]["len"] += 1
+
+
+                # if ind not in classes:
+                #     classes[ind] = [(image_id, val)]
+                # else:
+                #     classes[ind].append((image_id, val))
+        for i in range(no_classes):
+            l = classes[i]["len"]
+            classes[i]["img_ids"] = classes[i]["img_ids"][:l]
+            classes[i]["values"] = classes[i]["values"][:l]
+            print(i, l)
     return classes
 
 
