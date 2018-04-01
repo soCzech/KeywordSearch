@@ -1,3 +1,38 @@
 \chapter{Retrieval Model}
 
+In this chapter, we describe retrieval model selection, employed dataset and model training. Later on we also discuss approaches to query formulation. In the next chapter we verify proposed methods by simulations.
+
+\section{Model Selection}
+As mentioned, there are multiple approaches towards textual annotation. For our task to create a model with at least a thousand classes we chose image classification. This is because object localization datasets are much smaller and resulting model would be more demanding on pre- and post-processing, negatively effecting already complicated processing pipeline.
+
+Todays state-of-the-art approaches to the problem use exclusively deep neural networks, discussed in Related Work, thus we limit ourself to DCNNs. Every year there is a new architecture achieving better results, yet improved accuracy usually comes at cost of bigger models. Notable exception is NASNet network~\cite{zoph2017learning} that beats all other models in every size category; however, the model was released recently and thus it is not in our consideration. Many top performing models over the last few years were already presented thus we only show all considered models in Table \ref{tab:model_acc_vs_parameters}.
+
+\begin{table}[h]
+	
+	\centering
+	\sisetup{detect-weight=true,detect-inline-weight=math}
+	\begin{tabular}{l@{\hspace{1cm}}cS[table-format=2.1]S[table-format=2.1]}
+		\toprule
+		\multirow{2}{*}{\textbf{Model}} & Number & \multicolumn{1}{c}{ImageNet}  & \multicolumn{1}{c}{ImageNet} \\
+		& of parameters & \multicolumn{1}{c}{Top-1 Acc.\textsuperscript{$*$}} & \multicolumn{1}{c}{Top-5 Acc.\textsuperscript{$*$}}\\
+		\midrule
+		AlexNet \cite{AlexNet}  & 60 M & 59.3 \textsuperscript{$\dagger$} & 81.8 \textsuperscript{$\dagger$} \\
+		GoogLeNet \cite{szegedy2015going}  & \textbf{6.6 M} & 69.8 \textsuperscript{$\ddagger$} & 89.9 \\
+		VGG-16 \cite{simonyan2014very} & 138 M    & 74.4 & 91.9 \\
+		Inception V3 \cite{szegedy2016rethinking}   & 23.8 M\textsuperscript{$\ddagger$}   & 78.8 & 94.4 \\
+		Inception-ResNet-v2 \cite{szegedy2017inception} & 55.8 M\textsuperscript{$\ddagger$} & \bftabnum 80.1 & \bftabnum 95.1 \\
+		\bottomrule
+		\multicolumn{4}{l}{\footnotesize \textsuperscript{$*$} Without averaging over multiple cropped images and ensemble of models.} \\
+		\multicolumn{4}{l}{\footnotesize \textsuperscript{$\dagger$} Achieved by averaging four corner patches and a center patch of image.} \\
+		\multicolumn{4}{l}{\footnotesize \textsuperscript{$\ddagger$} Value taken from \cite{zoph2017learning}.}
+	\end{tabular}
+	
+	\caption{Considered neural networks and their performance.}
+	\label{tab:model_acc_vs_parameters}
+\end{table}
+
+
+With limited computational resources, emphasis in our decision was given on model size. We selected GoogLeNet since its size allowed us to train it on GPU with 2 GB of memory even with batches of size 64 reasonably fast. Our decision is also backed by \cite{ModelSizes2016} where the network ranked among the most efficient ones utilizing well its parameter space.
+
+
 \todo{Selection and Training}

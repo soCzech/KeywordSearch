@@ -18,7 +18,7 @@ box/.style={
 	align=center
 }]
 
-\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (out) at (0,4) {$h_{4+1}$};
+\node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (out) at (0,4) {$h_{4+i}$};
 \node[add] (add) at (0,2.75) {+};
 \node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (layer2) at (0,1.5) {$h_{3+i}$};
 \node[draw, diamond, font=\tiny, inner sep=0.5pt, align=center] (layer1) at (0,0) {$h_{2+i}$};

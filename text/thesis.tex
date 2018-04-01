@@ -57,6 +57,14 @@
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{subfig}
 \usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing}
+\usepackage{multirow}
+
+\usepackage{etoolbox,siunitx}
+
+\newrobustcmd*{\bftabnum}{%
+	\bfseries
+	\sisetup{output-decimal-marker={\textbf{.}}}%
+}
 
 
 %%% Basic information on the thesis
