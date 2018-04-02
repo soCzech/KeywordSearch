@@ -1,0 +1,47 @@
+\begin{tikzpicture}[scale=0.8,
+box/.style={
+	draw,
+	minimum width=2.4cm,
+	minimum height=.7cm,
+	font=\scriptsize,
+	inner sep = .2,
+	align=center,
+	execute at begin node=\setlength{\baselineskip}{8pt},
+	fill=white
+}, pil/.style={
+	->,
+	shorten <=2pt,
+	shorten >=2pt
+}]
+
+
+\node[] (inc2) at (1.6,-.35, 1.5) {};
+\node[] (avg2) at (1.6,-.35, 3) {};
+\node[] (drop2) at (1.6,-.35, 6) {};
+\node[] (lin2) at (1.6,-.35, 9) {};
+\node[] (soft2) at (1.6,-.35, 12) {};
+
+\node[] (avg3) at (-1.4,-.35, 3) {};
+\node[] (drop3) at (-1.4,-.35, 6) {};
+\node[] (lin3) at (-1.4,-.35, 9) {};
+\node[] (soft3) at (-1.4,-.35, 12) {};
+
+\draw[->,dotted,shorten >=-5pt] (inc2) -- (avg2);
+\draw[->,dashed,shorten >=-5pt] (avg2) -- (drop2) node[midway, anchor=center, sloped, below, font=\tiny] {\medmuskip=0mu $1\times 1\times 1024$};
+\draw[->,dashed,shorten >=-5pt] (drop2) -- (lin2) node[midway, anchor=center, sloped, below, font=\tiny] {\medmuskip=0mu $1\times 1\times 1024$};
+\draw[->,dashed,shorten >=-5pt] (lin2) -- (soft2) node[midway, anchor=center, sloped, below, font=\tiny] {\textcolor{red}{$1150$}};
+
+\draw[->,dashed,shorten >=-5pt] (avg3) -- (drop3);
+\draw[->,dashed,shorten >=-5pt] (drop3) -- (lin3);
+\draw[->,dashed,shorten >=-5pt] (lin3) -- (soft3);
+
+
+\node[box, dotted] (avg) at (0,0, 3) {Average Pooling \\ \tiny $7\times 7$, stride 1};
+\node[box] (drop) at (0,0, 6) {Dropout \\ \tiny keep w/ prob \textcolor{red}{80\%}};
+\node[box] (lin) at (0,0, 9) {Linear};
+\node[box] (soft) at (0,0, 12) {Softmax};
+
+\draw[decorate,decoration={brace,mirror}] (1.95,-.7, 6) -- (1.95,-.7, 1.5) node[midway, anchor=center,sloped, below=0.1, font=\tiny, align=center] {frozen during\\ initial training};
+
+%\draw[pil] (bl) edge (tl);
+\end{tikzpicture}

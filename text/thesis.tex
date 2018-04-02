@@ -53,14 +53,29 @@
 
 
 %% user packages
+\usepackage{pgf}
 \usepackage{tikz}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{subfig}
 \usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing}
 \usepackage{multirow}
 
-\usepackage{etoolbox,siunitx}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+%\begin{algorithm}
+%	\caption{My algorithm}
+%\begin{algorithmic}
+%	\If {$i\geq maxval$}
+%	\State $i\gets 0$
+%	\Else
+%	\If {$i+k\leq maxval$}
+%	\State $i\gets i+k$
+%	\EndIf
+%	\EndIf
+%\end{algorithmic}
+%\end{algorithm}
 
+\usepackage{etoolbox,siunitx}
 \newrobustcmd*{\bftabnum}{%
 	\bfseries
 	\sisetup{output-decimal-marker={\textbf{.}}}%

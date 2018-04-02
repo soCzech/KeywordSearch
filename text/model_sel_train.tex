@@ -5,7 +5,7 @@ In this chapter, we describe retrieval model selection, employed dataset and mod
 \section{Model Selection}
 As mentioned, there are multiple approaches towards textual annotation. For our task to create a model with at least a thousand classes we chose image classification. This is because object localization datasets are much smaller and resulting model would be more demanding on pre- and post-processing, negatively effecting already complicated processing pipeline.
 
-Todays state-of-the-art approaches to the problem use exclusively deep neural networks, discussed in Related Work, thus we limit ourself to DCNNs. Every year there is a new architecture achieving better results, yet improved accuracy usually comes at cost of bigger models. Notable exception is NASNet network~\cite{zoph2017learning} that beats all other models in every size category; however, the model was released recently and thus it is not in our consideration. Many top performing models over the last few years were already presented thus we only show all considered models in Table \ref{tab:model_acc_vs_parameters}.
+Todays state-of-the-art approaches to the problem use exclusively deep neural networks, discussed in Related Work, thus we limit ourself to DCNNs. Every year there is a new architecture achieving better results, yet improved accuracy usually comes at cost of bigger models. Notable exception is NASNet network~\cite{zoph2017learning} that beats all other models in every size category; however, the model was released recently and hence it is not in our consideration. Many top performing models over the last few years were already presented thus we only show all considered models in Table \ref{fig:model_acc_vs_parameters}.
 
 \begin{table}[h]
 	
@@ -13,7 +13,7 @@ Todays state-of-the-art approaches to the problem use exclusively deep neural ne
 	\sisetup{detect-weight=true,detect-inline-weight=math}
 	\begin{tabular}{l@{\hspace{1cm}}cS[table-format=2.1]S[table-format=2.1]}
 		\toprule
-		\multirow{2}{*}{\textbf{Model}} & Number & \multicolumn{1}{c}{ImageNet}  & \multicolumn{1}{c}{ImageNet} \\
+		\multirow{2}{*}{\textbf{Model}} & Number & \multicolumn{1}{c}{ILSVRC2012}  & \multicolumn{1}{c}{ILSVRC2012} \\
 		& of parameters & \multicolumn{1}{c}{Top-1 Acc.\textsuperscript{$*$}} & \multicolumn{1}{c}{Top-5 Acc.\textsuperscript{$*$}}\\
 		\midrule
 		AlexNet \cite{AlexNet}  & 60 M & 59.3 \textsuperscript{$\dagger$} & 81.8 \textsuperscript{$\dagger$} \\
@@ -28,11 +28,55 @@ Todays state-of-the-art approaches to the problem use exclusively deep neural ne
 	\end{tabular}
 	
 	\caption{Considered neural networks and their performance.}
-	\label{tab:model_acc_vs_parameters}
+	\label{fig:model_acc_vs_parameters}
 \end{table}
 
 
-With limited computational resources, emphasis in our decision was given on model size. We selected GoogLeNet since its size allowed us to train it on GPU with 2 GB of memory even with batches of size 64 reasonably fast. Our decision is also backed by \cite{ModelSizes2016} where the network ranked among the most efficient ones utilizing well its parameter space.
+With limited computational resources, emphasis in our decision was given on model size. We selected GoogLeNet since its size allowed us to train it on GPU with 2 GB of memory even with batches of size 64 reasonably fast. Our decision is also backed by \cite{ModelSizes2016} where the network ranked among the most efficient ones utilizing well its parameter space. The network consists of initial convolution layers with max pooling reducing spatial dimensions of input to $28\times 28\times 192$ followed by 9 Inception blocks (shown in Figure \ref{fig:inception_block}) interleaved by occasional max pooling with output dimensions $7\times 7\times 1024$. Then there is an average pooling further reducing output to $1\times 1\times 1024$. The last layers are depicted in Figure \ref{fig:inception_end} also with modifications discussed in Chapter \ref{}. For the ones more interested in the architecture, we point to the original paper \cite{szegedy2015going} for detailed description of the network. 
 
 
-\todo{Selection and Training}
+
+\begin{figure}
+	\centering
+	
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/inception_ori_end.tikz}
+		}
+	\end{tabular}
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/inception_new_end.tikz}
+		}
+	\end{tabular}
+	
+	\caption[Last layers of GoogLeNet]{Last layers of GoogLeNet with their output sizes as presented in \cite{szegedy2015going} (left) and modified version used in our experiments with changes in red (right).}
+	\label{fig:inception_end}
+\end{figure}
+
+
+
+\section{Dataset Selection}
+Due to the unmatched number of classes to chose from and extensive use in scientific community, we have decided to use ImageNet database \cite{ILSVRC15} as a starting point. The database is based on WordNet \cite{WordNet}, giving us an advantage when designing search model later in Chapter \ref{}. The most used dataset ILSVRC2012 has a few flaws however. It was designed for a competition thus it does not contain many common objects, yet on the other hand its 120 dog classes could pose challenge when searching because even a human could then make a mistake classifying a searched dog incorrectly. Bigger ImageNet10K \cite{deng2010does}, despite solving the lack of common objects, amplifies possible human error and greatly reduces performance of any neural network. We thus decided to create our own dataset. All classes with at least 1000 example images from Winter 2011 release of ImageNet were taken into consideration, yielding to 6642 classes in total.
+
+We tried selecting classes for our network automatically from WordNet structure, yet results were unsatisfactory therefore human judge was used to select viable classes. To simplify selection and orientation in the classes, we propose following steps:
+\begin{enumerate}
+	\item Mapping $\mathcal{M}$ of each image class to $n$-dimensional vector space is computed.
+	\item Image classes are divided into $k$ clusters (we used $k=50$).
+	\item For each cluster, WordNet tree is created enabling closer inspection of similar classes.
+\end{enumerate}
+
+We defined mapping $\mathcal{M}$ of image class $c$ as
+$$
+\mathcal{M}(c)=\mathbb{E}_cf(\bm{x};\bm{\theta})\approx\frac{1}{\abs{S_c}}\sum_{\bm{x}\in S_c}f(\bm{x};\bm{\theta})
+$$
+where $\bm{x}$ are images representing class $c$, $f(\cdot;\bm{\theta})$ is a function parametrized by $\bm{\theta}$ mapping image to $n$-dimensional vector and $S_c$ is subset of images of class $c$ taken from ImageNet database. Since DCNNs proved to be efficient in mapping images to lower dimensional space~\cite{donahue2014decaf}, standard GoogLeNet is used as good $f$. The network is initialized to publicly available weights \cite{TFmodels} trained on ILSVRC2012 with the last linear layer removed. In our experiments $\abs{S_c}=10$ proved to be sufficient approximation of mean value.
+
+
+
+\begin{figure}
+	\centering
+	\scalebox{0.8}{\input{img/dataset_clusters.pgf}}
+	\caption[Projection of ImageNet classes into 2D]{2D projection of 6642 ImageNet classes divided into 50 clusters}
+	\label{fig:dataset_clusters}
+\end{figure}
