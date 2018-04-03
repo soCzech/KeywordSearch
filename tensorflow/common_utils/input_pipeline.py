@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from models import inception_preprocessing
+
 
 class ImageReader:
     """
@@ -21,3 +23,49 @@ class ImageReader:
         assert len(image.shape) == 3
         assert image.shape[2] == 3
         return image
+
+
+class ImageParser:
+
+    def __init__(self, is_training):
+        self.is_training = is_training
+        self.width = 224
+        self.height = 224
+
+    def __call__(self, serialized_example):
+        features = tf.parse_single_example(serialized_example, features={
+            'image/height': tf.FixedLenFeature([], tf.int64),
+            'image/width': tf.FixedLenFeature([], tf.int64),
+            'image/encoded': tf.FixedLenFeature([], tf.string),
+            'image/class/label': tf.FixedLenFeature([], tf.int64)
+        })
+
+        image = tf.image.decode_jpeg(features['image/encoded'], channels=3)
+        label = tf.cast(features['image/class/label'], tf.int32)
+
+        height = tf.cast(features['image/height'], tf.int32)
+        width = tf.cast(features['image/width'], tf.int32)
+
+        image = tf.reshape(image, [height, width, 3])
+        processed_image = inception_preprocessing.preprocess_image(
+            image, self.height, self.width, is_training=self.is_training)
+
+        return processed_image, label
+
+
+def make_batch(filenames, batch_size, is_training):
+    ds = tf.data.TFRecordDataset(filenames)
+    parser = ImageParser(is_training)
+
+    ds = ds.map(parser)
+    ds = ds.prefetch(batch_size)
+    ds = ds.repeat()
+
+    if is_training:
+        ds = ds.shuffle(buffer_size=10000, seed=42)
+
+    ds = tf.data.Dataset.zip((range, ds))
+    ds = ds.batch(batch_size)
+    ds = ds.prefetch(10)
+    it = ds.make_one_shot_iterator()
+    return it

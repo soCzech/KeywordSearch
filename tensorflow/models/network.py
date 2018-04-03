@@ -5,7 +5,7 @@ from models import inception_v1, inception_utils, inception_preprocessing
 slim = tf.contrib.slim
 
 
-def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.8, base_scope='InceptionV1'):
+def build_net(inputs, num_classes, is_training=True, dropout_keep_prob=0.8, base_scope='InceptionV1'):
     """Defines the Inception V1 architecture.
 
     Args:
@@ -26,7 +26,8 @@ def build_net(inputs, num_classes, scope, is_training=True, dropout_keep_prob=0.
         with slim.arg_scope(inception_utils.inception_arg_scope()):
             net, end_points = inception_v1.inception_v1_base(inputs, scope=base_scope)
 
-        with tf.variable_scope(scope, reuse=False):
+        # with tf.variable_scope("InceptionGeneralist", reuse=False):
+        with tf.variable_scope('Logits'):
             net = slim.avg_pool2d(net, [7, 7], stride=1, scope='AvgPool_0a_7x7')
             end_points['AvgPool_0a_7x7'] = net
 
@@ -56,7 +57,7 @@ def get_batch(tfrecord_dir, dataset_name, batch_size, image_size, is_training):
                               allow_smaller_final_batch=True)
 
 
-def get_image_as_batch(filenames, image_size):
+def get_image_as_batch(filenames, image_size, batch_size=80):
     with tf.name_scope('InceptionPreprocessing'):
         if isinstance(filenames, dict):
             filenames = list(filenames.keys())
@@ -69,5 +70,5 @@ def get_image_as_batch(filenames, image_size):
 
         image = inception_preprocessing.preprocess_image(image, image_size, image_size, is_training=False)
         # return key, tf.expand_dims(image, 0)
-        return tf.train.batch([key, image], batch_size=80, num_threads=1,
+        return tf.train.batch([key, image], batch_size=batch_size, num_threads=1,
                               allow_smaller_final_batch=True)
