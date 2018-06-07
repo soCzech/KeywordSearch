@@ -62,10 +62,9 @@ def make_batch(filenames, batch_size, is_training):
     ds = ds.repeat()
 
     if is_training:
-        ds = ds.shuffle(buffer_size=10000, seed=42)
+        ds = ds.shuffle(buffer_size=5000, seed=42)
 
-    ds = tf.data.Dataset.zip((range, ds))
     ds = ds.batch(batch_size)
     ds = ds.prefetch(10)
-    it = ds.make_one_shot_iterator()
-    return it
+
+    return ds.make_one_shot_iterator()

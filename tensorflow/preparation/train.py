@@ -8,7 +8,7 @@ from models import network
 
 
 def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=False, ckpt_dir="./",
-          no_epochs=10, batches_per_epoch=1000, batches_per_validation=100):
+          no_epochs=10, batches_per_epoch=1000, batches_per_validation=100, decay_every_n_steps=10000):
 
     pt = console.ProgressTracker()
     sess = tf.Session()
@@ -24,7 +24,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
         iterator = tf.data.Iterator.from_string_handle(handle, output_types=train_iterator.output_types,
                                                        output_shapes=train_iterator.output_shapes)
 
-        test_val_flag, (images, labels) = iterator.get_next()
+        images, labels = iterator.get_next()
 
     """
         Network model
@@ -47,17 +47,15 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     with tf.name_scope('train'):
         global_step = tf.Variable(0, name='global_step', trainable=False)
 
-        if train_all:
-            decay_steps = int(100000 / batch_size)
-            learning_rate = tf.train.exponential_decay(learning_rate, global_step, decay_steps, 0.94,
-                                                       staircase=True, name='exponential_decay_learning_rate')
+        learning_rate = tf.train.exponential_decay(learning_rate, global_step, decay_every_n_steps, 0.5,
+                                                   staircase=True, name='exponential_decay_learning_rate')
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             training = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999).minimize(
                 cross_entropy_loss,
                 global_step=global_step,
-                var_list=logit_vars + inception_vars if train_all else logit_vars
+                var_list=None if train_all else logit_vars
             )
 
     logit_vars += tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='train/global_step')
@@ -93,16 +91,16 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     """
     if train_all:
         pt.info(">> Restoring trained model.")
-        saver = tf.train.Saver(max_to_keep=10)
+        saver = tf.train.Saver(var_list=inception_vars + logit_vars, max_to_keep=30)
         saver.restore(sess, tf.train.latest_checkpoint(ckpt_dir))
     else:
         pt.info(">> Restoring default ILSVRC model.")
         saver = tf.train.Saver(var_list=inception_vars)
         saver.restore(sess, os.path.join(ckpt_dir, 'inception_v1.ckpt'))
-        saver = tf.train.Saver(max_to_keep=10)
+        saver = tf.train.Saver(var_list=inception_vars + logit_vars, max_to_keep=30)
 
     for epoch in range(no_epochs):
-        pt.info(">> Training {:d} of {:d} epochs.".format(epoch, no_epochs))
+        pt.info(">> Training {:d} of {:d} epochs.".format(epoch + 1, no_epochs))
         pt.reset(batches_per_epoch)
 
         for i in range(batches_per_epoch):
@@ -155,7 +153,12 @@ if __name__ == '__main__':
     trn = ["W:/tars/new/new_tars_trn/trn_1150_{:05d}-of-01035.tfrecord".format(i) for i in range(0, 1035)]
     val = ["W:/tars/new/new_tars_val/val_1150_{:05d}-of-00115.tfrecord".format(i) for i in range(0, 115)]
 
+    # train({"train": trn, "validation": val},
+    #       batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False,
+    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=30,
+    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)
+
     train({"train": trn, "validation": val},
-          batch_size=64, num_classes=1150, learning_rate=0.00001, train_all=False,
-          ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=20,
-          batches_per_epoch=2000, batches_per_validation=100)
+          batch_size=32, num_classes=1150, learning_rate=0.00005, train_all=True,
+          ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
+          batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=30000)

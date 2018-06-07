@@ -59,21 +59,11 @@
 \usepackage{subfig}
 \usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing}
 \usepackage{multirow}
+\usepackage{titlesec}
 
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
-%\begin{algorithm}
-%	\caption{My algorithm}
-%\begin{algorithmic}
-%	\If {$i\geq maxval$}
-%	\State $i\gets 0$
-%	\Else
-%	\If {$i+k\leq maxval$}
-%	\State $i\gets i+k$
-%	\EndIf
-%	\EndIf
-%\end{algorithmic}
-%\end{algorithm}
+
 
 \usepackage{etoolbox,siunitx}
 \newrobustcmd*{\bftabnum}{%
@@ -149,6 +139,8 @@ Abstract.
 \include{preliminaries}
 \include{related_work}
 \include{model_sel_train}
+\include{text_search}
+
 \include{browser}
 \include{usr_sim}
 

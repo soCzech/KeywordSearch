@@ -12,11 +12,14 @@
 % \bibliographystyle{plainnat}    %% Author (year)
 \bibliographystyle{unsrt}     %% [number]
 
-\renewcommand{\bibname}{Bibliography}
 
+
+\renewcommand{\bibname}{Bibliography}
 %%% Generate the bibliography. Beware that if you cited no works,
 %%% the empty list will be omitted completely.
 
+\renewcommand{\bibsection}{%
+	\chapter*{\bibname}\addcontentsline{toc}{chapter}{\bibname}}
 \bibliography{bibliography}
 
 %%% If case you prefer to write the bibliography manually (without bibTeX),
