@@ -1,0 +1,42 @@
+\begin{tikzpicture}
+	\pgfplotsset{log base 10 number format code/.code={$10^{\pgfmathprintnumber{#1}}$}}
+	\begin{axis}[
+		height=0.5\textwidth,
+		width=0.9\textwidth,
+		ylabel=learning rate,
+		axis y line=right,
+		log ticks with fixed point,
+		ymode=log,
+		hide x axis,
+		xmin=0, xmax=5,
+		ymin=0.0000005, ymax=0.00017,
+		ylabel style={rotate=180}
+	]
+		\addplot[mark=none,lightgray,dashed] table [x=Step, y=Value, col sep=comma] {data/learning_rate.csv};
+	\end{axis}
+	
+	\begin{axis}[
+		height=0.5\textwidth,
+		width=0.9\textwidth,
+		xmin = 0, xmax = 5,
+		ymin = 0, ymax = 1.1,
+		axis y line = left,
+		%xlabel = X,
+		xticklabel = {\pgfmathparse{\tick}\pgfmathprintnumber{\pgfmathresult}\,M},
+		xtick={1,2,3,4},
+		ylabel = accuracy,
+		axis lines*=left,
+		legend style={at={(0.5,0.02)},anchor=south},
+		legend style={draw=none,font=\footnotesize}
+	]
+
+		\addplot[mark=none,black] table [x=Step, y=Value, col sep=comma] {data/top_1_sm5.csv};
+		\addplot[mark=none,black,dashed] table [x=Step, y=Value, col sep=comma] {data/top_5_sm5.csv};
+		\addplot[mark=none,black,dotted] table [x=Step, y=Value, col sep=comma] {data/top_10_sm5.csv};
+		\addlegendimage{line legend,lightgray,dashed}
+		\addplot[mark=none,red] table [x=Step, y=Value, col sep=comma] {data/top_1_sm5_ll.csv};
+		\addplot[mark=none,red,dashed] table [x=Step, y=Value, col sep=comma] {data/top_5_sm5_ll.csv};
+		\addplot[mark=none,red,dotted] table [x=Step, y=Value, col sep=comma] {data/top_10_sm5_ll.csv};
+		\legend{top 1 acc, top 5 acc, top 10 acc, learning rate}
+	\end{axis}
+\end{tikzpicture}

@@ -65,11 +65,10 @@ We tried selecting classes for our network automatically from WordNet structure,
 	\item Image classes are divided into $k$ clusters (we used $k=50$).
 	\item For each cluster, WordNet tree is created enabling closer inspection of similar classes.
 \end{enumerate}
-
 We defined mapping $\mathcal{M}$ of image class $c$ as
-$$
-\mathcal{M}(c)=\mathbb{E}_cf(\bm{x};\bm{\theta})\approx\frac{1}{\abs{S_c}}\sum_{\bm{x}\in S_c}f(\bm{x};\bm{\theta})
-$$
+\begin{equation}
+\mathcal{M}(c)=\mathbb{E}_{\bm{x}\in c}f(\bm{x};\bm{\theta})\approx\frac{1}{\abs{S_c}}\sum_{\bm{x}\in S_c}f(\bm{x};\bm{\theta})
+\end{equation}
 where $\bm{x}$ are images representing class $c$, $f(\cdot;\bm{\theta})$ is a function parametrized by $\bm{\theta}$ mapping image to $n$-dimensional vector and $S_c$ is subset of images of class $c$ taken from ImageNet database. Since DCNNs proved to be efficient in mapping images to lower dimensional space~\cite{donahue2014decaf}, standard GoogLeNet is used as a good $f$. The network is initialized to publicly available weights \cite{TFmodels} trained on ILSVRC2012 with the last linear layer removed. In our experiments $\abs{S_c}=10$ proved to be sufficient approximation of mean value.
 
 The WordNet structure, no matter how precise in words' meaning, does not reflect human visual perceptions. For example a man can quite easily associate a picture to word \textit{barbecue}, yet it can have two meanings -- \textit{a cooker} and \textit{a meal} that are far apart in WordNet. Unfortunately the images associated with those categories are similar, therefore confusing a neural network and adding ambiguity to user's search. In order for a human judge to identify such conflicts, grouping visually similar images is necessary, since one cannot orientate in thousands of classes. As demonstrated in \cite{dasgupta2008hardnessKmeans}, clustering even into two clusters is NP-hard. We thus use open-source implementation \cite{scikit-learn} of $k$-means algorithm with careful seeding known as $k$-means++ \cite{kmeans} where cluster centers are chosen with probability proportional to square of their distance to the closest already chosen center. With this approach, multiple clusters contained only classes of one kind, such as \textit{a person}, \textit{a tree}, \textit{a bird} or \textit{a horse}, the last one spread over the whole WordNet structure in synsets connected to \textit{racing}, \textit{hunting}, \textit{transportation}, \textit{people}, \textit{buildings} and even \textit{clothing} hence demonstrating its usefulness. On the other hand the WordNet tree also proved valuable revealing multiple synsets with wrongly assigned images based on ambiguity in their names. For example, two synsets \textit{a smoker} and \textit{a nonsmoker} with descriptions \textit{`A passenger [railway] car for passengers who wish to (or not to) smoke'} contain photos of people smoking and photos of automobiles respectively.
@@ -89,5 +88,47 @@ During training we employ several data augmentation methods such as \cite{simard
 
 
 \section{Model Training}
+Our goal is to train a model parametrized by $\bm{\theta}$ to map set of images $\bm{X}$ to set of labels $Y$. Assuming $(\bm{x},y)\in(\bm{X},Y)$ are drawn from true but unknown distribution $p_{world}$ independently, the objective can be written as maximum likelihood estimation in following way:
+\begin{align}
+\bm{\theta}_{ML} &=\mathop{\arg\max}_{\bm{\theta}}\prod\limits_{i=1}^{n} p_{model}\left(y^{(i)}|\bm{x}^{(i)};\bm{\theta}\right) \\
+&=\mathop{\arg\max}_{\bm{\theta}}\sum\limits_{i=1}^{n} \log p_{model}\left(y^{(i)}|\bm{x}^{(i)};\bm{\theta}\right)
+\end{align}
+The second equality holds because logarithm is always increasing function and $\log(ab)=\log(a)+\log(b)$. Further dividing by $n$, using empirical distribution $\hat{p}_{data}$ and minimizing negative of the original function we can write:
+\begin{equation}
+\mathop{\arg\min}_{\bm{\theta}}-\mathbb{E}_{(\bm{x},y)\sim \hat{p}_{data}}\left[\log p_{model}\left(y|\bm{x};\bm{\theta}\right)\right]
+\end{equation}
+Such function can be optimized using stochastic gradient descent (SGD) as described in Chapter \ref{}. However for training the network we use more advanced algorithm based on SGD called Adam~\cite{adam} which computes individual adaptive learning rates for
+different parameters from estimates of first and second moments of the gradients. Default values of $\beta_1 = 0.9$ and $\beta_2 = 0.999$ were used.
 
-Training as big models as GoogLeNet \cite{szegedy2015going} is requires a lot of computing power that could potentially be wasteful since GoogLeNet has been already trained on images with similar low level features. Therefore we use transfer learning technique firstly described by \cite{donahue2014decaf}. This approach cuts training time needed by initializing model's weights to values of a model trained on different but related task (normally, prior to a training, model weights would be initialized to random values such as \cite{glorot2010understanding}). In our work, we use TensorFlow \cite{tensorflow2015}, an open-source machine learning framework with extensive collection of pretrained models \cite{TFmodels} also containing GoogLeNet with weights trained on ILSVRC2012 dataset which serve as great initial values.
+Training as big models as GoogLeNet~\cite{szegedy2015going} is requires a lot of computing power that could potentially be wasteful since GoogLeNet has been already trained on images with similar low level features. Therefore we use transfer learning technique firstly described by~\cite{donahue2014decaf}. This approach cuts training time needed by initializing model's weights to values of a model trained on different but related task (normally, prior to a training, model weights would be initialized to random values such as~\cite{glorot2010understanding}). In our work, we use TensorFlow~\cite{tensorflow2015}, an open-source machine learning framework with extensive collection of pretrained models~\cite{TFmodels} also containing GoogLeNet with weights trained on ILSVRC2012 dataset. We use those initial weights for the whole network except for the last layer which is replaced by a new one of different dimension (see Figure \ref{fig:inception_end}) with its weights initialized from a uniform distribution $U\left[-\sqrt{6/(n_j+n_{j+1})}, \sqrt{6/(n_j+n_{j+1})}\right]$ where $n_j+n_{j+1}$ is number of neurons in two adjacent layers (see~\cite{glorot2010understanding} for more details).
+
+During initial phrase of training (Figure \ref{fig:train_progress} in red) only the last layer was trained with the other weights were fixed, because in the beginning random gradients can destroy learned low-level features worth keeping. In the initial phrase the network was trained by 15,000 batches of size 64, firstly with learning rate $10^{-4}$ and after 7,500 batches with $5\cdot 10^{-5}$.
+
+
+\begin{figure}
+	\centering
+	\input{img/nn_train_progress.tikz}
+	
+	\caption[Accuracy of GoogLeNet during training]{Accuracy of GoogLeNet~\cite{szegedy2015going} during training on random part of validation dataset. Horizontal axis shows number of images the model has seen to a given point in training. Initial training of the last layer only is shown in red. Curves are smoothed by exponential moving average, i.e. $S_i=\frac{1}{2}V_i + \frac{1}{2}S_{i-1}$ where $V_i$ is model's accuracy and $S_i$ is shown smoothed value.}
+	\label{fig:train_progress}
+\end{figure}
+
+
+
+
+\begin{table}[h]
+	
+	\centering
+	\sisetup{detect-weight=true,detect-inline-weight=math}
+	\begin{tabular}{l@{\hspace{1cm}}cS[table-format=2.1]S[table-format=2.1]}
+		\toprule
+		Evaluation Method & \multicolumn{1}{c}{Top-1 Acc.} & \multicolumn{1}{c}{Top-5 Acc.} & \multicolumn{1}{c}{Top-10 Acc.}\\
+		\midrule
+		center cutout & 56.1 & 83.8 & 90.2 \\
+		10 patches averaged & 57.1 & 84.7 & 90.9 \\
+		\bottomrule
+	\end{tabular}
+	
+	\caption{Trained model performance on the validation set.}
+	\label{fig:trained_model_acc}
+\end{table}

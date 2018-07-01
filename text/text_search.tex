@@ -1,0 +1,52 @@
+\chapter{Textual Search}
+
+The model described in Chapter \ref{} assigns each image $\bm{x}$ a vector $\bm{\hat{y}}$. In theory, it represents how likely each class is contained in the image. However, this representation is far from useful for a user. Therefore multiple techniques are used to ensure the model is convenient yet powerful search tool even for novices.
+
+\section{Supported Labels}
+Our tool supports only a finite set of labels $L$ that are prompted by the interface when users form the query (see Chapter \ref{}). It could be possible to construct a query given higher level description transformed by task-specific set of neural language processing rules \cite{moumtzidou2017verge}, but this approach may mislead user if a searched high level concept is not in an internal model. Thus a set $L_m$ is created containing labels corresponding to the image classes with their \textsf{names}, \textsf{descriptions} and \textsf{hyponyms} taken from WordNet \cite{WordNet}. We further utilize WordNet structure creating a new set $L_h$ of hypernyms of all labels in $L_m$. The final set of labels is then $L=L_m\cup L_h$. With hypernym--hyponym relation as a directed edge, $L$ can be viewed as a directed acyclic graph (DAG) where all vertices (i.e. labels) with no outgoing edges are in $L_m$ (however, there can be vertices in $L_m$ with outgoing edges).
+
+\section{Query Formulation and Ranking}
+The users are allowed to specify sets of supported labels $N_i \subseteq L$, where in each set the labels are connected by logical \textsf{OR}, while the sets $N_i$ are connected by logical \textsf{AND}. For $k$ such sets, the user query $Q_u$ is then written as
+\begin{equation}
+	Q_u=\bigwedge\limits_{i=1}^k\left(\bigvee\limits_{\forall label_j\in N_i} label_j \right)
+\end{equation}
+and for convenience it is usually abbreviated as $Q_u=\{N_i\}_{i=1}^k$. If the query contains any hypernyms (labels with some outgoing edges in $L$), further preprocessing needs to be done. By default every hypernym $h$ is substituted by a set of all labels in $L_m$ that are reachable from $h$ in DAG $L$. For hypernyms in $L_m$ (i.e. they correspond to a class recognized by the model), the substitution can be disabled. Finally, the preprocessed query $Q_p$ contains only labels from $L_m$ directly recognized by our model.
+
+The ranking $r(\cdot)$ for each image $\bm{x}$, given preprocessed query $Q_p$ and model parametrized by $\bm{\theta}$, is calculated as 
+\begin{equation}
+r\left(\bm{x}; Q_p, \bm{\theta}\right)=\prod\limits_{\forall N_i \in Q_p}\left(
+	\sum\limits_{\forall label_j\in N_i} \bm{\hat{y}}_{label_j}\cdot idf\left(label_j\right)
+\right)
+\end{equation}
+where $\bm{\hat{y}}=f\left(\bm{x}, \bm{\theta}\right)$  is model prediction on the image $\bm{x}$ and $\bm{\hat{y}}_{label_j}$ represents its relevance score of containing $label_j$. We further introduce inverse document frequency (IDF). Let us explain underlying reasoning on an example: When a user searches \textit{a person in front of an excavator}, person keyword completely dominates the query since in the dataset there are thousand times as many persons as excavators. 
+
+..also supported by simulations in Chapter \ref{}...
+
+
+
+\section{Indexing Images}
+%\begin{algorithm}
+%	\caption{Query Inference}
+%\begin{algorithmic}
+%	\Function{Infer}{a user query $Q_u$}
+%	\State {$Q \gets \emptyset$} \Comment{an inferred query}
+%	\ForAll {$N_i \in Q_u$}
+%		\State {$N^* \gets \emptyset$}
+%		\ForAll {$l \in N_i$}
+%			\If {$l$ is a model class \textbf{and} hyponyms disabled}
+%				\State $N^* \gets N^* \cup \{l\}$ 
+%			\Else
+%				\State $N^* \gets N^* \cup \textsc{AllHyponymsInModel}(l)$
+%			\EndIf
+%		\EndFor
+%		\State $Q\gets Q\cup N^*$
+%	\EndFor
+%	
+%	\Return $Q$
+%	\EndFunction
+%\end{algorithmic}
+%\end{algorithm}
+
+\section{Application Prototype}
+
+\section{Other Retrieval Models}
