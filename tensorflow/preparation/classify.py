@@ -4,17 +4,17 @@ import struct
 import numpy as np
 import tensorflow as tf
 
-from models import network, inception_v1, model_utils
-from common_utils import console, dataset
+from models import network
+from common_utils import console, dataset, input_pipeline
 from common_utils.dataset import DEFAULT_HEADER
 HEADER = DEFAULT_HEADER
 
 
-def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, scope='InceptionV1', calc_cov=True):
+def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, calc_cov=True):
     pt = console.ProgressTracker()
     pt.info(">> Initializing TensorFlow model...")
 
-    keys, images = network.get_image_as_batch(filenames, inception_v1.default_image_size)
+    keys, images = input_pipeline.make_batch_from_jpeg(filenames)
 
     session = tf.Session()
     session.run(tf.local_variables_initializer())
@@ -25,15 +25,14 @@ def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, scop
     """
         Network model
     """
-    logits, net = network.build_net(images, num_classes, scope=scope, is_training=False)
+    logits, net = network.build_net(images, num_classes, is_training=False)
     deep_features = tf.squeeze(net["AvgPool_0a_7x7"], [1, 2], name="DeepFeatures")
     df_shape = deep_features.get_shape()[1]
 
     probabilities = tf.nn.softmax(logits, name="Probability")
 
     inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionV1')
-    generalist_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope) if scope != "InceptionV1" else []
-    net_vars = inception_vars + generalist_vars
+    logit_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Logits')
 
     """
         Covariance
@@ -49,7 +48,7 @@ def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, scop
 
     session.run(tf.global_variables_initializer())
 
-    saver = tf.train.Saver(var_list=net_vars)
+    saver = tf.train.Saver(var_list=inception_vars + logit_vars)
     saver.restore(session, model_path)
 
     annot_f = dataset.create_file(
@@ -147,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--calc_cov', action='store_true', default=False)
     args = parser.parse_args()
 
-    images = model_utils.get_images_recursively(args.image_dir)
+    images = dataset.get_images_from_disk(args.image_dir)
 
     run(images, args.num_classes, model_path=args.model_path, run_name=args.run_name,
         prob_threshold=args.prob_threshold, calc_cov=args.calc_cov)
