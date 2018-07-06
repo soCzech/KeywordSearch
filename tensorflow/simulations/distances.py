@@ -14,15 +14,14 @@ class Distance:
         self._ranks = {}
         self._similarity = similarity.Similarity()
 
-    def read_vectors(self, filename, val_type=np.float32):
+    def read_vectors(self, filename):
         """
         Loads vectors from a file.
 
         Args:
             filename: vectors' filename.
-            val_type: vector format, default *np.float32*.
         """
-        self._similarity.read_vectors(filename, val_type)
+        self._similarity.read_vectors(filename)
 
     def distances(self, sample_size):
         """
@@ -66,20 +65,20 @@ class Distance:
         Args:
             graph_filename: filename without extension,
         """
-        graph_utils.plot_histogram(self._ranks, 200, graph_filename, title='Distance')
-        graph_utils.plot_accumulative(self._ranks, graph_filename+"-accum", title='Distance')
+        graph_utils.plot_histogram(self._ranks, 200, graph_filename, title="Distance")
+        graph_utils.plot_accumulative(self._ranks, graph_filename + "-accum", title="Distance")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-vf', type=str, required=True)
-    parser.add_argument('-gf', type=str, default=False)
-    parser.add_argument('--sample_size', type=int, default=None)
+    parser.add_argument("--vector_file", type=str, required=True)
+    parser.add_argument("--out_graph_file", type=str, default=False)
+    parser.add_argument("--sample_size", type=int, default=None)
 
     args = parser.parse_args()
 
     d = Distance()
-    d.read_vectors(args.vf)
+    d.read_vectors(args.vector_file)
     d.distances(args.sample_size)
-    if args.gf:
-        d.graph(args.gf)
+    if args.out_graph_file:
+        d.graph(args.out_graph_file)

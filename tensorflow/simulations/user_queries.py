@@ -2,6 +2,9 @@ from common_utils import console
 
 
 class Label:
+    """
+    A class representing one label.
+    """
     ID = None
     SYNSET_ID = None
     NAMES = None
@@ -11,6 +14,13 @@ class Label:
 
     @staticmethod
     def read_labels(filename):
+        """
+        Args:
+            filename: location of the label file.
+
+        Returns:
+            A dictionary of (synset id, label object).
+        """
         labels = dict()
 
         with open(filename, 'r') as f:
@@ -35,6 +45,16 @@ class Label:
 
     @staticmethod
     def expand_query(labels, query):
+        """
+        Takes a query in form of synset ids and returns expanded query in label ids.
+
+        Args:
+            labels: labels dictionary.
+            query: a list of (synset id, bool if to use hyponyms).
+
+        Returns:
+            A list of label ids.
+        """
 
         def expand_hyponyms(hyponyms):
             l = []
@@ -69,39 +89,15 @@ def read_queries(filename):
         A list of tuples: integer representing synset id and boolean specifying if hyponyms shall be used.
     """
     queries = []
-    no_keyword, not_recognized = 0, 0
-
-    def process_query(lines):
-        if len(lines) >= 3:
-            frame_id = int(lines[0].split(';')[0].split(':')[1])
-            if lines[2].startswith("Query:"):
-                return frame_id, [
-                    (int(or_part.split(',')[0]), int(or_part.split(',')[1]) == 1)
-                    for or_part in lines[2].split(':')[1].split('or')
-                ]
-            elif lines[2].startswith("Keyword"):
-                return frame_id, []
-        return None, None
-
-    with open(filename, 'r') as f:
-        lines = []
+    with open(filename, "r") as f:
         for line in f:
-            if line[0] == '#' or line == "--- QUERY ---\n":
-                continue
-            if line == "--- END ---\n":
-                frame_id, query = process_query(lines)
-                if frame_id is None:
-                    not_recognized += 1
-                    lines.clear()
-                    continue
-
-                if len(query) == 0:
-                    no_keyword += 1
-                queries.append((frame_id, query))
-                lines.clear()
-                continue
-
-            lines.append(line)
+            frame_id, query = line.split("~")
+            frame_id = int(frame_id)
+            query = [
+                (int(label.split(":")[0]), int(label.split(":")[1]) == 1)
+                for label in query.split(",")
+            ]
+            queries.append((frame_id, query))
     return queries
 
 

@@ -1,9 +1,12 @@
+import os
 import struct
 import numpy as np
 
-BACHELOR_THESIS_HEADER = [b'TomasSoucek\0\0\0\0\0', b'2018-04-01 00:00:00\n']
+from common_utils import console
+
+BACHELOR_THESIS_HEADER = [b'BC\0\0\0\0\0\0\0\0\0\0\0\0\0\0', b'2018-04-01 00:00:00\n']
 VBS2018_HEADER = [b'TRECVid\0\0\0\0\0\0\0\0\0', b'2018-01-26 10:00:00\n']
-DEFAULT_HEADER = VBS2018_HEADER
+DEFAULT_HEADER = BACHELOR_THESIS_HEADER
 
 
 def create_file(path, struct_data_list, file_header):
@@ -41,3 +44,22 @@ def read_deep_features(path):
         byte_id = file.read(4)
 
     return d
+
+
+def get_images_from_disk(directory):
+    directory = os.path.normpath(directory)
+    image_id = 0
+    res = dict()
+
+    sorted_list = sorted(os.listdir(directory))
+    pt = console.ProgressTracker()
+    pt.info(">> Reading image files...")
+    pt.reset(len(sorted_list))
+
+    for folder in sorted_list:
+        if os.path.isdir(os.path.join(directory, folder)):
+            for image in sorted(os.listdir(os.path.join(directory, folder))):
+                res[os.path.join(directory, folder, image)] = image_id
+                image_id += 1
+        pt.increment()
+    return res

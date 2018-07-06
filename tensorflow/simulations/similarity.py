@@ -1,6 +1,9 @@
 import struct
 import numpy as np
-from common_utils import console
+from common_utils import console, dataset
+
+from common_utils.dataset import DEFAULT_HEADER
+HEADER = DEFAULT_HEADER
 
 
 def cos_dist(x, y):
@@ -13,7 +16,7 @@ def cos_dist(x, y):
     Returns:
         :math:`1-\\frac{\\langle x,y\\rangle}{|x||y|}`
     """
-    return - np.dot(x, y)  # 1 - np.dot(x, y) / (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y)))
+    return 1 - np.dot(x, y) / np.sqrt(np.dot(x, x) * np.dot(y, y))  # - np.dot(x, y)  #
 
 
 def l2_dist(x, y):
@@ -40,28 +43,31 @@ class Similarity:
         self.dimension = 0
         self.len = 0
 
-    def read_vectors(self, filename, val_type=np.float32):
+    def read_vectors(self, filename):
         """
-        Loads vectors from a file.
+        Loads similarity deep-feature vectors from a file.
 
         Args:
             filename: vectors' filename.
-            val_type: vector format, default *np.float32*.
         """
         pt = console.ProgressTracker()
         pt.info(">> Reading similarity vectors...")
 
-        dt = np.dtype(val_type).newbyteorder('<')
+        dt = np.dtype(np.float32).newbyteorder("<")
 
-        with open(filename, 'rb') as f:
-            pt.info("\t> Dataset ID: " + str(struct.unpack('<I', f.read(4))[0]))
-            self.len = struct.unpack('<I', f.read(4))[0]
+        with dataset.read_file(filename, HEADER) as f:
+            self.dimension = struct.unpack("<I", f.read(4))[0]
+            self.len = 0
 
-            self.dimension = struct.unpack('<I', f.read(4))[0]
-
-            for i in range(self.len):
-                vec = np.frombuffer(f.read(self.dimension), dtype=dt)
+            buffer = f.read(4)  # read image id
+            while buffer != b'':
+                buffer = f.read(self.dimension * 4)
+                vec = np.frombuffer(buffer, dtype=dt)
                 self.vectors.append(vec)
+                self.len += 1
+                if self.len % 10000 == 0:
+                    pt.progress_info("\t> Vectors read: {}", [self.len])
+                buffer = f.read(4)  # read image id
 
     def get_distance_vector(self, query_index):
         """
@@ -84,7 +90,7 @@ class Similarity:
         Computes distance and rank of a searched vector(s) to a query vector.
 
         Args:
-            query_index: a vector index or list of indexes. If list passed, an average is used.
+            query_index: a vector index or list of indexes. If list passed, an average of the vectors is used.
             searched_index: a vector index or list of indexes.
         Returns:
             Triple.
@@ -118,20 +124,20 @@ class Similarity:
             return ret_list[0], ret_distances[0], index_vec
         return ret_list, ret_distances, index_vec
 
-    def _get_best_rank(self, image_indexes, searched_index, visualization, similarity_settings, n_reranks = 1):
+    def _get_best_rank(self, image_indexes, searched_index, visualization, similarity_settings, n_reranks=1):
         """
         Takes initial ordering of a database and, given similarity settings,
         simulates user by iterative search for searched image.
 
         Args:
             image_indexes: initial ordering of a database.
-            visualization:
             searched_index: index of the searched image.
-            similarity_settings:
+            visualization: `SimilarityVisualization` class or None if visualization is not used.
+            similarity_settings: `SimilaritySettings` class with settings.
             n_reranks: current depth of recursion.
         Returns:
             List of tuples.
-            A number of reranks and a rank of the searched image.
+            A number of reranks and its corresponding rank of the searched image.
         """
         if max(similarity_settings.n_reranks) < n_reranks:
             return []
@@ -170,8 +176,8 @@ class Similarity:
         Args:
             image_indexes: initial ordering of a database.
             searched_index: index of the searched image.
-            similarity_settings:
-            visualization:
+            similarity_settings: `SimilaritySettings` class with settings.
+            visualization: `SimilarityVisualization` class or None if visualization is not used.
         Returns:
             Dictionary of ranks for each similarity setting.
         """
@@ -189,17 +195,34 @@ class Similarity:
 
 
 class SimilaritySettings:
+    """
+    A class used holding similarity search settings.
+    """
 
     def __init__(self, disp_size, n_closest, n_reranks):
+        """
+        Args:
+            disp_size: number of top ranking images to consider for similarity reranking.
+            n_closest: number of the most similar images to use as query.
+            n_reranks: how many reranks to do for each image.
+        """
         self.display_size = disp_size
         self.n_closest = n_closest
         self.n_reranks = n_reranks
 
     @staticmethod
     def gen_text_string_from_similarity(disp_size, n_closest, n_reranks):
+        """
+        Returns:
+            A text representation of a given setting.
+        """
         return "{:d}:{:d} {:d}x".format(disp_size, n_closest, n_reranks)
 
     def get_empty_configurations(self):
+        """
+        Returns:
+            An empty ranking object based on this configuration.
+        """
         r = {}
         for disp_size in self.display_size:
             for n_closest in self.n_closest:

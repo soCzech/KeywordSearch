@@ -93,13 +93,13 @@ class ProgressTracker(Singleton):
             if diff > 3600:
                 h = round(diff//3600)
                 m = round((diff - h*3600)/60)
-                self._remaining_time = "{0:d}h {1:d}m".format(h, m)
+                self._remaining_time = "{0:d}h {1:d}m".format(int(h), int(m))
             elif diff > 60:
                 m = round(diff // 60)
                 s = round((diff - m * 60))
-                self._remaining_time = "{0:d}m {1:d}s".format(m, s)
+                self._remaining_time = "{0:d}m {1:d}s".format(int(m), int(s))
             else:
-                self._remaining_time = "{0:d}s".format(round(diff))
+                self._remaining_time = "{0:d}s".format(int(round(diff)))
 
     def increment(self, val=1):
         self.set_progress(self._current + val)
@@ -109,10 +109,11 @@ class ProgressTracker(Singleton):
         print(message)
         self._draw()
 
-    def progress_info(self, message, params, current, total):
+    def progress_info(self, message, params, current=None, total=None):
         self._clear()
-        if self._last_time is None or (datetime.datetime.now() - self._last_time).seconds > 1:
-            self._update_time(current, total)
+        if current is not None and total is not None:
+            if self._last_time is None or (datetime.datetime.now() - self._last_time).seconds > 1:
+                self._update_time(current, total)
 
         print(message.format(*params) + " ETA {}".format(self._remaining_time), end="\r")
 

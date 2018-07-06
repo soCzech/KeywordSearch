@@ -6,18 +6,16 @@ from common_utils import console, graph_utils
 import random
 import pickle
 import os
-from common_utils.dataset import VBS2018_HEADER
-HEADER = VBS2018_HEADER
+from common_utils.dataset import DEFAULT_HEADER
+HEADER = DEFAULT_HEADER
 
 
 class Simulation:
     """
+    A class responsible for user search simulations.
     """
 
     def __init__(self):
-        """
-
-        """
         self._images = None
         self._ranks = {}
         self._idf = None
@@ -31,7 +29,7 @@ class Simulation:
 
     def read_keyword(self, filename):
         self._images = simulation_utils.Keywords()
-        self._images.read_images(filename, HEADER)
+        self._images.read_images(filename)
 
     # region Sample & index generation
 
@@ -48,7 +46,7 @@ class Simulation:
         """
         pt = console.ProgressTracker()
 
-        filename += '-samples.pickle'
+        filename += "-samples.pickle"
 
         if os.path.isfile(filename):
             pt.info(">> Restoring samples...")
@@ -57,7 +55,7 @@ class Simulation:
             return
 
         if self._images is None:
-            pt.error('Missing image keyword vectors to generate samples.')
+            pt.error("Missing image keyword vectors to generate samples.")
             exit(1)
         pt.info(">> Generating samples...")
         self.samples = [random.randint(0, len(self._images) - 1) for _ in range(sample_size)]
@@ -66,14 +64,14 @@ class Simulation:
         with open(filename, 'wb') as f:
             pickle.dump((self.samples, self.indexes), f)
 
-    def __gen_indexes(self, max_query_len, distribution):
+    def __gen_indexes(self, max_query_len, distribution=None):
         """
         Generates indexes for all samples from a distribution
         by generating i-th best index of images' distribution based on a given distribution.
 
         Args:
             max_query_len: number of indexes to generate.
-            distribution: probability distribution vector.
+            distribution: probability distribution over vector classes.
                           If none, indexes are generated directly from images' distribution.
         """
         pt = console.ProgressTracker()
@@ -86,7 +84,7 @@ class Simulation:
 
             rand_indexes = []
             while len(rand_indexes) < max_query_len:
-                rand = simulation_utils.get_random_index_from_dist(dist)
+                rand = np.random.choice(np.arange(len(dist)), p=dist)
                 if rand not in rand_indexes:
                     rand_indexes.append(rand)
 
@@ -95,14 +93,6 @@ class Simulation:
                 self.indexes.append([cls_indexes[i] for i in rand_indexes])
             else:
                 self.indexes.append(rand_indexes)
-
-        # lmbda=0.004
-        # pt.info(">> Generating indexes from exponential distribution for samples...")
-        # pt.info("\t> Lambda: " + str(lmbda))
-        #
-        # exp = np.arange(1, self._images.DIMENSION + 1)
-        # exp = lmbda * np.exp(-lmbda * exp)
-        # exp = exp / np.sum(exp)
 
     # endregion
 
@@ -119,7 +109,7 @@ class Simulation:
         pt.info(">> Computing IDF...")
 
         self._idf = simulation_utils.IDF()
-        self._idf.read_term_count(unnormalized_mean_filename, HEADER)
+        self._idf.read_term_count(unnormalized_mean_filename)
         self._idf.compute_idf()
 
     def use_similarity(self, filename, disp_size, n_closest, n_reranks):
@@ -136,10 +126,18 @@ class Simulation:
             disp_size, n_closest, n_reranks
         )
         self._similarity = similarity.Similarity()
-        self._similarity.read_vectors(filename, val_type=np.int8)
+        self._similarity.read_vectors(filename)
 
     def use_visualization(self, image_dir, filename, no_iterations, no_images):
-        filename += '-visualization'
+        """
+
+        Args:
+            image_dir: where image thumbnails are located.
+            filename: where to store the visualization.
+            no_iterations: number of reranks to show in the visualization.
+            no_images: number of images to visualize.
+        """
+        filename += "-visualization"
         self._visualization = visualization.SimilarityVisualization(filename, [120, 90], no_images,
                                                                     no_iterations, image_dir)
 
@@ -153,7 +151,7 @@ class Simulation:
         pt = console.ProgressTracker()
         pt.info(">> Restoring ranks...")
 
-        filename += '-ranks.pickle'
+        filename += "-ranks.pickle"
 
         if not os.path.isfile(filename):
             pt.info("\t> Filename " + filename + " does not exist, ranks cannot be restored.")
@@ -174,7 +172,7 @@ class Simulation:
         pt = console.ProgressTracker()
         pt.info(">> Saving ranks...")
 
-        filename += '-ranks.pickle'
+        filename += "-ranks.pickle"
 
         with open(filename, 'wb') as f:
             pickle.dump(self._ranks, f)
@@ -203,11 +201,13 @@ class Simulation:
             raise Exception("Image ID " + image_id + " not found in array_of_indexes")
         return array_of_indexes[0] + 1, indexes
 
-    def rank(self, query_length_list):
+    def rank(self, query_length_list=None):
         """
+        Rank images based on selected indices for them.
 
         Args:
-            query_length_list:
+            query_length_list: If None, all indices are used for ranking.
+            If list of integers, top n indices are only taken for all n in the list.
         """
         pt = console.ProgressTracker()
 
@@ -243,20 +243,20 @@ class Simulation:
             pt.info(">> Calculating image ranks...")
             pt.reset(len(self.samples))
 
-            rank_str = ('usr' if query_length_list is None else 'sim') + ' ' + \
-                       ('byte' if self.use_byte else '') + ' ' + str(threshold)
+            rank_str = ("usr" if query_length_list is None else "sim") + " " + \
+                       ("byte" if self.use_byte else "") + " " + str(threshold)
 
             for image_id, indexes in zip(self.samples, self.indexes):
                 if query_length_list is None:
                     self._rank_image(image_id, indexes, False, rank_str)
                     if self._idf is not None:
-                        self._rank_image(image_id, indexes, True, rank_str + ' idf')
+                        self._rank_image(image_id, indexes, True, rank_str + " idf")
                 else:
                     for query_length in query_length_list:
                         self._rank_image(image_id, indexes[:query_length], False, rank_str + ' ' + str(query_length))
                         if self._idf is not None and query_length > 1:
                             self._rank_image(image_id, indexes[:query_length], True,
-                                             rank_str + ' ' + str(query_length) + ' idf')
+                                             rank_str + ' ' + str(query_length) + " idf")
                 pt.increment()
 
         if self._visualization is not None:
@@ -265,12 +265,13 @@ class Simulation:
 
     def _rank_image(self, image_id, selected_indexes, use_idf, plot_name):
         """
+        Performs the actual ranking.
 
         Args:
-            image_id:
-            selected_indexes:
-            use_idf:
-            plot_name:
+            image_id: image id to rank.
+            selected_indexes: selected images for the query.
+            use_idf: True if idf should be used.
+            plot_name: name used as a key in `self._ranks`.
         """
         rank, sim_rank = None, None
 
@@ -313,11 +314,19 @@ class Simulation:
     # endregion
 
     def distribution_from_indexes(self, filename):
-        if os.path.exists(filename + '-distribution.pickle'):
+        """
+        Creates distribution of classes from given samples and its indexes.
+
+        Args:
+            filename: location where to store the distribution.
+        Returns:
+            Smoothed distribution of classes.
+        """
+        if os.path.exists(filename + "-distribution.pickle"):
             pt = console.ProgressTracker()
             pt.info(">> Restoring distribution from {}-distribution.pickle".format(filename))
 
-            with open(filename + '-distribution.pickle', 'rb') as f:
+            with open(filename + "-distribution.pickle", "rb") as f:
                 return pickle.load(f)
 
         dist = np.zeros(self._images.NO_CLASSES)
@@ -330,27 +339,33 @@ class Simulation:
                 if indexes[i] in user_indexes:
                     dist[i] += 1
 
-        smoothed = np.zeros(self._images.NO_CLASSES)
-        for i in range(self._images.NO_CLASSES):
-            for j in range(max(0, i-10), min(i+10, self._images.NO_CLASSES)):
-                smoothed[i] += dist[j]
-            smoothed[i] /= min(i+10, self._images.NO_CLASSES) - max(0, i-10)
+        # smoothed = np.zeros(self._images.NO_CLASSES)
+        # weight = 0.97
+        #
+        # smoothed[0] = dist[0]
+        # for i in range(1, self._images.NO_CLASSES):
+        #     smoothed[i] = dist[i] * (1 - weight) + smoothed[i - 1] * weight
+        # for i in range(self._images.NO_CLASSES):
+        #     for j in range(max(0, i-10), min(i+10, self._images.NO_CLASSES)):
+        #         smoothed[i] += dist[j]
+        #     smoothed[i] /= min(i+10, self._images.NO_CLASSES) - max(0, i-10)
+        #
+        # min_reached = smoothed[0]
+        # accumulated = 0.0
+        # for i in range(1, self._images.NO_CLASSES):
+        #     if min_reached < smoothed[i]:
+        #         accumulated += smoothed[i] - min_reached
+        #         smoothed[i] = min_reached
+        #     elif smoothed[i] + accumulated > min_reached:
+        #         accumulated -= min_reached - smoothed[i]
+        #         smoothed[i] = min_reached
+        #     else:
+        #         smoothed[i] += accumulated
+        #         accumulated = 0
+        #         min_reached = smoothed[i]
 
-        min_reached = smoothed[0]
-        accumulated = 0.0
-        for i in range(1, self._images.NO_CLASSES):
-            if min_reached < smoothed[i]:
-                accumulated += smoothed[i] - min_reached
-                smoothed[i] = min_reached
-            elif smoothed[i] + accumulated > min_reached:
-                accumulated -= min_reached - smoothed[i]
-                smoothed[i] = min_reached
-            else:
-                smoothed[i] += accumulated
-                accumulated = 0
-                min_reached = smoothed[i]
-
-        smoothed /= np.sum(smoothed)
+        #smoothed /= np.sum(smoothed)
+        smoothed = dist/np.sum(dist)
 
         with open(filename + '-distribution-raw.pickle', 'wb') as f:
             pickle.dump(dist, f)
@@ -361,9 +376,10 @@ class Simulation:
 
     def histogram_of_hits(self, graph_filename):
         """
+        Creates histogram of how often n-th best class was selected from samples' distribution.
 
         Args:
-            graph_filename:
+            graph_filename: location where to store the graph.
         """
         pt = console.ProgressTracker()
         pt.info(">> Calculating histogram of hits...")
@@ -376,7 +392,7 @@ class Simulation:
 
             rand_indexes = []
             while len(rand_indexes) < 5:
-                rand = simulation_utils.get_random_index_from_dist(image.DISTRIBUTION)
+                rand = np.random.choice(np.arange(len(image.DISTRIBUTION)), p=image.DISTRIBUTION)
                 if rand not in rand_indexes:
                     rand_indexes.append(rand)
 
@@ -408,7 +424,7 @@ class Simulation:
             filename: a location where to store a graph.
         """
         graph_utils.plot_accumulative(self._ranks, filename, title='Cumulative Rank', x_axis='Rank',
-                                      y_axis='Number of Images [%]', viewbox=[(-100, 20100), (-2, 102)])
+                                      y_axis='Number of Images [%]', viewbox=[(-100, 5100), (-2, 102)])
 
 
 if __name__ == '__main__':
@@ -447,7 +463,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_user_dist', action='store_true', default=False)
 
     parser.add_argument('--graph', action='store_true', default=False)
-    # parser.add_argument('--hist', type=str, default=None)
+    parser.add_argument('--class_histogram', action='store_true', default=False)
     args = parser.parse_args()
 
     # read_queries
@@ -529,8 +545,11 @@ if __name__ == '__main__':
             exit(1)
         u.graph(args.filename)
 
-    # if args.hist is not None:
-    #     u.histogram_of_hits(args.hist)
+    if args.class_histogram:
+        if not args.filename:
+            pt.error('\'filename\' must be specified to graph rankings.')
+            exit(1)
+        u.histogram_of_hits(args.filename + "-histogram")
 
 # histogram of user hits
 # py simulations/simulation.py --human_user
@@ -567,3 +586,7 @@ if __name__ == '__main__':
 
 
 # python preparation/classify.py --image_dir="E:\VIRET\Keyframes" --num_classes=1390 --model_path=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\checkpoints\model_v1.ckpt-280000 --run_name=TRECVidOldKeyframes
+
+
+
+####python simulations/simulation.py --keyword=C:\Users\Tom\Workspace\KeywordSearch\data\content\BC-TRECVid.softmax --similarity=C:\Users\Tom\Workspace\KeywordSearch\data\content\BC-TRECVid.deep-features --disp_size=200 --n_closest=1 --n_reranks=2 --filename=C:\Users\Tom\Workspace\KeywordSearch\data\simulation\test --visualization=E:\VIRET\KF\Keyframes-0toEnd --gen_samples=100 --query_lengths=3 --rank --graph
