@@ -1,0 +1,24 @@
+\begin{tikzpicture}
+	\begin{axis}[
+height=0.35\textwidth,
+width=0.9\textwidth,
+xmin = -25, xmax = 1200,
+ymin = 0, ymax = 0.025,
+axis y line = left,
+%xlabel = t,
+scaled y ticks=false,
+yticklabel style={
+	/pgf/number format/fixed,
+	/pgf/number format/precision=2
+},
+xtick={1,200,400,600,800,1000,1150},
+ylabel = {$p(k)$},
+xlabel={$k$},
+axis lines*=left,
+x label style={at={(1,0)},anchor=south west},
+y label style={at={(0.01,0.9)},rotate=-90,anchor=south west}
+]
+
+\addplot[ycomb,mark=none,purple] table [x=Label, y=Percentage, col sep=comma] {data/keyword-only-histogram-real.csv};
+\end{axis}
+\end{tikzpicture}

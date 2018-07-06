@@ -29,7 +29,7 @@
 }
 
 % Draw black "slugs" whenever a line overflows, so that we can spot it easily.
-\overfullrule=1mm
+%\overfullrule=1mm
 
 %%% Macros for definitions, theorems, claims, examples, ... (requires amsthm package)
 
@@ -91,3 +91,4 @@
 %%% MY COMMANDS
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}\PackageWarning{TODO:}{#1!}}
 \newcommand{\missing}[1]{\textcolor{red}{\textbf{?} #1}\PackageWarning{MISSING:}{#1!}}
+\newcommand{\por}[1]{\raisebox{1.5pt}{\normalfont\scriptsize\space({#1})}}

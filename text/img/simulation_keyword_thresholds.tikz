@@ -1,0 +1,39 @@
+\begin{tikzpicture}
+	\begin{axis}[
+		height=0.35\textwidth,
+		width=0.72\textwidth,
+		xmin = 0, xmax = 30,
+		ymin = 0, ymax = 1,
+		axis x line = bottom,
+		%xlabel = t,
+		xticklabel = {\pgfmathparse{\tick}\pgfmathprintnumber{\pgfmathresult}\,k},
+		xtick={5,10,15,20,25},
+		% ylabel = {$p_{model}\left(r_{(\bm{x},Q)}^{\bm{\varOmega}}\leq t\right)$},
+		axis lines*=left,
+		legend style={at={(1,0.02)},anchor=south east},
+		legend style={draw=none,font=\scriptsize, fill=none}
+	]
+		\addplot[mark=none,black] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-real.csv};
+		\label{plot:zero}
+		\addplot[mark=none,black,dashed] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-modeled.csv};
+		\addplot[mark=none,black,dotted] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-ideal.csv};
+		
+		\addplot[mark=none,blue] table [x=Rank1, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-real.csv};
+		\label{plot:one}
+		\addplot[mark=none,blue,dotted] table [x=Rank1, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-ideal.csv};
+		\addplot[mark=none,blue,dashed] table [x=Rank1, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-modeled.csv};
+		
+		\addplot[mark=none,purple] table [x=Rank2, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-real.csv};
+		\label{plot:five}
+		\addplot[mark=none,purple,dotted] table [x=Rank2, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-ideal.csv};
+		\addplot[mark=none,purple,dashed] table [x=Rank2, y=Percentage, col sep=comma] {data/sim-threshold/keyword-thresholds-modeled.csv};
+
+		
+		\legend{$Q_r$, $|Q_m|=7$, $|Q_i|=1$}
+	\end{axis}
+	
+	\node [draw=none,font=\scriptsize, fill=none,anchor=north west] at (rel axis cs: 0.02,1) {\shortstack[l]{
+			\ref{plot:five} $\mu=0.005$ \\
+			\ref{plot:one} $\mu=0.001$ \\
+			\ref{plot:zero} $\mu=0$ }};
+\end{tikzpicture}
