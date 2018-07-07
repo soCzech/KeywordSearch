@@ -61,13 +61,14 @@ def get_hypernyms(synsets):
     def _get_hypernyms_helper(synset, classes):
         for hm in synset.hypernyms():
             if hm.offset() in classes:
-                classes[hm.offset()].hyponyms.append(classes[synset.offset()])
+                if synset.offset() not in classes[hm.offset()].hyponyms:
+                    classes[hm.offset()].hyponyms.append(synset.offset())
             else:
                 classes[hm.offset()] = Hypernym(Synset(hm.offset(), hm.lemma_names(), hm.definition()))
-                classes[hm.offset()].hyponyms.append(classes[synset.offset()])
+                classes[hm.offset()].hyponyms.append(synset.offset())
                 _get_hypernyms_helper(hm, classes)
 
-            classes[synset.offset()].hypernyms.append(classes[hm.offset()])
+            classes[synset.offset()].hypernyms.append(hm.offset())
 
     for synset in synsets:
         new_class = ImageClass(0, Synset(synset.offset(), synset.lemma_names(), synset.definition()))
@@ -93,12 +94,12 @@ def create_labels(synset_file, label_file):
             c = classes[k]
             if type(c) is Hypernym:
                 f.write("H~{:08d}~{}~{}~~{}\n".format(c.synset.wn_id, c.synset.name,
-                                                      "#".join([str(x.synset.wn_id) for x in c.hyponyms]),
+                                                      "#".join([str(classes[x].synset.wn_id) for x in c.hyponyms]),
                                                       c.synset.desc))
             else:
                 f.write("{:d}~{:08d}~{}~{}~{}~{}\n".format(i, c.synset.wn_id, c.synset.name,
-                                                           "#".join([str(x.synset.wn_id) for x in c.hyponyms]),
-                                                           "#".join([str(x.synset.wn_id) for x in c.hypernyms]),
+                                                           "#".join([str(classes[x].synset.wn_id) for x in c.hyponyms]),
+                                                           "#".join([str(classes[x].synset.wn_id) for x in c.hypernyms]),
                                                            c.synset.desc))
                 i += 1
 
