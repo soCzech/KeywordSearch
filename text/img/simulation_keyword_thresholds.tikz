@@ -4,7 +4,7 @@
 		width=0.72\textwidth,
 		xmin = 0, xmax = 30,
 		ymin = 0, ymax = 1,
-		axis x line = bottom,
+		axis x line* = bottom,
 		%xlabel = t,
 		xticklabel = {\pgfmathparse{\tick}\pgfmathprintnumber{\pgfmathresult}\,k},
 		xtick={5,10,15,20,25},

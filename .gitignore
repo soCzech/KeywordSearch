@@ -4,6 +4,9 @@ bin/
 obj/
 .idea/
 __pycache__/
+data/
+edges/
+
 
 classes.labels
 files.index

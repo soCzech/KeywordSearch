@@ -9,6 +9,8 @@
 		ymode=log,
 		hide x axis,
 		xmin=0, xmax=5,
+		axis x line=bottom,axis line style={-},
+		ylabel near ticks, yticklabel pos=right,
 		ymin=0.0000005, ymax=0.0001,
 		ylabel style={rotate=180}
 	]

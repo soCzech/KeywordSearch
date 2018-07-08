@@ -1,0 +1,162 @@
+\begin{tikzpicture}[
+box/.style={
+	rectangle,
+	draw=black,
+	anchor=north west,
+	text=black,
+	text width=3.5cm,
+	minimum height=0.7cm,
+	font=\footnotesize,
+	inner sep = 0.2cm,
+	align=left,
+	rectangle split, rectangle split parts=2,
+	shading=axis,
+	bottom color=bottomcol,top color=white,shading angle=45
+}]
+\definecolor{bottomcol}{RGB}{245,245,245}
+
+
+\path[fill=yellow,opacity=0.05, draw=black] (0,-2.6) -- (-4.9,-2.6) -- (-4.9,-9.5) -- (9.3,-9.5) -- (9.3,-0.55) -- (4.15,-0.55) -- (4.15,-2.6) -- (3.9,-2.6);
+
+\node[anchor=south west, font=\footnotesize, text=darkgray] at (-4.9,-9.5) {\textit{User Interface}};
+
+\node[box, rectangle split parts=3] (ksc) at (0,0) {
+	{\centering \textbf{KWSearchControl} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{Init() \\\quad
+		Clear() \\\quad
+		\Lightning\ KeywordChanged
+	}\nodepart{third}
+	{\scriptsize PRIVATE:}\\\quad
+	\textit{QueryChanged()\\\quad
+		SgnFilterChanged()\\\quad
+		SgnNotNeeded()\\\quad
+		GetSgnSubtree()
+}};
+
+% , below right=0cm and 1cm of ksc, anchor=south west
+\node[box, below right=0cm and 1cm of ksc,anchor=south west] (stb) {
+	{\centering \textbf{SgnTextBox} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{\Lightning\ QueryChanged\\\quad
+		\Lightning\ SgnFilterChanged\\\quad
+		\Lightning\ GetSgnSubtree\\\quad
+		\Lightning\ SgnNotNeeded \\\quad
+		OnSgnResltReady() \\\quad
+		OnShowSgnMsg()
+}};
+\node[box, below=0.5cm of ksc] (sp) {
+	{\centering \textbf{SgnProvider} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{GetSgn() \\\quad
+		GetSgnAsync() \\\quad
+		CancelSgn() \\\quad
+		\Lightning\ SgnResultsReady\\\quad
+		\Lightning\ ShowSgnMessage
+}};
+
+\node[box, below=0.5cm of stb] (sp) {
+	{\centering \textbf{SgnPopup} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{Open() \\\quad
+		Close() \\\quad
+		OnKeyDown() \\\quad
+		\Lightning\ OnItemSelected\\\quad
+		\Lightning\ OnItemExpanded
+}};
+
+\node[box] (lp) at (-4.4,-3.1) {
+	{\centering \textbf{LabelProvider} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{Labels
+}};
+
+\node[box, above left=0.5cm and 0.5cm of ksc] (mw) {
+	{\centering \textbf{MainWindow} \par}
+	\nodepart{second}
+	{\scriptsize PRIVATE:}\\\quad
+	\textit{KeywordChanged()\\\quad
+		LoadFromConfig()
+}};
+
+\node[box, above right=0 and 0.5cm of mw, anchor=north west] (kmw) {
+	{\centering \textbf{KWModelWrapper} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}\\\quad
+	\textit{RankFrames()
+}};
+
+\node[box, above right=0 and 1cm of kmw, anchor=north west] (km) {
+	{\centering \textbf{KWModel} \par}
+	\nodepart{second}
+	{\scriptsize PUBLIC:}$\ $\textit{RankFrames()
+}};
+
+\draw[o->, dotted] (0.35,-2.2) -- (-4.6,-2.2) -- (-4.6,1.35) -- (-4.05,1.35);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (-0.5,1.6) -- (0,1.6);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (-0.5,0.5) -- (0,0);
+
+\draw[-stealth,shorten >=0.2cm, shorten <=0.2cm] (3.9,2) -- (4.9,2);
+\draw[-stealth,shorten >=0.2cm, shorten <=0.2cm] (3.9,1.8) -- (4.9,1.8);
+\draw[-stealth,shorten >=0.2cm, shorten <=0.2cm] (3.9,2.2) -- (4.9,2.2);
+
+
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-6) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-5.75) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-5.5) {};
+\node[font=\footnotesize] at (-2.45,-6.6) {\textit{.label}};
+\draw[-stealth,shorten >=0.1cm, shorten <=0.1cm] (-2.45,-4.8) -- (-2.45,-5.5);
+
+
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-0.7) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-0.45) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (-2.45,-0.2) {};
+\node[font=\footnotesize] at (-2.45,-1.3) {\textit{images}};
+\draw[-stealth,shorten >=0.1cm, shorten <=0.1cm] (-2.45,0.5) -- (-2.45,-0.2);
+
+
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (6.0,0.3) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (6.0,0.55) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (6.0,0.8) {};
+\node[font=\footnotesize] at (6.0,-0.3) {\textit{.keyword}};
+\draw[-stealth,shorten >=0.1cm, shorten <=0.1cm] (6.0,1.275) -- (6.0,0.8);
+
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (7.7,0.3) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (7.7,0.55) {};
+\node[cylinder,fill=bottomcol, shape border rotate=90, aspect=1, inner sep=2pt, minimum width=1cm, draw, anchor=north] at (7.7,0.8) {};
+\node[font=\footnotesize] at (7.7,-0.3) {\textit{.idf}};
+\draw[-stealth,shorten >=0.1cm, shorten <=0.1cm] (7.7,1.275) -- (7.7,0.8);
+
+
+\draw[o->, dotted] (5.25,-2.5) -- (4.25,-2.5) -- (4.25,-3.35) -- (3.7,-3.35);
+\draw[o->, dotted] (5.25,-2.9) -- (4.35,-2.9) -- (4.35,-3.75) -- (3.7,-3.75);
+\draw[o->, dotted] (5.25,-3.3) -- (4.45,-3.3) -- (4.45,-4.2) -- (3.7,-4.2);
+\draw[o->, dotted] (5.25,-3.75) -- (4.55,-3.75) -- (4.55,-4.6) -- (3.7,-4.6);
+
+\draw[o->, dotted] (3.7,-8.2) -- (4.65,-8.2) -- (4.65,-4.15) -- (5.25,-4.15);
+\draw[o->, dotted] (3.7,-8.65) -- (4.75,-8.65) -- (4.75,-4.6) -- (5.25,-4.6);
+
+\draw[o->, dotted, shorten >=0.2cm] (8.6,-8.2) -- (9,-8.2) -- (9,-5.4) -- (8.8,-5);
+\draw[o->, dotted, shorten >=0.2cm] (8.6,-8.65) -- (9.1,-8.65) -- (9.1,-5.1) -- (8.8,-5);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (1.95,-5) -- (1.95,-5.5);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (1.75,-5) -- (1.75,-5.5);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (2.15,-5) -- (2.15,-5.5);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (0,-4) -- (-.5,-4);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (0,-4.2) -- (-.5,-4.2);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (0,-3.8) -- (-.5,-3.8);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (0,-5.5) -- (-.5,-4.8);
+
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (6.85,-5) -- (6.85,-5.5);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (6.65,-5) -- (6.65,-5.5);
+\draw[-stealth,shorten >=0.05cm, shorten <=0.05cm] (7.05,-5) -- (7.05,-5.5);
+\end{tikzpicture}

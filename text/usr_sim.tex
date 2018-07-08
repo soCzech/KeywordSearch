@@ -37,11 +37,11 @@ To create modeled user, the author annotated 250 random images from MSR collecti
 	\end{tabular}
 	\input{img/simulation_keyword_thresholds.tikz}
 	
-	\caption[Comparison between ideal, real and modeled user]{Comparison between ideal ($Q_i$) and real ($Q_r$) user on the left and between modeled ($Q_m$) and real on the right. X axis shows position $t$ and Y axis shows probability $p(r_{\bm{x}}\leq t)$ how likely random image will be in first $t$ images given query constructed by ideal, real or modeled user. Bottom graph shows how discarding all labels with probability less than $\mu$ affects quality of ranking. Based on 2000 queries of ideal and modeled user and 250 queries of real user.}
+	\caption[Comparison between ideal, real and modeled user]{Comparison between ideal ($Q_i$) and real ($Q_r$) user on the left and between modeled ($Q_m$) and real on the right. Horizontal axis shows position $t$ and vertical axis shows probability $p(r_{\bm{x}}\leq t)$ how likely random image will be in first $t$ images given query constructed by ideal, real or modeled user. Bottom graph shows how discarding all labels with probability less than $\mu$ affects quality of ranking. Based on 2000 queries of ideal and modeled user and 250 queries of real user.}
 	\label{fig:simulation_keyword}
 \end{figure}
-
-Using simulations we can introduce a threshold $\mu$ discarding all labels with probability smaller than the threshold and investigate how different values of $\mu$ affect quality of the ranking. As can be seen in Figure \ref{fig:simulation_keyword} (bottom) using $\mu=0.005$ deteriorates quality of ranking quite significantly whereas threshold of $0.001$ has negligible effect. Therefore in production $\mu = 0.001$ is used yielding to approximately 80 labels per image on average, reducing the inverted index size to only 7 percent of the original size. 
+Simulations clearly show that keyword retrieval model can alone, even in the most optimistic case, find only 50\% of queries considering only ranks up to small thousands since browsing in even 10 thousand images cannot be done in reasonable time. But on the other hand the graphs show that approximately 10\% of searched images can be found in first few hundreds indicating that some browsing can be beneficial. We can also see that extending the query by new labels increases chance of success even in case of the conservative modeled user.
+To reduce memory requirements of our retrieval model we also introduce a threshold $\mu$ discarding all labels with probability smaller than the threshold. Using simulations we investigate how different values of $\mu$ affect quality of the ranking. As can be seen in Figure \ref{fig:simulation_keyword} (bottom) using $\mu=0.005$ deteriorates quality of ranking quite significantly whereas threshold of $0.001$ has negligible effect. Therefore in production $\mu = 0.001$ is used yielding to approximately 80 labels per image on average, reducing the inverted index size to only 7 percent of the original size.
 
 \begin{figure}
 	\centering
@@ -53,7 +53,7 @@ Using simulations we can introduce a threshold $\mu$ discarding all labels with 
 \end{figure}
 
 
-\subsection{Similarity Reranking}
+\subsection{Similarity Re-Ranking}
 Many interactive video retrieval tools enable user to query a database in many modalities. The most relevant shots (images) $D$ are then displayed to the user. If searched image $\bm{x}$ is not present in set $D$, usually user can sequentially browse the results. However, as datasets get bigger this approach quickly becomes unfeasible. Retrieval systems therefore provide an option of similarity browsing based on handcrafted features or more recently deep neural network features~\cite{lokovc2018revisiting, barthel2018fusing} speeding up the search if visually and/or semantically similar image is present in set $D$. Therefore we evaluate our model together with similarity browsing based on our networks deep features to better estimate model's performance in known-item search task. We take the definition of similarity user from \cite{kovalvcik2017comparison}:
 \begin{description}[labelwidth=1em, leftmargin=!]
 	\item Ideal \textbf{Similarity User.} Given an target image $\bm{x}$ and set of most relevant images $D$, the most similar image to $\bm{x}$ from $D$ is selected.
@@ -63,6 +63,40 @@ We define similarity of two images as cosine of the angle between their activati
 similarity(\bm{a},\bm{b}) = \frac{\langle f'(\bm{a};\bm{\theta}),f'(\bm{b};\bm{\theta})\rangle}{\|f'(\bm{a};\bm{\theta})\|\|f'(\bm{b};\bm{\theta})\|}
 \end{equation}
 where $\bm{a}$ and $\bm{b}$ are two images, $\langle\cdot,\cdot\rangle$ is dot product and $\|\cdot\|$ is $L_2$ norm.
+
+In the simulations ideal, real and modeled keyword users are used to assign each image in a collection initial rank and $|D|$ top ranking images are passed to similarity user. Even though, as reported by \cite{kovalvcik2017comparison}, humans usually do not select the most similar image based on our $similarity$ measure we can use this optimistic approximation to show theoretical limits of our model and to compare how well keyword initialization helps with \textit{page zero problem} of similarity browsing.
+Results in Figure \ref{fig:simulation_rerank} shows that one re-ranking significantly improves chance of success whereas added value of every other re-ranking lowers probably because we converge to some cluster in high dimensional feature space. We can also see that even given ideal keyword user and ideal similarity user 20\% of images we not found therefore proving interactive search using other approaches such as color or edge sketches as necessity. With respect to the results of simulations with random query initialization we argue that such small gap between random and modeled user after three re-rankings is due to target dataset's uniformity where keyword initialization cannot help much. Searching for dataset's distinct objects using only similarity browsing is on the other hand based on our experience with the dataset almost impossible.
+
+\begin{figure}
+	\centering
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/simulation_rerank_0.tikz}
+		}
+	\end{tabular}
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/simulation_rerank_1.tikz}
+		}
+	\end{tabular}
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/simulation_rerank_2.tikz}
+		}
+	\end{tabular}
+	\begin{tabular}{@{}c@{}}
+		\subfloat{
+			\input{img/simulation_rerank_3.tikz}
+		}
+	\end{tabular}
+\begin{tikzpicture}
+	\node [draw=none,font=\footnotesize, fill=none,anchor=north west] at (0,0) {Keyword user: \ref{plot:purple} Real\quad\ref{plot:solid} Ideal\quad\ref{plot:dashed} Modeled\quad\ref{plot:dotted} Random};
+\end{tikzpicture}
+
+
+	\caption[Influence of similarity browsing on ranking]{Influence of similarity browsing on ranking. Horizontal axis shows position $t$ and vertical axis shows probability $p(r_{\bm{x}}\leq t)$ how likely random image will be in first $t$ images given query constructed by ideal, real, modeled or random user and number of re-rankings by similarity user with $D$ being $50$ highest ranked images from the previous iteration or keyword initialization. Based on 1000 queries of ideal, modeled and random user and 250 queries of real user.}
+	\label{fig:simulation_rerank}
+\end{figure}
 
 \section{VBS Competition}
 
@@ -84,10 +118,7 @@ where $|C|$ is number of correct and $|I|$ number of incorrect team's submission
 
 During the competition there were five runs each with four tasks -- visual KIS, textual KIS and AVS rounds with tools being operated by experts (usually creators of the tools) and another visual KIS and AVS rounds with tools operated by novice users selected from conference visitors. The overall score was determined by averaging all five rounds with a winner of each round getting 100 points and others proportionally to the winner.
 
-\subsection{Results}
-The results of VBS 2018 can be seen in Table \ref{fig:vbs_results}. SIRET was the only team to successfully solve both solved textual KIS tasks and all expert visual KIS task.
-
-\begin{table}[h]
+\begin{table}
 	
 	\centering
 	\sisetup{detect-weight=true,detect-inline-weight=math}
@@ -99,7 +130,7 @@ The results of VBS 2018 can be seen in Table \ref{fig:vbs_results}. SIRET was th
 		SIRET (our)~\cite{lokovc2018revisiting}& 95\por{2}&\bftabnum 100\por{1}&    71\por{4}&           67\por{4}&    83\por{2}& \bftabnum 83\\
 		ITEC1~\cite{ITEC1}      & 64\por{6}&           37\por{5}&    60\por{7}&\bftabnum 100\por{1}&    64\por{4}& 65\\
 		ITEC2~\cite{ITEC2}      & 29\por{8}&           47\por{3}&    81\por{2}&           85\por{3}&    75\por{3}& 63\\
-		HTW~\cite{HTW}        & 91\por{3}&           41\por{4}&    61\por{6}&           50\por{5}&    61\por{5}& 61\\
+		HTW~\cite{barthel2018fusing}        & 91\por{3}&           41\por{4}&    61\por{6}&           50\por{5}&    61\por{5}& 61\\
 		NECTEC~\cite{NECTEC}     & 68\por{5}&            0&\bftabnum 100\por{1}&            0&\bftabnum 100\por{1}& 54\\
 		VIREO~\cite{VIREO}      &\bftabnum 100\por{1}&  0&           50\por{8}&           86\por{2}&    30\por{8}& 53\\
 		VITRIVR~\cite{VITRIVR}    & 79\por{4}&           55\por{2}&    64\por{5}&            0&           35\por{7}& 47\\
@@ -112,6 +143,9 @@ The results of VBS 2018 can be seen in Table \ref{fig:vbs_results}. SIRET was th
 	\caption[VBS 2018 results]{VBS 2018 results.}
 	\label{fig:vbs_results}
 \end{table}
+
+\subsection{Results}
+The results of VBS 2018 are presented in Table \ref{fig:vbs_results} where it can be seen we won by significant margin scoring 27 percent more points than the second team. However in Table \ref{fig:vbs_tasks_timeline} we can see there are still areas for improvement especially in the textual KIS tasks where two of four tasks were not solved by any team. But we can proudly report that SIRET was the only team to successfully solve both solved textual KIS tasks and all expert visual KIS task yet we finished the round second after a team with only three solved tasks because of the wrong submission penalty in the first task. Interestingly even though strong in the expert visual run, in the novice run we were not able to solve two out of four tasks. This trend of lower performance in novice run can be however observed with all teams except ITEC1 and ITEC2 with the former being the only team solving three out of four tasks.
 
 \begin{table}[h]
 	
@@ -128,6 +162,9 @@ The results of VBS 2018 can be seen in Table \ref{fig:vbs_results}. SIRET was th
 	\caption[Number of successful teams per task at VBS 2018]{Number of successful teams per video KIS (V), textual KIS (T) and AVS~(A) task with tool being operated by experts (E) or novices (N). Red tasks were not solved by our tool.}
 	\label{fig:vbs_tasks}
 \end{table}
+
+
+Since VBS 2018 mandatory logging of user actions was established such that with each frame sent to the server basic set of actions that lead to the result was submitted. Even though complete analysis will be published in separate journal, we can at least show and analyze logs from our tool presented in Figure~\ref{fig:vbs_tasks_timeline}. Looking at the visual KIS expert tasks we can see that both keyword and color sketch can be equally good initialization of a display from which we can semantically browse the collection. On the other hand in the textual KIS tasks, keyword plays the utmost role in success with all teams starting with keyword queries except ITEC2 which utilized their advanced color sketch interface but in the end falling back on keyword search anyway. When comparing expert and novice users we can see expert's more systematic approach utilizing less models at once. At least in the second and fourth expert visual task we can with high probability say user has been systematically using color sketch as a filter wheres novices with their rapid model changes could hardly do some systematic filtering. In the AVS tasks we lost some potential since our tool was not able to quickly send whole range of images yet our .... proved to be useful especially for novices. Visual representation of AVS logs can be seen in the Attachment \ref{}.
 
 \begin{figure}
 	\centering

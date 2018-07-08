@@ -89,6 +89,24 @@
 
 
 %%% MY COMMANDS
+\newcommand*{\Lightning}[1][]{%
+	\tikz[
+	x=.55 * height("H"),  % symbol width
+	y=height("H"),  % symbol height
+	baseline=(current bounding box.south),
+	line width=.02 * height("H"),
+	line join=bevel,
+	]
+	\filldraw[{#1}]
+	(-.5, -.5) -- (.4, -.03) -- (-.1, .06) --
+	(.5, .5) -- (-.4, .03) -- (.1, -.06) --
+	cycle
+	% side bearings
+	(-.5 - .08, 0)
+	(.5 + .08, 0)
+	;%
+}
+
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}\PackageWarning{TODO:}{#1!}}
 \newcommand{\missing}[1]{\textcolor{red}{\textbf{?} #1}\PackageWarning{MISSING:}{#1!}}
 \newcommand{\por}[1]{\raisebox{1.5pt}{\normalfont\scriptsize\space({#1})}}
