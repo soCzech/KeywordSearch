@@ -15,8 +15,8 @@ xtick={1,200,400,600,800,1000,1150},
 ylabel = {$p(k)$},
 xlabel={$k$},
 axis lines*=left,
-x label style={at={(1,0)},anchor=south west},
-y label style={at={(0.01,0.9)},rotate=-90,anchor=south west}
+x label style={at={(1,0)},anchor=north west},
+y label style={at={(0,1.05)},rotate=-90,anchor=north east}
 ]
 
 \addplot[ycomb,mark=none,purple] table [x=Label, y=Percentage, col sep=comma] {data/keyword-only-histogram-real.csv};

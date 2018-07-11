@@ -22,6 +22,6 @@
 		%\addplot[mark=none,blue] table [x=Rank2, y=Percentage, col sep=comma] {data/keyword-only-modeled-ranks.csv};
 		%\addplot[mark=none,purple] table [x=Rank3, y=Percentage, col sep=comma] {data/keyword-only-modeled-ranks.csv};
 		%\addplot[mark=none,PineGreen] table [x=Rank1, y=Percentage, col sep=comma] {data/keyword-only-real-ranks.csv};
-		\legend{$|Q_m|=1$,$|Q_m|=3$,$|Q_m|=7$,$Q_r$}
+		\legend{$|Q_d|=1$,$|Q_d|=3$,$|Q_d|=7$,$Q_r$}
 	\end{axis}
 \end{tikzpicture}

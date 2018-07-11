@@ -49,7 +49,7 @@
 \usepackage{dcolumn}        % improved alignment of table columns
 \usepackage{booktabs}       % improved horizontal lines in tables
 \usepackage{paralist}       % improved enumerate and itemize
-\usepackage[usenames]{xcolor}  % typesetting in color
+\usepackage[rgb]{xcolor}  % typesetting in color
 
 
 %% user packages
@@ -57,7 +57,7 @@
 \usepackage{tikz}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{subfig}
-\usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing,arrows.meta}
+\usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing,arrows.meta,shapes.multipart}
 \usepackage{multirow}
 \usepackage{titlesec}
 
@@ -73,7 +73,7 @@
 	\bfseries
 	\sisetup{output-decimal-marker={\textbf{.}}}%
 }
-
+\pgfplotsset{compat=1.16}
 
 %%% Basic information on the thesis
 
@@ -159,7 +159,7 @@ Abstract.
 
 %%% Abbreviations used in the thesis, if any, including their explanation
 %%% In mathematical theses, it could be better to move the list of abbreviations to the beginning of the thesis.
-\chapwithtoc{List of Abbreviations}
+% \chapwithtoc{List of Abbreviations}
 
 %%% Attachments to the bachelor thesis, if any. Each attachment must be
 %%% referred to at least once from the text of the thesis. Attachments
@@ -173,9 +173,7 @@ Abstract.
 %%% should be uploaded to SIS and optionally also included in the thesis on a~CD/DVD.
 %%% Allowed file formats are specified in provision of the rector no. 13/2017.
 \appendix
-\chapter{Attachments}
-
-\section{First Attachment}
+\include{attachments}
 
 \openright
 \end{document}

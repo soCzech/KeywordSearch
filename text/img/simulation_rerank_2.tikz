@@ -10,10 +10,11 @@
 		axis lines*=left,
 	]
 
-		\addplot[mark=none,purple] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/real-rerank.csv};
-		\addplot[mark=none,black] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/ideal-rerank.csv};
+		\addplot[mark=none,black,dash dot] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/ideal-rerank.csv};
 		\addplot[mark=none,black,dashed] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/modeled-rerank.csv};
 		\addplot[mark=none,black,dotted] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/random-rerank.csv};
+		\addplot[mark=none,black] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/mixed-rerank.csv};
+		\addplot[mark=none,purple] table [x=Rank3, y=Percentage, col sep=comma] {data/sim-rerank/real-rerank.csv};
 		\node [draw=none,font=\scriptsize, fill=none,anchor=south east] at (rel axis cs: 1,0.04) {2 reranks};
 	\end{axis}
 \end{tikzpicture}

@@ -18,7 +18,7 @@ box/.style={
 
 \path[fill=yellow,opacity=0.05, draw=black] (0,-2.6) -- (-4.9,-2.6) -- (-4.9,-9.5) -- (9.3,-9.5) -- (9.3,-0.55) -- (4.15,-0.55) -- (4.15,-2.6) -- (3.9,-2.6);
 
-\node[anchor=south west, font=\footnotesize, text=darkgray] at (-4.9,-9.5) {\textit{User Interface}};
+\node[anchor=south west, font=\footnotesize, text=darkgray] at (-4.9,-9.5) {\textit{Suggestion Text Box}};
 
 \node[box, rectangle split parts=3] (ksc) at (0,0) {
 	{\centering \textbf{KWSearchControl} \par}
