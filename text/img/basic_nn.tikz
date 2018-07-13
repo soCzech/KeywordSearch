@@ -12,20 +12,22 @@ squa/.style={
 }
 ]
 
-\node[] (x2) at (.2,0) {$x_2$};
-\draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (0,0) -- (3,0) node[midway, below] {$w_{2,2}$};
+\node[draw, circle, inner sep=2pt] at (0,0) {};
+\node[] (x2) at (-.5,0) {$x_2$};
+\draw[-latex, shorten >= 0.5cm, shorten <= 0.1cm] (0,0) -- (3,0) node[midway, below] {$w_{2,2}$};
 \node[init] at (3,0) {$\displaystyle\Sigma$};
 \draw[-latex, shorten >= 0.9cm, shorten <= 0.5cm] (3,0) -- (5,0);
 \node[squa] at (5,0) {$\max(0,x)$};
 
-\node[] (x1) at (.2,1.5) {$x_1$};
-\draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (0,1.5) -- (3,1.5) node[midway, above] {$w_{1,1}$};
+\node[] (x1) at (-.5,1.5) {$x_1$};
+\node[draw, circle, inner sep=2pt] at (0,1.5) {};
+\draw[-latex, shorten >= 0.5cm, shorten <= 0.1cm] (0,1.5) -- (3,1.5) node[midway, above] {$w_{1,1}$};
 \node[init] (sigma) at (3,1.5) {$\displaystyle\Sigma$};
 \draw[-latex, shorten >= 0.9cm, shorten <= 0.5cm] (3,1.5) -- (5,1.5);
 \node[squa] (max) at (5,1.5) {$\max(0,x)$};
 
-\draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (0,0) -- (3,1.5) node[near end, below=2pt] {$w_{2,1}$};
-\draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (0,1.5) -- (3,0) node[near start, below=2pt] {$w_{1,2}$};
+\draw[-latex, shorten >= 0.5cm, shorten <= 0.1cm] (0,0) -- (3,1.5) node[near end, below=2pt] {$w_{2,1}$};
+\draw[-latex, shorten >= 0.5cm, shorten <= 0.1cm] (0,1.5) -- (3,0) node[near start, below=2pt] {$w_{1,2}$};
 
 \draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (5.5,0) -- (8,0.75) node[midway, below=2pt] {$v_{2}$};
 \draw[-latex, shorten >= 0.5cm, shorten <= 0.5cm] (5.5,1.5) -- (8,0.75) node[midway, above=2pt] {$v_{1}$};

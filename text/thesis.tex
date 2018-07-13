@@ -59,6 +59,7 @@
 \usepackage{subfig}
 \usetikzlibrary{matrix,chains,positioning,arrows,shapes,decorations.pathreplacing,arrows.meta,shapes.multipart}
 \usepackage{multirow}
+\usepackage{multicol}
 \usepackage{titlesec}
 
 \usepackage{algorithm}
@@ -67,6 +68,7 @@
 
 \usepackage{enumitem}
 \usepackage{scrextend}
+\usepackage{verbatim}
 
 \usepackage{etoolbox,siunitx}
 \newrobustcmd*{\bftabnum}{%
@@ -112,12 +114,12 @@ Dedication.
 
 % Abstract (recommended length around 80-200 words; this is not a copy of your thesis assignment!)
 \def\Abstract{%
-Abstract.
+The thesis focuses on designing and evaluating a keyword retrieval model for known-item search in image collections. We use a deep neural network trained on a custom dataset to annotate the images. We design complex yet easy-to-use query interface for fast image retrieval. We simulate a real user to estimate the model's performance in an interactive setting. We also discuss our successful participation at an international competition.
 }
 
 % 3 to 5 keywords (recommended), each enclosed in curly braces
 \def\Keywords{%
-{key} {words}
+{Neural networks}, {known-item search}, {image retrieval}.
 }
 
 %% The hyperref package for clickable links in PDF and also for storing
