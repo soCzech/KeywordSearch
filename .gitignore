@@ -21,7 +21,6 @@ text/*.pdf
 text/*.aux
 text/*.log
 text/*.toc
-text/*.xmpdata
 text/*.out
 text/*.bbl
 text/*.blg

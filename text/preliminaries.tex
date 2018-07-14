@@ -1,7 +1,7 @@
 \chapter{Preliminaries}\label{chap:preliminaries}
 
 
-In this chapter, we present the mathematical background that will be further needed to describe our work. We introduce gradient descent algorithm and neural networks and we outline how to train them. Some of this chapter's definitions we took from~\cite{Goodfellow-et-al-2016} which we also highly suggest for a reader more interested in the subject.
+In this chapter, we present the mathematical background that will be further needed to describe our work. We summarize gradient descent algorithm and neural networks and we outline how to train them. Some of this chapter's definitions we took from~\cite{Goodfellow-et-al-2016} which we also highly suggest for a reader more interested in the subject.
 
 
 \section{Multivariable Calculus}
@@ -17,7 +17,7 @@ To compute the derivative of a composition of two or more functions \textit{chai
 \end{equation*}
 where $\frac{\partial g(\bm{x})}{\partial\bm{x}}$ is the Jacobian matrix.
 
-Given a function $f\colon\R^n\to\R$ we may ask where are its local (or global) minima. For some functions, it can be computed analytically, for the most of them however the analytical solution is impossible and we, therefore, introduce a numerical method called \textit{gradient descent}. We start with arbitrary point $\bm{x}\in \R{^n}$. Since gradient tells us how to change $\bm{x}$ in order to make a small improvement in $f(\bm{x})$, to minimize $f(\bm{x})$ we make a small change to $\bm{x}$ in the opposite direction:
+Given a function $f\colon\R^n\to\R$ we may ask where are its local (or global) minima. For some functions, it can be computed analytically, for the most of them however the analytical solution is impossible and so a numerical method called \textit{gradient descent} is often used. We start with arbitrary point $\bm{x}\in \R{^n}$. Since gradient tells us how to change $\bm{x}$ in order to make a small improvement in $f(\bm{x})$, to minimize $f(\bm{x})$ we make a small change to $\bm{x}$ in the opposite direction:
 \begin{equation*}
 \bm{x}=\bm{x}-\alpha\nabla_{\bm{x}}f(\bm{x})
 \end{equation*}
