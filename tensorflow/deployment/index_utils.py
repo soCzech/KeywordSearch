@@ -5,10 +5,10 @@ import numpy as np
 from common_utils import dataset
 
 
-def get_class_representatives_v2(filename):
+def get_class_representatives_v2(filename, file_header):
     classes = {}
 
-    with dataset.read_file(filename) as f:
+    with dataset.read_file(filename, file_header) as f:
         raw_id = f.read(4)
         no_classes = struct.unpack('<I', raw_id)[0]
         print("Number of classes:", no_classes)
