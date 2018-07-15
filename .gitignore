@@ -16,6 +16,7 @@ labels/
 index_file_gen.py
 _stuff/
 _run/
+_thrash/
 
 text/*.pdf
 text/*.aux

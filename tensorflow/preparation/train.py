@@ -9,6 +9,20 @@ from models import network
 
 def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=False, ckpt_dir="./",
           no_epochs=10, batches_per_epoch=1000, batches_per_validation=100, decay_every_n_steps=10000):
+    """Trains a neural network for given number of epochs.
+
+    Args:
+        filenames: Dictionary with 'train' and 'validation' key containing names of tfrecord files.
+        batch_size: Batch size to use.
+        num_classes: Number of classes in the softmax classification layer.
+        learning_rate: Initial learning rate.
+        train_all: True if the whole network should be trained, otherwise only the last layer will be trained.
+        ckpt_dir: Location where the checkpoints are stored.
+        no_epochs: Number of epoch to run for.
+        batches_per_epoch: Number of batches per epoch.
+        batches_per_validation: Number of batches to run from the validation dataset after each epoch.
+        decay_every_n_steps: Lower learning rate each n steps.
+    """
 
     pt = console.ProgressTracker()
     sess = tf.Session()
@@ -150,35 +164,10 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
 
 
 if __name__ == '__main__':
-    trn = ["W:/tars/new/new_tars_trn/trn_1150_{:05d}-of-01035.tfrecord".format(i) for i in range(0, 1035)]
-    val = ["W:/tars/new/new_tars_val/val_1150_{:05d}-of-00115.tfrecord".format(i) for i in range(0, 115)]
+    trn = []
+    val = []
+    ckpt_dir = ""
 
-    # seed 42
-    # train({"train": trn, "validation": val},
-    #       batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False,
-    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=30,
-    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)
-
-    # seed 42
-    # train({"train": trn, "validation": val},
-    #       batch_size=32, num_classes=1150, learning_rate=0.00005, train_all=True,
-    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
-    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=30000)
-
-    # seed 42
-    # train({"train": trn, "validation": val},
-    #       batch_size=32, num_classes=1150, learning_rate=0.000025, train_all=True,
-    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
-    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
-
-    # seed 422
-    # train({"train": trn, "validation": val},
-    #       batch_size=32, num_classes=1150, learning_rate=0.00001, train_all=True,
-    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=80,
-    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
-
-    # seed 4224
     train({"train": trn, "validation": val},
-          batch_size=32, num_classes=1150, learning_rate=0.000001, train_all=True,
-          ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=80,
-          batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
+          batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False,
+          ckpt_dir=ckpt_dir, no_epochs=30, batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)

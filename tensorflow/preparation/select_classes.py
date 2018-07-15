@@ -15,13 +15,13 @@ def create_clusters(deep_features, filename, image_dir, n_clusters=50):
     Uses deep features to create clusters of synsets for easier selection.
 
     Args:
-        deep_features: a location of the deep features file.
-        filename: a location where to store graph and 
-        image_dir:
-        n_clusters:
+        deep_features: A location of the deep features file.
+        filename: A location where to store the clusters.
+        image_dir: A location where the images are located.
+        n_clusters: Number of clusters to create.
 
     Returns:
-
+        List of numpy arrays each containing ids for one cluster.
     """
     pt = console.ProgressTracker()
     pt.info(">> Reading deep features...")
@@ -100,13 +100,13 @@ def create_clusters(deep_features, filename, image_dir, n_clusters=50):
 
 
 def _generate_cluster_page(html_name, synset_ids, image_dir, html_directory):
-    """
+    """Generates WordNet DAG html page for given synset ids.
 
     Args:
-        html_name:
-        synset_ids:
-        image_dir:
-        html_directory:
+        html_name: Name of the html file.
+        synset_ids: Synset ids to display in the graph.
+        image_dir: A location of images of all the classes.
+        html_directory: A location where the html components are stored.
     """
     pt = console.ProgressTracker()
 
@@ -115,7 +115,7 @@ def _generate_cluster_page(html_name, synset_ids, image_dir, html_directory):
 
     image_dir = os.path.abspath(image_dir)
 
-    # `id`, `names`, `description`, `parents`, `children`, `images`, `no_images`, `selected`"
+    # `id`, `names`, `description`, `parents`, `children`, `images`, `no_images`, `selected`
 
     with open(os.path.join(html_directory, html_name + ".html"), 'w') as html_file:
         with open(os.path.join(html_directory, "components/index.html"), 'r') as template:
@@ -162,12 +162,12 @@ def _generate_cluster_page(html_name, synset_ids, image_dir, html_directory):
 
 
 def generate_cluster_pages(synsets_lists, image_folder, components_folder):
-    """
+    """Generates WordNet DAG html page for each cluster.
 
     Args:
-        synsets_lists:
-        image_folder:
-        components_folder:
+        synsets_lists: A list of lists of synset ids.
+        image_folder: A location of images of all the classes.
+        components_folder: A location where the html components are stored.
     """
     pt = console.ProgressTracker()
     pt.info(">> Generating html pages...")
@@ -180,14 +180,14 @@ def generate_cluster_pages(synsets_lists, image_folder, components_folder):
 
 
 def get_images_for_each_class(directory, images_per_class=10):
-    """
+    """Reads images in given directory.
 
     Args:
-        directory:
-        images_per_class:
+        directory: Directory where the images are located.
+        images_per_class: Number of images to take per class.
 
     Returns:
-
+        Dictionary of (image path, class id).
     """
     res = dict()
 
@@ -215,28 +215,20 @@ def get_images_for_each_class(directory, images_per_class=10):
 
 
 if __name__ == '__main__':
-    images = get_images_for_each_class(
-        "W:\\tars\\new\\synsets.unpacked"
-    )
-    classify.run(
-        images,
-        1001,
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\tensorflow\\bin\\checkpoints\\inception_v1.ckpt",
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters",
-    )
+    dir_of_synset_ids_of_images = ""
+    imagenet_checkpoint = ""
+    component_dir = ""
+    where_to_store_clusters = ""
 
-    # with open("C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters-clusterdata.pickle", "rb") as f:
-    #     clusters, centroids, synsets = pickle.load(f)
-    # graph_utils.plot_scatter(clusters, centroids, "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters")
-    # exit(1)
+    images = get_images_for_each_class(dir_of_synset_ids_of_images)
+    classify.run(
+        images, 1001, imagenet_checkpoint, where_to_store_clusters
+    )
 
     synsets = create_clusters(
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters.deep-features",
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters",
-        "W:\\tars\\new\\synsets.unpacked"
+        where_to_store_clusters + ".deep-features",
+        where_to_store_clusters, dir_of_synset_ids_of_images
     )
     generate_cluster_pages(
-        synsets,
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\clusters",
-        "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\preprocessing\\html"
+        synsets, where_to_store_clusters, component_dir
     )

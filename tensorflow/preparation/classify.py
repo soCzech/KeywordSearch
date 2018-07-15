@@ -11,6 +11,17 @@ HEADER = DEFAULT_HEADER
 
 
 def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, calc_cov=True):
+    """Classifies given images and creates deep-feature and softmax output raw files.
+
+    Args:
+        filenames: Images to classify.
+        num_classes: Number of classes in the last layer.
+        model_path: Path to the checkpoint file of the neural network weights.
+        run_name: Path and name of the output files.
+        prob_threshold: Threshold :math:`\\mu`. Labels with probability smaller than :math:`\\mu` will not be saved.
+        calc_cov: Calculate :math:`\\mathbb{E}\\left[XY\\right]` and :math:`\\mathbb{E}\\left[X\\right]`
+            needed for covariance matrix.
+    """
     pt = console.ProgressTracker()
     pt.info(">> Initializing TensorFlow model...")
 

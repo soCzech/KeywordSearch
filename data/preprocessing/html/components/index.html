@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>WordNet Browser</title>
+	<script src="https://d3js.org/d3.v3.min.js"></script>
+	<script src="components/dagre-d3.js"></script>
+	<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+	<script src="components/tipsy.js"></script>
+	<script src="components/graph-utils.js"></script>
+
+	<link rel="stylesheet" href="components/graph-style.css">
+</head>
+<body>
+	<div id="controls">
+		<button class="btn zoom_in"><i class="material-icons">zoom_in</i></button>
+		<button class="btn zoom_out"><i class="material-icons">zoom_out</i></button>
+		<button class="btn zoom_out_map"><i class="material-icons">zoom_out_map</i></button>
+		<div class="clear"></div>
+		
+		<div class="legend">
+			<p><strong style="background: #F48024; border: 3px solid transparent;">R Mouse</strong> Use in NN</p>
+			<p><strong style="border: 3px solid #0060ff;">Ctrl + R Mouse</strong> Already reviewed subtree</p>
+			<p><strong style="background: #555; border: 3px solid transparent;">Alt + R Mouse</strong> Subtree not used in suggestions</p>
+			<p><strong style="background: #ff0000; border: 3px solid transparent;"><i>text</i></strong> Invalid combination</p>
+
+			<p><strong style="background: #f9f9f9; border: 3px solid transparent;"><i>text</i></strong> Leaf</p>
+			<p><strong style="border: 3px solid #F48024;"><i>text</i></strong> More than 500 images in ImageNet</p>
+
+			<p><strong>L Mouse</strong> Expand node</p>
+			<p><strong>Ctrl + L Mouse</strong> Expand subtree</p>
+		</div>
+	</div>
+
+	<svg><g/></svg>
+	
+	<script>
+	var WORDNET = {
+		@$
+	}
+	var G = getGraph(WORDNET, 'n00001740');
+	</script>
+	
+</body>
+</html>

@@ -1,0 +1,6 @@
+Whole image:
+	Results: top_1    56.0275%, top_5    83.8413%, top_10   90.0823%
+Center cutout:
+	Results: top_1    56.0623%, top_5    83.8309%, top_10   90.1676%
+10 patches averaged:
+	Results: top_1    57.1084%, top_5    84.7283%, top_10   90.9102%

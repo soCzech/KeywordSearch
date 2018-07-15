@@ -8,12 +8,11 @@ from common_utils import console, labels, input_pipeline
 
 
 def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, take=-1):
-    """
-    Converts images to tfrecord files.
+    """Converts all images in given directory to tfrecord files. Also creates the label file.
 
     Args:
-        raw_dir: A directory containing a set of subdirectories representing
-            class names. Each subdirectory should contain PNG or JPG encoded images.
+        raw_dir: A directory containing a set of subdirectories representing class names.
+            Each subdirectory should contain PNG or JPG encoded images.
         tfrecord_dir: A place to store converted images.
         dataset_name: A name for the new files.
         shards: Number of parts to split dataset to.
@@ -49,7 +48,8 @@ def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, t
 
 
 def convert_photos(images, tfrecord_dir, dataset_name, shards, class_names_dict):
-    """
+    """Stores images into tfrecord files.
+
     Args:
         images: A list of images to convert.
         tfrecord_dir: A place to store converted images.
@@ -108,7 +108,8 @@ def convert_photos(images, tfrecord_dir, dataset_name, shards, class_names_dict)
 
 
 def get_filenames_and_classes(dataset_dir, skip_first, take):
-    """
+    """Reads all images in given directory.
+
     Args:
         dataset_dir: A directory containing a set of subdirectories representing
             class names. Each subdirectory should contain PNG or JPG encoded images.
@@ -146,7 +147,8 @@ def get_filenames_and_classes(dataset_dir, skip_first, take):
 
 
 def get_dataset_filename(tfrecord_dir, filename, shard_id, shards):
-    """
+    """ Constructs filename from given arguments.
+
     Returns:
         tfrecord filename
     """
@@ -155,7 +157,8 @@ def get_dataset_filename(tfrecord_dir, filename, shard_id, shards):
 
 
 def dataset_exists(tfrecord_dir, filename, shards):
-    """
+    """Checks if specified dataset exists.
+
     Args:
         tfrecord_dir: directory of dataset
         filename: core filename of dataset
@@ -188,5 +191,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     convert_dataset(args.dataset_dir, args.tfrecord_dir, args.filename, args.parts, args.skip_first, args.take)
-
-# python preparation/create_dataset.py --dataset_dir="W:\tars\new\new_selected" --tfrecord_dir="W:\tars\new\new_tars" --filename=val_1150 --parts=115 --take=100

@@ -1,25 +1,24 @@
 import tensorflow as tf
-import matplotlib.pyplot as plt
 
 from common_utils import input_pipeline, console
 from models import network
 
 
 def validate(filenames, num_classes, ckpt_dir="./"):
+    """Performs validation run on a tfrecord dataset files. =
+    Also calculates accuracy using multiple patches from an image.
+
+    Args:
+        filenames: Tfrecord filenames.
+        num_classes: Number of classes in the softmax classification layer.
+        ckpt_dir: Location where the checkpoints are stored.
+    """
 
     pt = console.ProgressTracker()
     sess = tf.Session()
 
     iterator = input_pipeline.make_image_patches(filenames)
     images, labels = iterator.get_next()
-
-    # r = sess.run(images)
-    # print(r.shape)
-    #
-    # for i in range(r.shape[0]):
-    #     plt.imshow(r[i])
-    #     plt.show()
-    # exit(0)
 
     """
         Network model
@@ -97,8 +96,7 @@ def validate(filenames, num_classes, ckpt_dir="./"):
 
 
 if __name__ == '__main__':
-    val_test = ["C:/Users/Tom/Workspace/KeywordSearch/val_1150_00000-of-00115.tfrecord"]
-    val = ["W:/tars/new/new_tars_val/val_1150_{:05d}-of-00115.tfrecord".format(i) for i in range(0, 115)]
+    val = []
+    ckpt_dir = ""
 
-    validate(val_test, num_classes=1150,
-             ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints")
+    validate(val, num_classes=1150, ckpt_dir=ckpt_dir)
