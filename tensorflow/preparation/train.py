@@ -153,12 +153,32 @@ if __name__ == '__main__':
     trn = ["W:/tars/new/new_tars_trn/trn_1150_{:05d}-of-01035.tfrecord".format(i) for i in range(0, 1035)]
     val = ["W:/tars/new/new_tars_val/val_1150_{:05d}-of-00115.tfrecord".format(i) for i in range(0, 115)]
 
+    # seed 42
     # train({"train": trn, "validation": val},
     #       batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False,
     #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=30,
     #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)
 
+    # seed 42
+    # train({"train": trn, "validation": val},
+    #       batch_size=32, num_classes=1150, learning_rate=0.00005, train_all=True,
+    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
+    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=30000)
+
+    # seed 42
+    # train({"train": trn, "validation": val},
+    #       batch_size=32, num_classes=1150, learning_rate=0.000025, train_all=True,
+    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
+    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
+
+    # seed 422
+    # train({"train": trn, "validation": val},
+    #       batch_size=32, num_classes=1150, learning_rate=0.00001, train_all=True,
+    #       ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=80,
+    #       batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
+
+    # seed 4224
     train({"train": trn, "validation": val},
-          batch_size=32, num_classes=1150, learning_rate=0.00005, train_all=True,
-          ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=240,
-          batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=30000)
+          batch_size=32, num_classes=1150, learning_rate=0.000001, train_all=True,
+          ckpt_dir="C:/Users/Tom/Workspace/KeywordSearch/data/training/checkpoints", no_epochs=80,
+          batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=3000000)
