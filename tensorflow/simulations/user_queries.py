@@ -128,3 +128,7 @@ def parse_queries(query_log_filename, label_filename):
     return samples, indexes
 
 # endregion
+# s, i = parse_queries("C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\simulation\\anotated_frames.txt", "C:\\Users\\Tom\\Workspace\\KeywordSearch\\data\\content\\ITEC\\BC-ITEC-GoogLeNet.label")
+# print(len(s))
+# print(sum([len(a) for a in i]))
+# print(sum([len(a) for a in i])/float(len(s)))

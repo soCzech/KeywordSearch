@@ -1,8 +1,8 @@
-import numpy as np
-from simulations import similarity
-from common_utils import console, graph_utils
 import random
 import argparse
+
+from simulations import similarity
+from common_utils import console, graph_utils
 
 
 class Distance:

@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from PIL import Image as pImage, ImageDraw as pDraw, ImageFont as pFont
 from nltk.corpus import wordnet as wn
 
-from preparation import classify
+from processing import classify
 from common_utils import console, dataset, graph_utils, labels
 import pickle
 

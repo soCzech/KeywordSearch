@@ -286,7 +286,7 @@ class Simulation:
                     array += self._images.CLASSES[selected_indexes[i]] \
                         if not use_idf \
                         else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
-
+            # array = np.random.rand(*array.shape) + 0.1
             if array[image_id] != 0:
                 rank, indexes = self._get_rank_of_image(image_id, array)
 
@@ -339,32 +339,6 @@ class Simulation:
                 if indexes[i] in user_indexes:
                     dist[i] += 1
 
-        # smoothed = np.zeros(self._images.NO_CLASSES)
-        # weight = 0.97
-        #
-        # smoothed[0] = dist[0]
-        # for i in range(1, self._images.NO_CLASSES):
-        #     smoothed[i] = dist[i] * (1 - weight) + smoothed[i - 1] * weight
-        # for i in range(self._images.NO_CLASSES):
-        #     for j in range(max(0, i-10), min(i+10, self._images.NO_CLASSES)):
-        #         smoothed[i] += dist[j]
-        #     smoothed[i] /= min(i+10, self._images.NO_CLASSES) - max(0, i-10)
-        #
-        # min_reached = smoothed[0]
-        # accumulated = 0.0
-        # for i in range(1, self._images.NO_CLASSES):
-        #     if min_reached < smoothed[i]:
-        #         accumulated += smoothed[i] - min_reached
-        #         smoothed[i] = min_reached
-        #     elif smoothed[i] + accumulated > min_reached:
-        #         accumulated -= min_reached - smoothed[i]
-        #         smoothed[i] = min_reached
-        #     else:
-        #         smoothed[i] += accumulated
-        #         accumulated = 0
-        #         min_reached = smoothed[i]
-
-        #smoothed /= np.sum(smoothed)
         smoothed = dist/np.sum(dist)
 
         with open(filename + '-distribution-raw.pickle', 'wb') as f:
@@ -424,7 +398,7 @@ class Simulation:
             filename: a location where to store a graph.
         """
         graph_utils.plot_accumulative(self._ranks, filename, title='Cumulative Rank', x_axis='Rank',
-                                      y_axis='Number of Images [%]', viewbox=[(-100, 5100), (-2, 102)])
+                                      y_axis='Number of Images [%]', viewbox=[(-100, 100100), (-2, 102)])
 
 
 if __name__ == '__main__':
@@ -465,12 +439,6 @@ if __name__ == '__main__':
     parser.add_argument('--graph', action='store_true', default=False)
     parser.add_argument('--class_histogram', action='store_true', default=False)
     args = parser.parse_args()
-
-    # read_queries
-    #   'C:\\Users\\Tom\\Documents\\Visual Studio 2017\\Projects\\KeywordSelector\\' +
-    #   'KeywordSelector\\bin\\Debug\\Log\\KeywordSelector_2017-12-04_14-35-45.txt'
-    # read_labels
-    #   'C:\\Users\\Tom\\Workspace\\ViretTool\\TestData\\TRECVid\\TRECVid-GoogLeNet.label'
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -550,43 +518,3 @@ if __name__ == '__main__':
             pt.error('\'filename\' must be specified to graph rankings.')
             exit(1)
         u.histogram_of_hits(args.filename + "-histogram")
-
-# histogram of user hits
-# py simulations/simulation.py --human_user
-# --hist=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test.hist
-# --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\
-#   KeywordSelector_2017-12-04_14-35-45.txt"
-# --label_file=C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid-GoogLeNet.label
-# -i=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\TrecVidKF.softmax
-
-# run simulation
-# py simulations/simulation.py
-#   --perfect_user
-#   -i=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\TrecVidKF-Test.softmax
-#   -u=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\covariance\mean_unorm-TrecVidKF-Test.bin
-#   -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
-#   --sample_size=1000
-#   --query_lengths=1,2,3,4,5
-#   --save=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
-
-# draw graph
-# py simulations/simulation.py
-#   --perfect_user
-#   -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
-#   --restore_ranks=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-Test
-
-
-
-# --rank -i=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\TrecVidKF.softmax -u=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\covariance\mean_unorm-TrecVidKF.bin -g=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex -s=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\text\rank_TrecVidKF-SimilarityHumanComplex --thresholds=None --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\KeywordSelector_2017-12-04_14-35-45.txt" --label_file="C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid-GoogLeNet.label" --similarity=C:\Users\Tom\Workspace\ViretTool\TestData\TRECVid\TRECVid.vector --sim_closest=1,2 --sim_disp_size=50,300 --sim_reranks=1,3
-
-
-# python simulations/simulation.py --keyword=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\preparation\bin\LSC2018Dataset.softmax --idf=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\preparation\bin\LSC2018Dataset.sumX --th
-# resholds=None,0.001,0.01 --gen_samples=100 --query_lengths=4 --label_file=C:\Users\Tom\Workspace\ViretTool\TestData\LSC2018\LSC2018-GoogLeNet.label --log_file="C:\Users\Tom\Documents\Visual Studio 2017\Projects\KeywordSelector\KeywordSelector\bin\Debug\Log\KeywordSelector
-# _2017-12-04_14-35-45.txt" --use_user_dist --rank --graph --filename=LSC2018Dataset-usersim-idf-threshold
-
-
-# python preparation/classify.py --image_dir="E:\VIRET\Keyframes" --num_classes=1390 --model_path=C:\Users\Tom\Workspace\KeywordSearch\tensorflow\bin\checkpoints\model_v1.ckpt-280000 --run_name=TRECVidOldKeyframes
-
-
-
-####python simulations/simulation.py --keyword=C:\Users\Tom\Workspace\KeywordSearch\data\content\BC-TRECVid.softmax --similarity=C:\Users\Tom\Workspace\KeywordSearch\data\content\BC-TRECVid.deep-features --disp_size=200 --n_closest=1 --n_reranks=2 --filename=C:\Users\Tom\Workspace\KeywordSearch\data\simulation\test --visualization=E:\VIRET\KF\Keyframes-0toEnd --gen_samples=100 --query_lengths=3 --rank --graph

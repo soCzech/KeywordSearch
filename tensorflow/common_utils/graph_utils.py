@@ -114,13 +114,23 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
         ay = lmbda * np.exp(-lmbda * x)
         axs[index].plot(x, ay, label="Exp $\\lambda e^{\\lambda x}$")
 
+
+        avg = np.zeros(bins)
+        weight = 0.97
+
+        avg[0] = y[0]
+        for i in range(1, bins):
+            avg[i] = y[i] * (1 - weight) + avg[i - 1] * weight
+        avg = avg / np.sum(avg)
+        axs[index].plot(x, avg, label="Moving average")
+
         smoothed = np.zeros(bins)
         for i in range(bins):
             for j in range(max(0, i-10), min(i+10, bins)):
                 smoothed[i] += y[j]
             smoothed[i] /= min(i+10, bins) - max(0, i-10)
 
-        axs[index].plot(x, smoothed, label="Smoothed")
+        #axs[index].plot(x, smoothed, label="Smoothed")
 
         min_reached = smoothed[0]
         accumulated = 0.0
@@ -140,6 +150,16 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
 
         axs[index].plot(x, smoothed, label="Smoothed Dec")
 
+        avg = np.zeros(bins)
+        weight = 0.9
+
+        avg[0] = smoothed[0]
+        for i in range(1, bins):
+            avg[i] = smoothed[i] * (1 - weight) + avg[i - 1] * weight
+        avg = avg / np.sum(avg)
+        #axs[index].plot(x, avg, label="Smoothed dec MA")
+
+
         axs[index].legend(loc='upper right')
         # axs[index].set_xlabel('Rank')
         # axs[index].set_ylabel('Number of Images [%]')
@@ -148,7 +168,7 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
     save_fig(graph_filename)
 
 
-def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None, figure_size=0.5):
+def plot_accumulative(plots, graph_filename, title, x_axis=None, y_axis=None, viewbox=None, figure_size=0.5):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a graph...")
 
@@ -178,8 +198,10 @@ def plot_accumulative(plots, graph_filename, title, x_axis, y_axis, viewbox=None
     plt.legend(loc='lower right')
 
     ax.grid(linestyle="dashed", color='#eeeeee')
-    ax.set_xlabel(x_axis)
-    ax.set_ylabel(y_axis)
+    if x_axis is not None:
+        ax.set_xlabel(x_axis)
+    if y_axis is not None:
+        ax.set_ylabel(y_axis)
 
     pt.info(">> Saving the graph...")
     save_fig(graph_filename)
