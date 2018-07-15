@@ -10,6 +10,16 @@ DEFAULT_HEADER = BACHELOR_THESIS_HEADER
 
 
 def create_file(path, struct_data_list, file_header):
+    """Creates a file with a given header.
+
+    Args:
+        path: Path and name where to create the file.
+        struct_data_list: List of (data_format, data) to write to the file after the header using struct.pack().
+        file_header: File header as a list of byte strings.
+
+    Returns:
+        Handle of the created file.
+    """
     file = open(path, 'wb')
     for line in file_header:
         file.write(line)
@@ -21,6 +31,15 @@ def create_file(path, struct_data_list, file_header):
 
 
 def read_file(path, file_header):
+    """Reads a file with a given name and header.
+
+    Args:
+        path: Path and name of a file to read.
+        file_header: File header as a list of byte strings.
+
+    Returns:
+        Handle to start of the file's content after the header. Or exception if headers do not match.
+    """
     file = open(path, 'rb')
     for line in file_header:
         assert file.read(len(line)) == line, "File header mismatch!"
@@ -29,6 +48,14 @@ def read_file(path, file_header):
 
 
 def read_deep_features(path):
+    """Reads deep features file.
+
+    Args:
+        path: Path to a file to read.
+
+    Returns:
+        Dictionary of tuples (id, numpy array).
+    """
     d = dict()
     file = read_file(path, DEFAULT_HEADER)
     df_shape = struct.unpack('<I', file.read(4))[0]
@@ -47,6 +74,14 @@ def read_deep_features(path):
 
 
 def get_images_from_disk(directory):
+    """Reads files in folder.
+
+    Args:
+        directory: Folder to read from.
+
+    Returns:
+        Dictionary of tuples (file_absolute_path, id).
+    """
     directory = os.path.normpath(directory)
     image_id = 0
     res = dict()

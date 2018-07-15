@@ -2,6 +2,9 @@ from nltk.corpus import wordnet as wn
 
 
 class Synset:
+    """
+    Contains for us important data from the WordNet.
+    """
     def __init__(self, wn_id, names, desc):
         self.wn_id = wn_id
         self.names = names
@@ -10,6 +13,9 @@ class Synset:
 
 
 class Hypernym:
+    """
+    Represents a vertex in the WordNet DAG that is not actual class used by our model.
+    """
     def __init__(self, synset):
         self.hypernyms = []
         self.hyponyms = []
@@ -17,6 +23,9 @@ class Hypernym:
 
 
 class ImageClass:
+    """
+    Represents a vertex in the WordNet DAG that is actual class used by our model.
+    """
     def __init__(self, local_id, synset):
         self.hypernyms = []
         self.hyponyms = []
@@ -26,6 +35,14 @@ class ImageClass:
 
 
 def get_hypernyms(synsets):
+    """Constructs DAG given the 'leaf' synsets in the WordNet structure.
+
+    Args:
+        synsets: List of WordNet synsets from `nltk.corpus` package.
+
+    Returns:
+        Dictionary of (synset id, ImageClass or Hypernym)
+    """
     classes = {}
 
     def _get_hypernyms_helper(synset, classes):
@@ -51,6 +68,12 @@ def get_hypernyms(synsets):
 
 
 def create_labels(synsets_to_ids, label_file):
+    """Creates label file further used in the application UI.
+
+    Args:
+        synsets_to_ids: Synset id to internal id dictionary.
+        label_file: File where to store the labels.
+    """
     synsets = [wn.synset_from_pos_and_offset('n', int(synset_id[1:])) for synset_id, _ in synsets_to_ids.items()]
     classes = get_hypernyms(synsets)
 

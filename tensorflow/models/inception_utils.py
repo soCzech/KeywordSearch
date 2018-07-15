@@ -16,9 +16,7 @@
 
 Usage of arg scope:
 with slim.arg_scope(inception_arg_scope()):
-logits, end_points = inception.inception_v3(images, num_classes,
-                                            is_training=is_training)
-
+logits, end_points = inception.inception_v3(images, num_classes, is_training=is_training)
 """
 from __future__ import absolute_import
 from __future__ import division
