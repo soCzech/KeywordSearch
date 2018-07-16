@@ -416,9 +416,12 @@ if __name__ == '__main__':
     # similarity
     parser.add_argument('--similarity', type=str, default=False,
                         help='similarity vector filename if similarity reranking should be used')
-    parser.add_argument('--disp_size', type=str, default=False)
-    parser.add_argument('--n_closest', type=str, default=False)
-    parser.add_argument('--n_reranks', type=str, default=False)
+    parser.add_argument('--disp_size', type=str, default=False,
+                        help='number of images which to choose the closest ones for reranking from')
+    parser.add_argument('--n_closest', type=str, default=False,
+                        help='number of images to use for each reranking as a query')
+    parser.add_argument('--n_reranks', type=str, default=False,
+                        help='number of similarity reranks to do for each image')
 
     #
     parser.add_argument('--filename', type=str, default=False,
@@ -428,16 +431,21 @@ if __name__ == '__main__':
     parser.add_argument('--restore_ranks', action='store_true', default=False, help='restore ranks from filename')
 
     #
-    parser.add_argument('--gen_samples', type=int, default=False, help='number of samples to generate')
-    parser.add_argument('--query_lengths', type=str, default=False, help='query lengths')
+    parser.add_argument('--gen_samples', type=int, default=False,
+                        help='number of samples to generate, if not used label_file and log_file should be specified '
+                             'to load samples from the user generated queries')
+    parser.add_argument('--query_lengths', type=str, default=False,
+                        help='various lengths of queries to generate separated by comma')
 
-    parser.add_argument('--label_file', type=str, default=False)
-    parser.add_argument('--log_file', type=str, default=False)
-    parser.add_argument('--rank', action='store_true', default=False)
-    parser.add_argument('--use_user_dist', action='store_true', default=False)
+    parser.add_argument('--label_file', type=str, default=False, help='standard label file')
+    parser.add_argument('--log_file', type=str, default=False, help='log file of user generated queries')
+    parser.add_argument('--use_user_dist', action='store_true', default=False,
+                        help='generate samples from distribution given by user queries')
 
-    parser.add_argument('--graph', action='store_true', default=False)
-    parser.add_argument('--class_histogram', action='store_true', default=False)
+    parser.add_argument('--rank', action='store_true', default=False, help='perform ranking')
+    parser.add_argument('--graph', action='store_true', default=False, help='graph results')
+    parser.add_argument('--class_histogram', action='store_true', default=False,
+                        help='graph histogram of selected classes')
     args = parser.parse_args()
 
     if len(sys.argv) == 1:

@@ -131,6 +131,7 @@ namespace ViretTool.RankingModel.SimilarityModels {
             foreach (KeyValuePair<int, float> pair in query) {
                 result.Add(new Frame(pair.Key, pair.Value));
             }
+            result.Sort(delegate (Frame f1, Frame f2) { return -f1.Rank.CompareTo(f2.Rank); });
             return result;
         }
 

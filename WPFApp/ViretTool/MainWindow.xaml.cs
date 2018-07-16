@@ -42,7 +42,8 @@ namespace ViretTool {
         /// </summary>
         private void KeywordSearchTextBox_KeywordChangedEvent(List<List<int>> query, string annotationSource) {
             var result = model.RankFramesBasedOnQuery(query, annotationSource);
-
+             
+            // show message in the center of the window if no result present
             if (result == null) {
                 imageList.ItemsSource = null;
                 notFoundMessageBox.Text = "Type a query";
@@ -57,6 +58,7 @@ namespace ViretTool {
 
             List<Thumbnail> thumbnails = new List<Thumbnail>(MaxImagesOnScreen);
 
+            // show images to user
             int i = 0;
             foreach (var item in result) {
                 if (i >= MaxImagesOnScreen) break;

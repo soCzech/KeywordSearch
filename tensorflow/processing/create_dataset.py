@@ -4,7 +4,8 @@ import math
 import argparse
 import tensorflow as tf
 
-from common_utils import console, labels, input_pipeline
+from common_utils import console, input_pipeline
+from processing import create_labels
 
 
 def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, take=-1):
@@ -43,7 +44,7 @@ def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, t
     convert_photos(photo_filenames, tfrecord_dir, dataset_name, shards, class_names_to_ids)
 
     pt.info('Creating label file.')
-    labels.create_labels(class_names_to_ids, os.path.join(tfrecord_dir, '{}_labels'.format(dataset_name)))
+    create_labels.create_labels(class_names_to_ids, os.path.join(tfrecord_dir, '{}_labels'.format(dataset_name)))
     pt.info('Dataset converted.')
 
 

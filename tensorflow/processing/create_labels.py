@@ -55,6 +55,12 @@ def load_synsets(synset_id_file):
 def get_hypernyms(synsets):
     """
     Constructs a tree (or DAG) of class relations and adds hypernyms.
+
+    Args:
+        synsets: List of WordNet synsets from `nltk.corpus` package.
+
+    Returns:
+        Dictionary of (synset id, ImageClass or Hypernym)
     """
     classes = {}
 
@@ -84,6 +90,10 @@ def get_hypernyms(synsets):
 def create_labels(synset_file, label_file):
     """
     Creates label file based on all synsets in the `synset_file`.
+
+    Args:
+        synset_file: Synset id to internal id dictionary.
+        label_file: File where to store the labels.
     """
     synsets = load_synsets(synset_file)
     classes = get_hypernyms(synsets)

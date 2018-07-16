@@ -5,6 +5,7 @@ obj/
 .idea/
 __pycache__/
 data/
+docs/
 edges/
 
 
@@ -30,3 +31,6 @@ text/*.lof
 text/*.lot
 text/*.xmpi
 text/*.gz
+*.pickle
+*.tfrecord
+imagenet_access_key
