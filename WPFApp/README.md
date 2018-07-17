@@ -17,6 +17,9 @@ image categories via given suggestions. The labels used for the suggestions are 
 text file pre generated outside the tool to match the neural net's categories.
 These labels are also used to match users' search phrase to a correct category of the neural net.
 
+## Runtime
+Tested on *.NET Framework 4.6.1*, *C# 6.0* with MS Visual Studio *Roslyn 2.0.0* Compiler.
+
 ## Before The Start
 The directory where the compiled program is located need to contain exactly one *.ini*
 file with the following structure:
