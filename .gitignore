@@ -6,7 +6,6 @@ obj/
 __pycache__/
 data/
 docs/
-edges/
 
 
 classes.labels
@@ -19,18 +18,20 @@ _stuff/
 _run/
 _thrash/
 
-text/*.pdf
-text/*.aux
-text/*.log
-text/*.toc
-text/*.out
-text/*.bbl
-text/*.blg
-text/*.dvi
-text/*.lof
-text/*.lot
-text/*.xmpi
-text/*.gz
+*.pdf
+*.aux
+*.log
+*.toc
+*.out
+*.bbl
+*.blg
+*.dvi
+*.lof
+*.lot
+*.xmpi
+*.gz
+*.xml
+*.bcf
 *.pickle
 *.tfrecord
 imagenet_access_key

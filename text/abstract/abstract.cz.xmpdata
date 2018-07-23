@@ -1,0 +1,5 @@
+% Metadata to be stored in PDF, see documentation of the pdfx package for more details.
+
+\Author{Tomáš Souček}
+\Title{Hledání známého obrázku pomocí automaticky detekovaných klíčových slov}
+\Publisher{Univerzita Karlova}
