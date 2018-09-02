@@ -1,0 +1,7 @@
+% Metadata to be stored in PDF, see documentation of the pdfx package for more details.
+
+\Author{Tomáš Souček}
+\Title{Known-Item Search in Image Datasets Using Automatically Detected Keywords}
+\Keywords{artificial neural networks\sep known-item search\sep image retrieval}
+\Subject{Known-item search represents a scenario, where a user searches for one particular image in a given collection but does not know where it is located. The thesis focuses on the design and evaluation of a keyword retrieval model for known-item search in image collections. We use a deep neural network trained on a custom dataset to annotate the images. We design complex yet easy-to-use query interface for fast image retrieval. We use/design several types of artificial users to estimate the model's performance in an interactive setting. We also discuss our successful participation at two international competitions.}
+\Publisher{Charles University}

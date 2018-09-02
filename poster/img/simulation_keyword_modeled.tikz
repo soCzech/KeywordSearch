@@ -1,0 +1,28 @@
+\begin{tikzpicture}
+	\begin{axis}[
+		height=0.3\textwidth,
+		width=0.45\textwidth,
+		xmin = 0, xmax = 20,
+		ymin = 0, ymax = 1,
+		axis x line* = bottom,
+		%xlabel = t,
+		xticklabel = {\pgfmathparse{\tick}\pgfmathprintnumber{\pgfmathresult}\,k},
+		xtick={5,10,15},
+		ytick={0,.2,.4,.6,.8,1},
+		% ylabel = {$p_{model}\left(r_{(\bm{x},Q)}^{\bm{\varOmega}}\leq t\right)$},
+		axis lines*=left,
+		legend style={at={(0.02,1)},anchor=north west},
+		legend style={draw=none,font=\scriptsize, fill=none}
+	]
+
+		\addplot[mark=none,black] table [x=Rank1, y=Percentage, col sep=comma] {../text/data/keyword-only-modeled-ranks.csv};
+		\addplot[mark=none,black,dashed] table [x=Rank2, y=Percentage, col sep=comma] {../text/data/keyword-only-modeled-ranks.csv};
+		\addplot[mark=none,black,dotted] table [x=Rank3, y=Percentage, col sep=comma] {../text/data/keyword-only-modeled-ranks.csv};
+		\addplot[mark=none,purple] table [x=Rank1, y=Percentage, col sep=comma] {../text/data/keyword-only-real-ranks.csv};
+		%\addplot[mark=none,black] table [x=Rank1, y=Percentage, col sep=comma] {data/keyword-only-modeled-ranks.csv};
+		%\addplot[mark=none,blue] table [x=Rank2, y=Percentage, col sep=comma] {data/keyword-only-modeled-ranks.csv};
+		%\addplot[mark=none,purple] table [x=Rank3, y=Percentage, col sep=comma] {data/keyword-only-modeled-ranks.csv};
+		%\addplot[mark=none,PineGreen] table [x=Rank1, y=Percentage, col sep=comma] {data/keyword-only-real-ranks.csv};
+		\legend{$|Q_d|=1$,$|Q_d|=3$,$|Q_d|=7$,$Q_r$}
+	\end{axis}
+\end{tikzpicture}

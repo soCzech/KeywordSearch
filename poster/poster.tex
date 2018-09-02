@@ -1,0 +1,223 @@
+\documentclass{beamer}
+
+\usepackage[orientation=portrait,size=a0,scale=1.4,debug]{beamerposter}
+\usetheme{MFF}
+
+%% Character encoding: usually latin2, cp1250 or utf8:
+\usepackage[utf8]{inputenc}
+%% Prefer Latin Modern fonts
+\usepackage{lmodern}
+
+%% Further useful packages (included in most LaTeX distributions)
+\usepackage{amsmath}        % extensions for typesetting of math
+\usepackage{amsfonts}       % math fonts
+\usepackage{amsthm}         % theorems, definitions, etc.
+\usepackage{bbding}         % various symbols (squares, asterisks, scissors, ...)
+\usepackage{bm}             % boldface symbols (\bm)
+\usepackage{graphicx}       % embedding of pictures
+\usepackage{fancyvrb}       % improved verbatim environment
+\usepackage[sectionbib]{natbib}         % citation style AUTHOR (YEAR), or AUTHOR [NUMBER]
+
+\usepackage{siunitx}
+\usepackage[font=small,labelfont=bf,justification=justified]{caption}
+%\usepackage[font=scriptsize,justification=justified]{caption}
+\usepackage{ragged2e}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{pgf}
+
+\usepackage{dcolumn}        % improved alignment of table columns
+\usepackage{booktabs}       % improved horizontal lines in tables
+
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{pgfplots}
+\usepackage{scrextend}
+\usepackage{exscale}
+\usepackage{etoolbox}
+\usepackage{wrapfig}
+
+\newrobustcmd*{\bftabnum}{%
+	\bfseries
+	\sisetup{output-decimal-marker={\textbf{.}}}%
+}
+\pgfplotsset{compat=1.16}
+
+\title{\huge Known-Item Search in Image Datasets Using Automatically Detected Keywords}
+\author{Tomáš Souček}
+\institute{Faculty of Mathematics and Physics, Charles University}
+\date{\today}
+\newcommand{\lenitem}[2][.7\linewidth-9ex]{\parbox[t]{#1}{\strut #2\strut}}
+
+% edit this depending on how tall your header is. We should make this scaling automatic :-/
+\newlength{\columnheight}
+\setlength{\columnheight}{104cm}
+
+\begin{document}
+	\begin{frame}
+	\begin{columns}
+		\begin{column}{.5\textwidth}
+			\begin{beamercolorbox}[center]{postercolumn}
+				\begin{minipage}{.98\textwidth}  % tweaks the width, makes a new \textwidth
+					\parbox[t][\columnheight]{\textwidth}{ % must be some better way to set the the height, width and textwidth simultaneously
+						\begin{myblock}{Introduction}
+							Our goal was to design and evaluate a \textbf{keyword retrieval model for known-item search} (KIS) in image collections. Specifically, we have done:
+							\par
+							\vspace{1ex}
+							\begin{minipage}{\textwidth-6ex-3ex}
+								\raggedright
+								\begin{itemize}
+									\item[$\triangleright$] Selected a large-scale image dataset with help of unsupervised machine learning.
+									\item[$\triangleright$] Trained a deep neural network to predict 1150 image classes.
+									\item[$\triangleright$] Designed query interface for fast image retrieval.
+									\item[$\triangleright$] Estimated the model’s performance in an interactive setting by designing several types of artificial users.
+								\end{itemize}
+							\end{minipage}
+						\end{myblock}\vfill
+						\begin{myblock}{Dataset Selection}
+							We considered 6642 images classes with more than 1000 examples each from ImageNet database~\cite{ILSVRC15}. Selection was done in the following steps:
+							\par
+							\vspace{1ex}
+							\begin{minipage}{\textwidth-6ex-3ex}
+								\raggedright
+								\begin{itemize}
+									\item[$\triangleright$] Every image class was mapped to $n$-dimensional vector space.
+									\begin{align*}
+									\mathcal{M}(class)=\mathbb{E}_{\bm{x}\sim \hat{p}_{class}}f(\bm{x};\bm{\tilde{\theta}})\approx\frac{1}{|S_{class}|} \sum_{\bm{x}\in S_{class}} f(\bm{x};\bm{\tilde{\theta}})
+									\end{align*}
+									We used a neural network as $f$ to map images $\bm{x}$ to vectors.
+									\item[$\triangleright$] Those vectors were clustered using $k$-means++.
+									\item[$\triangleright$] WordNet~\cite{WordNet} tree was constructed for each cluster and representative classes were selected. Altogether the author selected 1150 classes.
+								\end{itemize}
+							\end{minipage}
+
+							\begin{minipage}{\textwidth-6ex}
+							\begin{figure}
+								\centering
+								\begin{minipage}{0.6\textwidth}
+									\centering
+									\resizebox{\textwidth}{!}{\input{img/dataset_clusters.pgf}}
+								\end{minipage}
+								\begin{minipage}{0.39\textwidth}
+									\centering
+									\includegraphics[width=\textwidth]{img/tree.png}
+								\end{minipage}
+								\caption{2D visualization of image class vector clusters (left) and a part of WordNet tree for one cluster (right).}
+							\end{figure}
+							\end{minipage}
+					
+						\end{myblock}\vfill
+						\begin{myblock}{Retrieval Model}
+							 GoogLeNet~\cite{szegedy2015going} deep neural network (DCNN) was used for image annotation. We utilized transfer learning technique -- the network's weights were initialized to values trained on similar task except for the last layer which was initialized randomly. Firstly, only the last layer was trained to prevent destroying learned low-level features. Further in the training the whole network was fine-tuned.
+							 \vspace{1ex}
+							 
+							 The model was trained by 90\% of images from the selected dataset, 10\% of images were used for validation. We report accuracy on~the~validation~set.
+							 \par
+							 \vspace{1ex}
+							 \begin{table}
+							 	\centering
+							 	\sisetup{detect-weight=true,detect-inline-weight=math}
+							 	\begin{tabular}{l@{\hspace{1cm}}S[table-format=2.1]S[table-format=2.1]S[table-format=2.1]}
+							 		Evaluation Method & \multicolumn{1}{c}{Top-1 Acc.} & \multicolumn{1}{c}{Top-5 Acc.} & \multicolumn{1}{c}{Top-10 Acc.}\\
+							 		\midrule
+							 		baseline (whole image) & 56.0 & 83.8 & 90.1 \\
+							 		center cutout & 56.1 & 83.8 & 90.2 \\
+							 		10 patches averaged & \bftabnum 57.1 & \bftabnum 84.7 & \bftabnum 90.9 \\
+							 	\end{tabular}
+							 \end{table}
+						\end{myblock}\vfill
+						\begin{myblock}{The Model at VBS 2018 Competition}
+							The Video Browser Showdown competition~\cite{Lokoc-influential-trends} serves as a benchmark for interactive video retrieval tools. Our model was a part of a tool developed by SIRET group which won the competition in February 2018.
+							\begin{minipage}{\textwidth-6ex}
+							\begin{figure}
+								%\setlength{\belowcaptionskip}{-10pt}
+								\centering
+								\scalebox{2}{\input{img/vbs.tikz}}
+								\caption{Use of our tool's retrieval models in some known-item search tasks at VBS 2018. The horizontal axis represents time since the task's start. We can see that our model (in red) plays an important role in success especially in the textual tasks.}
+							\end{figure}
+							\end{minipage}
+						\end{myblock}
+			}\end{minipage}\end{beamercolorbox}
+		\end{column}
+		\begin{column}{.5\textwidth}
+			\begin{beamercolorbox}[center]{postercolumn}
+				\begin{minipage}{.98\textwidth} % tweaks the width, makes a new \textwidth
+					\parbox[t][\columnheight]{\textwidth}{ % must be some better way to set the the height, width and textwidth simultaneously
+						\begin{myblock}{Query Formulation and Ranking}
+							The tool supports a finite set of labels a user can input. However, the labels can be connected by logical \textsf{OR} and logical \textsf{AND} to form a query
+							\begin{align*}
+								Q=\bigwedge\limits_{i=1}^k\left(\bigvee\limits_{\forall label_j\in N_i} label_j \right)
+							\end{align*}
+							Given the query, ranking $r(\cdot)$ is assigned to each image $\bm{x}$ in a collection
+							\begin{align*}
+								r\left(\bm{x}; Q, \bm{\theta}\right)=\prod\limits_{\forall N_i \in Q}\left(
+								\sum\limits_{\forall j\in N_i} \bm{\hat{y}}_{j}\cdot idf\left(j\right) \right)
+							\end{align*}
+							where $\bm{\hat{y}}=f\left(\bm{x}; \bm{\theta}\right)$ is the model's prediction for the image $\bm{x}$ and $idf(\cdot)$ represents an inverse document frequency (IDF) defined as
+							\begin{align*}
+								idf(label) = \log\left(
+								\frac{
+									\max\limits_{i\in labels} \sum_{\bm{x}}\hat{\bm{y}}_{i}
+								}{
+									\sum_{\bm{x}}\hat{\bm{y}}_{label}
+								} + 1\right)
+							\end{align*}
+							%\begin{figure}
+							%	\centering
+							%	\includegraphics[width=.3\textwidth]{../text/img/keyword-textbox.png}
+							%	\caption{}
+							%\end{figure}
+						\end{myblock}\vfill
+						\begin{myblock}{Model Evaluation on KIS Task}
+							KIS task's objective is to maximize $
+							\mathbb{E}\left[\sum_{t=1}^{|C|}p\left(r\leq t\:\vert\:\bm{x}, Q\right)\right]
+							$ over all possible $\bm{x}$, $Q$ pairs given a collection $C$. Measuring the expectation is, however, difficult since it is dependent on the collection $C$ and users' queries.
+							We proposed multiple artificial users to generate $\bm{x}$, $Q$ pairs:
+							\par
+							\vspace{1ex}
+							\begin{minipage}{\textwidth-6ex-3ex}
+								\raggedright
+								\begin{itemize}
+									\item[$\triangleright$] \textbf{Real User.} A human judge formulates a query for a given image.
+									\item[$\triangleright$] \textbf{Network User.} Assumes coherence with the DCNN. A label for a query given an image $\bm{x}$ is randomly selected from DCNN's distribution $p(label)=\bm{\hat{y}}_{label}$.
+									\item[$\triangleright$] \textbf{Distribution User.} Given a human-generated set of image-query pairs we inferred distribution $\mathcal{C}$ how likely user selects the top-$k^{\text{th}}$ label as predicted by the DCNN.
+									The top-$c^{\text{th}}$ label from $\bm{\hat{y}}$ is added to a query where $c$ is drawn from distribution $\mathcal{C}$.
+									\item[$\triangleright$] \textbf{Compound User.} Every query is generated by the network or by the distribution user, each user is selected with probability 1/2.
+								\end{itemize}
+							\end{minipage}
+							\par
+							\vspace{1ex}
+							\begin{minipage}{\textwidth-6ex}
+								\begin{figure}
+									\centering
+									\input{img/simulation_keyword_ideal.tikz}
+									\input{img/simulation_keyword_modeled.tikz}
+									\input{img/simulation_keyword_mixed.tikz}
+									\caption{Comparison between an artificial and the real user. The horizontal axis shows position $t$ and the vertical axis shows probability $p(r\leq t)$ how likely random image will be in the first $t$ images given a query constructed by a given user.}
+								\end{figure}
+							\end{minipage}
+						\end{myblock}\vfill
+						\begin{myblock}{Conclusion}
+							With help of ML techniques we selected an image dataset of commonly occurring objects. We then retrained a neural network, built powerful query interface, and created artificial
+							users to accurately approximate the capabilities of our model, fine-tune
+							its parameters and to select the best retrieval strategies. We also successfully participated at an international competition.
+						\end{myblock}\vfill
+						\vskip2ex
+						\usebeamerfont{block body}%
+						\begin{beamercolorbox}[rounded=false,shadow=false,center,wd=\textwidth,]{block body}%
+							\ifbeamercolorempty[bg]{block body}\vbox{}%
+							\begin{minipage}{\textwidth}\vbox{}%
+								\centering
+								\vspace{1.8ex}
+								\begin{minipage}{\textwidth-6ex}
+								\footnotesize
+								\bibliographystyle{unsrt}
+								\bibliography{./bib}
+								\end{minipage}
+								\vspace{1.2ex}
+							\end{minipage}
+						\end{beamercolorbox}
+			}\end{minipage}\end{beamercolorbox}
+		\end{column}
+	\end{columns}\end{frame}
+\end{document}
