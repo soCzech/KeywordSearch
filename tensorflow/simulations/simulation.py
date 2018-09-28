@@ -6,6 +6,7 @@ from common_utils import console, graph_utils
 import random
 import pickle
 import os
+import collections
 from common_utils.dataset import DEFAULT_HEADER
 HEADER = DEFAULT_HEADER
 
@@ -26,6 +27,8 @@ class Simulation:
         self._similarity = None
         self._similarity_settings = None
         self.thresholds = [None]
+        self.gen_second_image = False
+        self.sliding_window = 4
 
     def read_keyword(self, filename):
         self._images = simulation_utils.Keywords()
@@ -59,6 +62,10 @@ class Simulation:
             exit(1)
         pt.info(">> Generating samples...")
         self.samples = [random.randint(0, len(self._images) - 1) for _ in range(sample_size)]
+        if self.gen_second_image:
+            self.samples = [
+                (i, min(i + random.randint(0, self.sliding_window), len(self._images) - 1)) for i in self.samples
+            ]
         self.__gen_indexes(max_query_len, distribution)
 
         with open(filename, 'wb') as f:
@@ -79,20 +86,28 @@ class Simulation:
         self.indexes = []
 
         for index in self.samples:
-            image = self._images[index]
-            dist = image.DISTRIBUTION if distribution is None else distribution
+            if not isinstance(index, tuple):
+                index = [index]
 
-            rand_indexes = []
-            while len(rand_indexes) < max_query_len:
-                rand = np.random.choice(np.arange(len(dist)), p=dist)
-                if rand not in rand_indexes:
-                    rand_indexes.append(rand)
+            l = []
+            for indx in index:
+                image = self._images[indx]
+                dist = image.DISTRIBUTION if distribution is None else distribution
 
-            if distribution is not None:
-                cls_indexes = np.argsort(image.DISTRIBUTION)[::-1]
-                self.indexes.append([cls_indexes[i] for i in rand_indexes])
-            else:
-                self.indexes.append(rand_indexes)
+                rand_indexes = []
+                while len(rand_indexes) < max_query_len:
+                    rand = np.random.choice(np.arange(len(dist)), p=dist)
+                    if rand not in rand_indexes:
+                        rand_indexes.append(rand)
+
+                if distribution is not None:
+                    cls_indexes = np.argsort(image.DISTRIBUTION)[::-1]
+                    l.append([cls_indexes[i] for i in rand_indexes])
+                else:
+                    l.append(rand_indexes)
+            if len(l) == 1:
+                l = l[0]
+            self.indexes.append(l)
 
     # endregion
 
@@ -248,20 +263,83 @@ class Simulation:
 
             for image_id, indexes in zip(self.samples, self.indexes):
                 if query_length_list is None:
-                    self._rank_image(image_id, indexes, False, rank_str)
-                    if self._idf is not None:
-                        self._rank_image(image_id, indexes, True, rank_str + " idf")
-                else:
-                    for query_length in query_length_list:
-                        self._rank_image(image_id, indexes[:query_length], False, rank_str + ' ' + str(query_length))
-                        if self._idf is not None and query_length > 1:
-                            self._rank_image(image_id, indexes[:query_length], True,
-                                             rank_str + ' ' + str(query_length) + " idf")
+                    query_length_list = [None]
+
+                for query_length in query_length_list:
+                    self._rank_image_or_images(image_id, indexes, use_idf=False,
+                                               plot_name=rank_str + ' ' + str(query_length),
+                                               query_length=query_length)
+                    if self._idf is not None and query_length is not None and query_length > 1:
+                        self._rank_image_or_images(image_id, indexes, use_idf=True,
+                                                   plot_name=rank_str + ' ' + str(query_length) + " idf",
+                                                   query_length=query_length)
                 pt.increment()
 
         if self._visualization is not None:
             self._visualization.save()
         pt.info(">> Image ranks calculated.")
+
+    def _rank_image_or_images(self, image_id, selected_indexes, use_idf, plot_name, query_length=None):
+        if isinstance(image_id, tuple):
+            array = self._get_score(
+                selected_indexes[0] if query_length is None else selected_indexes[0][:query_length], use_idf
+            )
+            second_image_score = self._get_score(
+                selected_indexes[1] if query_length is None else selected_indexes[1][:query_length], use_idf
+            )
+            array *= Simulation._sliding_window(second_image_score, self.sliding_window)
+
+            rank = None
+            if array[image_id[0]] != 0:
+                rank, _ = self._get_rank_of_image(image_id[0], array)
+
+            if plot_name + " multi" not in self._ranks:
+                self._ranks[plot_name + " multi"] = []
+            self._ranks[plot_name + " multi"].append(rank)
+
+            image_id = image_id[0]
+            selected_indexes = selected_indexes[0]
+
+        self._rank_image(image_id, selected_indexes if query_length is None else selected_indexes[:query_length],
+                         use_idf, plot_name)
+
+    def _get_score(self, selected_indexes, use_idf):
+        array = np.copy(self._images.CLASSES[selected_indexes[0]])
+
+        if len(selected_indexes) > 1:
+            if use_idf:
+                array = self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]]
+
+            for i in range(1, len(selected_indexes)):
+                array += self._images.CLASSES[selected_indexes[i]] \
+                    if not use_idf \
+                    else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
+        return array
+
+    @staticmethod
+    def _sliding_window(array, window):
+        result = np.zeros_like(array)
+        deque = collections.deque()
+
+        for i in range(len(array)):
+            val = array[i]
+            while len(deque) > 0 and val > deque[-1]:
+                deque.pop()
+            deque.append(val)
+
+            j = i + 1 - window
+            if j >= 0:
+                result[j] = deque[0]
+                if array[j] == deque[0]:
+                    deque.popleft()
+
+        j += 1
+        while j < len(array):
+            result[j] = deque[0]
+            if array[j] == deque[0]:
+                deque.popleft()
+            j += 1
+        return result
 
     def _rank_image(self, image_id, selected_indexes, use_idf, plot_name):
         """
@@ -276,16 +354,7 @@ class Simulation:
         rank, sim_rank = None, None
 
         if len(selected_indexes) > 0:
-            array = np.copy(self._images.CLASSES[selected_indexes[0]])
-
-            if len(selected_indexes) > 1:
-                if use_idf:
-                    array = self._idf.IDF[selected_indexes[0]] * self._images.CLASSES[selected_indexes[0]]
-
-                for i in range(1, len(selected_indexes)):
-                    array += self._images.CLASSES[selected_indexes[i]] \
-                        if not use_idf \
-                        else self._idf.IDF[selected_indexes[i]] * self._images.CLASSES[selected_indexes[i]]
+            array = self._get_score(selected_indexes, use_idf)
             # array = np.random.rand(*array.shape) + 0.1
             if array[image_id] != 0:
                 rank, indexes = self._get_rank_of_image(image_id, array)
@@ -398,7 +467,7 @@ class Simulation:
             filename: a location where to store a graph.
         """
         graph_utils.plot_accumulative(self._ranks, filename, title='Cumulative Rank', x_axis='Rank',
-                                      y_axis='Number of Images [%]', viewbox=[(-100, 100100), (-2, 102)])
+                                      y_axis='Number of Images [%]', viewbox=[(-100, 20100), (-2, 102)])
 
 
 if __name__ == '__main__':
@@ -436,6 +505,8 @@ if __name__ == '__main__':
                              'to load samples from the user generated queries')
     parser.add_argument('--query_lengths', type=str, default=False,
                         help='various lengths of queries to generate separated by comma')
+    parser.add_argument('--gen_second_image', action='store_true', default=False,
+                        help='generate second image and rank based on joined ranking of those two images')
 
     parser.add_argument('--label_file', type=str, default=False, help='standard label file')
     parser.add_argument('--log_file', type=str, default=False, help='log file of user generated queries')
@@ -456,8 +527,8 @@ if __name__ == '__main__':
 
     u = Simulation()
 
-    if args.byte:
-        u.use_byte = True
+    u.use_byte = args.byte
+    u.gen_second_image = args.gen_second_image
 
     if args.idf:
         u.use_idf(args.idf)

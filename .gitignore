@@ -34,5 +34,5 @@ _thrash/
 *.pickle
 *.tfrecord
 *.nav
-*snm
+*.snm
 imagenet_access_key
