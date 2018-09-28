@@ -5,10 +5,10 @@ import argparse
 import tensorflow as tf
 
 from common_utils import console, input_pipeline
-from processing import create_labels
+# from processing import create_labels
 
 
-def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, take=-1):
+def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0., take=-1):
     """Converts all images in given directory to tfrecord files. Also creates the label file.
 
     Args:
@@ -43,8 +43,8 @@ def convert_dataset(raw_dir, tfrecord_dir, dataset_name, shards, skip_first=0, t
 
     convert_photos(photo_filenames, tfrecord_dir, dataset_name, shards, class_names_to_ids)
 
-    pt.info('Creating label file.')
-    create_labels.create_labels(class_names_to_ids, os.path.join(tfrecord_dir, '{}_labels'.format(dataset_name)))
+    # pt.info('Creating label file.')
+    # create_labels.create_labels(class_names_to_ids, os.path.join(tfrecord_dir, '{}_labels'.format(dataset_name)))
     pt.info('Dataset converted.')
 
 
@@ -137,10 +137,18 @@ def get_filenames_and_classes(dataset_dir, skip_first, take):
                 photos.append(os.path.join(dataset_dir, class_dir, image))
             photos = sorted(photos)
 
-            if take > 0:
-                photo_filenames.extend(photos[skip_first:skip_first+take])
+            if isinstance(skip_first, float):
+                to_skip = int(round(len(photos) * skip_first))
+                to_take = int(round(len(photos) * take))
             else:
-                photo_filenames.extend(photos[skip_first:])
+                to_skip = skip_first
+                to_take = take
+
+            if to_take > 0:
+                photo_filenames.extend(photos[to_skip:to_skip+to_skip])
+            else:
+                photo_filenames.extend(photos[to_skip:])
+
             class_names.append(class_dir)
         pt.increment()
 
@@ -185,9 +193,9 @@ if __name__ == '__main__':
                         help='name for tfrecord files')
     parser.add_argument('--parts', type=int, default=1,
                         help='number of files to split dataset to')
-    parser.add_argument('--skip_first', type=int, default=0,
+    parser.add_argument('--skip_first', type=float, default=0.,
                         help='skip first n images from each class')
-    parser.add_argument('--take', type=int, default=-1,
+    parser.add_argument('--take', type=float, default=-1,
                         help='number of images to take from each class')
     args = parser.parse_args()
 

@@ -44,8 +44,8 @@ def load_synsets(synset_id_file):
     with open(synset_id_file, "r") as f:
         synset_id = f.readline()
         while synset_id != "":
-            synset_id = int(synset_id[1:])
-            synset = wn._synset_from_pos_and_offset("n", synset_id)
+            sid = int(synset_id[1:9])
+            synset = wn._synset_from_pos_and_offset(synset_id[0], sid)
 
             synsets.append(synset)
             synset_id = f.readline()
