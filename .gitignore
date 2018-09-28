@@ -4,7 +4,6 @@ bin/
 obj/
 .idea/
 __pycache__/
-data/
 docs/
 
 
@@ -34,4 +33,6 @@ _thrash/
 *.bcf
 *.pickle
 *.tfrecord
+*.nav
+*snm
 imagenet_access_key
