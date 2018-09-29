@@ -168,7 +168,7 @@ def plot_discrete_histogram(plots, bins, graph_filename, title, figure_size=2):
     save_fig(graph_filename)
 
 
-def plot_accumulative(plots, graph_filename, title, x_axis=None, y_axis=None, viewbox=None, figure_size=0.5):
+def plot_accumulative(plots, graph_filename, title, x_axis=None, y_axis=None, viewbox=None, figure_size=2):
     pt = console.ProgressTracker()
     pt.info(">> Plotting a graph...")
 
