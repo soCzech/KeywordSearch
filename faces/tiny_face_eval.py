@@ -135,17 +135,32 @@ def batch_files(files, batch_size=1):
         yield l
 
 
-def bboxes_to_numpy(bboxes):
+def bboxes_to_bitmap(bboxes):
     bits = np.zeros([18, 32], dtype=np.uint8)
 
     for bbox in bboxes:
-        p1 = (int(bbox[0] * 0.025), int(bbox[1] * 0.025))
-        p2 = (int(bbox[2] * 0.025), int(bbox[3] * 0.025))
+        p1_w, p1_h = (int(bbox[0] * 0.025), int(bbox[1] * 0.025))
+        p2_w, p2_h = (int(bbox[2] * 0.025), int(bbox[3] * 0.025))
 
-        for i in range(p1[0], p2[0] + 1):
-            for j in range(p1[1], p2[1] + 1):
+        for i in range(p1_h, p2_h + 1):
+            for j in range(p1_w, p2_w + 1):
                 bits[i][j] = 1
-    return bits
+
+    ints = []
+    curr = 0
+    for i in range(bits.shape[0]):
+        for j in range(bits.shape[1]):
+            curr = (curr << 1) | int(bits[i][j])
+
+            if (i * bits.shape[1] + j) % 32 == 31:
+                ints.append(curr)
+                curr = 0
+
+    if (bits.shape[0] * bits.shape[1]) % 32 != 0:
+        useless_bits = 32 - (bits.shape[0] * bits.shape[1]) % 32
+        curr << useless_bits
+        ints.append(curr)
+    return ints
 
 
 def evaluate(weight_file_path, data_dir, output_dir, threshold=0.5, batch_size=1):
