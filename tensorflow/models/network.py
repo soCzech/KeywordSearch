@@ -1,5 +1,6 @@
 import tensorflow as tf
 from models import inception_v1, inception_utils
+from models import nasnet, nasnet_utils
 
 slim = tf.contrib.slim
 
@@ -35,3 +36,64 @@ def build_net(inputs, num_classes, is_training=True, dropout_keep_prob=0.8, base
             logits = tf.squeeze(logits, [1, 2], name='SpatialSqueeze')
 
     return logits, end_points
+
+
+def build_nasnet(inputs, num_classes, is_training=True):
+    data_format = 'NHWC'
+    num_cells = 12
+    drop_path_keep_prob = 1.0
+    total_training_steps = 0  # matters only if drop_path_keep_prob < 1.0
+    num_conv_filters = 44
+    dense_dropout_keep_prob = 0.5
+    filter_scaling_rate = 2.0
+    num_reduction_layers = 2
+    skip_reduction_layer_input = 0
+
+    if not is_training:
+        drop_path_keep_prob = 1.0
+
+    arg_scope = nasnet.nasnet_mobile_arg_scope()
+    with slim.arg_scope(arg_scope):
+        if tf.test.is_gpu_available() and data_format == 'NHWC':
+            tf.logging.info('A GPU is available on the machine, consider using NCHW '
+                            'data format for increased speed on GPU.')
+
+        if data_format == 'NCHW':
+            inputs = tf.transpose(inputs, [0, 3, 1, 2])
+
+        # Calculate the total number of cells in the network
+        # Add 2 for the reduction cells
+        total_num_cells = num_cells + 2
+        # If ImageNet, then add an additional two for the stem cells
+        total_num_cells += 2
+
+        normal_cell = nasnet_utils.NasNetANormalCell(
+            num_conv_filters, drop_path_keep_prob,
+            total_num_cells, total_training_steps)
+        reduction_cell = nasnet_utils.NasNetAReductionCell(
+            num_conv_filters, drop_path_keep_prob,
+            total_num_cells, total_training_steps)
+
+        with tf.contrib.framework.arg_scope([slim.dropout, nasnet_utils.drop_path, slim.batch_norm],
+                                            is_training=is_training):
+            with tf.contrib.framework.arg_scope([slim.avg_pool2d, slim.max_pool2d, slim.conv2d, slim.batch_norm,
+                                                 slim.separable_conv2d, nasnet_utils.factorized_reduction,
+                                                 nasnet_utils.global_avg_pool, nasnet_utils.get_channel_index,
+                                                 nasnet_utils.get_channel_dim], data_format=data_format):
+                net, end_points = nasnet._build_nasnet_base(inputs,
+                                                            normal_cell=normal_cell,
+                                                            reduction_cell=reduction_cell,
+                                                            num_cells=num_cells,
+                                                            num_reduction_layers=num_reduction_layers,
+                                                            skip_reduction_layer_input=skip_reduction_layer_input,
+                                                            filter_scaling_rate=filter_scaling_rate,
+                                                            final_endpoint=None,
+                                                            current_step=None)
+
+                # Final softmax layer
+                with tf.variable_scope('final_layer'):
+                    net = tf.nn.relu(net)
+                    net = nasnet_utils.global_avg_pool(net)
+                    net = slim.dropout(net, dense_dropout_keep_prob, scope='dropout')
+                    logits = slim.fully_connected(net, num_classes)
+                return logits, end_points
