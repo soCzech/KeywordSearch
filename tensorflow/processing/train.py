@@ -28,6 +28,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     """
 
     use_inception = False
+    sleep_sometimes = False
 
     pt = console.ProgressTracker()
     sess = tf.Session()
@@ -98,7 +99,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     """
         Summary
     """
-    log_dir = os.path.normpath(os.path.join("../data/training/logs", datetime.now().strftime('%Y-%m-%d_%H%M%S')))
+    log_dir = os.path.normpath(os.path.join("../logs", datetime.now().strftime('%Y-%m-%d_%H%M%S')))
 
     summaries = [tf.summary.scalar('train/loss/cross_entropy', cross_entropy_loss),
                  tf.summary.scalar('train/predictions/top_1', accuracy),
@@ -120,7 +121,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     else:
         pt.info(">> Restoring default ILSVRC model.")
         saver = tf.train.Saver(var_list=inception_vars)
-        saver.restore(sess, os.path.join(ckpt_dir, 'inception_v1.ckpt' if use_inception else 'model.ckpt'))
+        saver.restore(sess, os.path.join(ckpt_dir, 'inception_v1.ckpt' if use_inception else 'nasnet.ckpt'))
         saver = tf.train.Saver(var_list=inception_vars + logit_vars, max_to_keep=30)
 
     for epoch in range(no_epochs):
@@ -132,7 +133,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
             if i % 10 == 9:
                 gs = sess.run(global_step)
                 summary_writer.add_summary(summary, gs)
-            if i % 200 == 199:
+            if sleep_sometimes and i % 200 == 199:
                 time.sleep(20)
             pt.increment()
 
@@ -166,9 +167,11 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
 
         pt.info("Results: " + ", ".join(results))
 
-        saver.save(sess, os.path.join(ckpt_dir, "inception_retrained-{:02d}-{:.2f}.ckpt".format(
-            epoch + 1, top_acc["top_1"] / batches_per_validation * 100
-        )), global_step=global_step)
+        saver.save(sess, os.path.join(
+            ckpt_dir, ("inception" if use_inception else "nasnet") + "_retrained-{:02d}-{:.2f}.ckpt".format(
+                epoch + 1, top_acc["top_1"] / batches_per_validation * 100
+            )
+        ), global_step=global_step)
 
     summary_writer.close()
 
