@@ -1,5 +1,7 @@
 import os
+import sys
 import time
+import argparse
 import tensorflow as tf
 from datetime import datetime
 
@@ -24,6 +26,8 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
         decay_every_n_steps: Lower learning rate each n steps.
     """
 
+    use_inception = False
+
     pt = console.ProgressTracker()
     sess = tf.Session()
 
@@ -43,10 +47,15 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     """
         Network model
     """
-    logits, _ = network.build_net(images, num_classes, is_training=True)
+    if use_inception:
+        logits, _ = network.build_net(images, num_classes, is_training=True)
+    else:
+        logits, _ = network.build_nasnet(images, num_classes, is_training=True)
 
-    inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='InceptionV1')
-    logit_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Logits')
+    inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+    logit_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Logits' if use_inception else 'final_layer')
+    for var in logit_vars:
+        inception_vars.remove(var)
 
     """
         Losses
@@ -110,7 +119,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     else:
         pt.info(">> Restoring default ILSVRC model.")
         saver = tf.train.Saver(var_list=inception_vars)
-        saver.restore(sess, os.path.join(ckpt_dir, 'inception_v1.ckpt'))
+        saver.restore(sess, os.path.join(ckpt_dir, 'inception_v1.ckpt' if use_inception else 'model.ckpt'))
         saver = tf.train.Saver(var_list=inception_vars + logit_vars, max_to_keep=30)
 
     for epoch in range(no_epochs):
@@ -164,10 +173,29 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
 
 
 if __name__ == '__main__':
-    trn = []
-    val = []
-    ckpt_dir = ""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--trn', type=str, required=True)
+    parser.add_argument('--val', type=str, required=True)
+    parser.add_argument('--ckpt', type=str, required=True,
+                        help='Directory of the checkpoints or checkpoint file if training from ILSVRC values')
+    parser.add_argument('--lr', type=float, default=0.001, help="Initial learning rate")
+    parser.add_argument('--train_all', action='store_true', default=False,
+                        help='Train whole network instead of the last layer')
+    parser.add_argument('--no_epochs', type=int, default=30, help="Number of epochs")
+    parser.add_argument('--decay_lr_every_steps', type=int, default=10000)
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        exit(1)
+
+    trn = [os.path.join(args.trn, name) for name in os.listdir(args.trn) if name[:-9] == ".tfrecord"]
+    val = [os.path.join(args.val, name) for name in os.listdir(args.val) if name[:-9] == ".tfrecord"]
+
+    # train({"train": trn, "validation": val},
+    #       batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False, ckpt_dir=ckpt_dir,
+    #       no_epochs=30, batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)
 
     train({"train": trn, "validation": val},
-          batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False,
-          ckpt_dir=ckpt_dir, no_epochs=30, batches_per_epoch=500, batches_per_validation=100, decay_every_n_steps=7500)
+          batch_size=32, num_classes=1243, learning_rate=args.lr, train_all=args.train_all,
+          ckpt_dir=args.ckpt, no_epochs=args.no_epochs, decay_every_n_steps=args.decay_lr_every_steps)
