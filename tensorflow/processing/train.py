@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import argparse
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 from datetime import datetime
 
@@ -176,8 +177,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--trn', type=str, required=True)
     parser.add_argument('--val', type=str, required=True)
-    parser.add_argument('--ckpt', type=str, required=True,
-                        help='Directory of the checkpoints or checkpoint file if training from ILSVRC values')
+    parser.add_argument('--ckpt_dir', type=str, required=True,
+                        help='Directory of the checkpoints.')
     parser.add_argument('--lr', type=float, default=0.001, help="Initial learning rate")
     parser.add_argument('--train_all', action='store_true', default=False,
                         help='Train whole network instead of the last layer')
@@ -189,8 +190,8 @@ if __name__ == '__main__':
         parser.print_help()
         exit(1)
 
-    trn = [os.path.join(args.trn, name) for name in os.listdir(args.trn) if name[:-9] == ".tfrecord"]
-    val = [os.path.join(args.val, name) for name in os.listdir(args.val) if name[:-9] == ".tfrecord"]
+    trn = [os.path.join(args.trn, name) for name in os.listdir(args.trn) if name[-9:] == ".tfrecord"]
+    val = [os.path.join(args.val, name) for name in os.listdir(args.val) if name[-9:] == ".tfrecord"]
 
     # train({"train": trn, "validation": val},
     #       batch_size=64, num_classes=1150, learning_rate=0.0001, train_all=False, ckpt_dir=ckpt_dir,
@@ -198,4 +199,4 @@ if __name__ == '__main__':
 
     train({"train": trn, "validation": val},
           batch_size=32, num_classes=1243, learning_rate=args.lr, train_all=args.train_all,
-          ckpt_dir=args.ckpt, no_epochs=args.no_epochs, decay_every_n_steps=args.decay_lr_every_steps)
+          ckpt_dir=args.ckpt_dir, no_epochs=args.no_epochs, decay_every_n_steps=args.decay_lr_every_steps)
