@@ -30,7 +30,7 @@ class ImageParser:
     Parser used as a map function in tf.data.Dataset when processing tfrecord files.
     """
 
-    def __init__(self, is_training, make_patches=False):
+    def __init__(self, is_training, make_patches=False, use_large=False):
         """
         Args:
             is_training: If true, random crop, flip and color adjustments are done.
@@ -39,6 +39,9 @@ class ImageParser:
         self.is_training = is_training
         self.width = 224
         self.height = 224
+        if use_large:
+            self.width = 331
+            self.height = 331
         self.make_patches = make_patches
 
     def __call__(self, serialized_example):
@@ -73,10 +76,14 @@ class ImageParser:
         return processed_image, label
 
 
-def make_batch_from_jpeg(filenames, batch_size=80):
+def make_batch_from_jpeg(filenames, batch_size=80, use_large=False):
     """
     Returns tuple (image_name, image) as an op in a TensorFlow graph.
     """
+    wh = 224
+    if use_large:
+        wh = 331
+
     with tf.name_scope('InceptionPreprocessing'):
         if isinstance(filenames, dict):
             filenames = list(filenames.keys())
@@ -85,13 +92,13 @@ def make_batch_from_jpeg(filenames, batch_size=80):
 
         key, image = tf.WholeFileReader().read(filename_queue)
         image = tf.image.decode_jpeg(image, channels=3)
-        image = inception_preprocessing.preprocess_image(image, 224, 224, is_training=False)
+        image = inception_preprocessing.preprocess_image(image, wh, wh, is_training=False)
 
         return tf.train.batch([key, image], batch_size=batch_size, num_threads=1,
                               allow_smaller_final_batch=True)
 
 
-def make_batch(filenames, batch_size, is_training, repeat=True):
+def make_batch(filenames, batch_size, is_training, repeat=True, use_large=False):
     """Creates a read op in a TensorFlow graph that returns individual batches from tfrecord files.
 
     Args:
@@ -104,7 +111,7 @@ def make_batch(filenames, batch_size, is_training, repeat=True):
         Tuple of images and labels of batch size.
     """
     ds = tf.data.TFRecordDataset(filenames)
-    parser = ImageParser(is_training)
+    parser = ImageParser(is_training, use_large=use_large)
 
     ds = ds.map(parser)
     ds = ds.prefetch(batch_size)
@@ -120,7 +127,7 @@ def make_batch(filenames, batch_size, is_training, repeat=True):
     return ds.make_one_shot_iterator()
 
 
-def make_image_patches(filenames):
+def make_image_patches(filenames, use_large=False):
     """Creates a read op in a TensorFlow graph that returns 10 patches of each image in tfrecord files as a batch.
 
     Args:
@@ -130,7 +137,7 @@ def make_image_patches(filenames):
         Tuple of (image_patches, label).
     """
     ds = tf.data.TFRecordDataset(filenames)
-    parser = ImageParser(is_training=False, make_patches=True)
+    parser = ImageParser(is_training=False, make_patches=True, use_large=use_large)
 
     ds = ds.map(parser)
     ds = ds.prefetch(10)

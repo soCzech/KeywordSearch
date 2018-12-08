@@ -1,3 +1,7 @@
+import os
+import sys
+import argparse
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import tensorflow as tf
 
 from common_utils import input_pipeline, console
@@ -13,17 +17,22 @@ def validate(filenames, num_classes, ckpt_dir="./"):
         num_classes: Number of classes in the softmax classification layer.
         ckpt_dir: Location where the checkpoints are stored.
     """
+    use_inception = False
+    use_large = True
 
     pt = console.ProgressTracker()
     sess = tf.Session()
 
-    iterator = input_pipeline.make_image_patches(filenames)
+    iterator = input_pipeline.make_image_patches(filenames, use_large=use_large)
     images, labels = iterator.get_next()
 
     """
         Network model
     """
-    logits, _ = network.build_net(images, num_classes, is_training=False)
+    if use_inception:
+        logits, _ = network.build_net(images, num_classes, is_training=False)
+    else:
+        logits, _ = network.build_nasnet(images, num_classes, is_training=False, use_large=use_large)
 
     """
         Results
@@ -54,7 +63,10 @@ def validate(filenames, num_classes, ckpt_dir="./"):
     """
     pt.info(">> Restoring trained model.")
     saver = tf.train.Saver()
-    saver.restore(sess, tf.train.latest_checkpoint(ckpt_dir))
+    if os.path.isdir(ckpt_dir):
+        saver.restore(sess, tf.train.latest_checkpoint(ckpt_dir))
+    else:
+        saver.restore(sess, ckpt_dir)
 
     """
         Validation
@@ -96,7 +108,16 @@ def validate(filenames, num_classes, ckpt_dir="./"):
 
 
 if __name__ == '__main__':
-    val = []
-    ckpt_dir = ""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--val', type=str, required=True)
+    parser.add_argument('--ckpt_dir', type=str, required=True,
+                        help='Directory of the checkpoints.')
+    args = parser.parse_args()
 
-    validate(val, num_classes=1150, ckpt_dir=ckpt_dir)
+    if len(sys.argv) == 1:
+        parser.print_help()
+        exit(1)
+
+    val = [os.path.join(args.val, name) for name in os.listdir(args.val) if name[-9:] == ".tfrecord"]
+
+    validate(val, num_classes=1243, ckpt_dir=args.ckpt_dir)

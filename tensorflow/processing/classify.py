@@ -2,6 +2,7 @@ import argparse
 import os
 import struct
 import numpy as np
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import tensorflow as tf
 
 from models import network
@@ -36,8 +37,17 @@ def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, calc
     """
         Network model
     """
-    logits, net = network.build_net(images, num_classes, is_training=False)
-    deep_features = tf.squeeze(net["AvgPool_0a_7x7"], [1, 2], name="DeepFeatures")
+    use_inception = False
+    use_large = True
+
+    if use_inception:
+        logits, net = network.build_net(images, num_classes, is_training=False)
+        deep_features = tf.squeeze(net["AvgPool_0a_7x7"], [1, 2], name="DeepFeatures")
+    else:
+        logits, net = network.build_nasnet(images, num_classes, is_training=False, use_large=use_large)
+        print(net)
+        deep_features = net["DeepFeatures"]
+
     df_shape = deep_features.get_shape()[1]
 
     probabilities = tf.nn.softmax(logits, name="Probability")
@@ -59,7 +69,10 @@ def run(filenames, num_classes, model_path, run_name, prob_threshold=0.001, calc
 
     session.run(tf.global_variables_initializer())
 
-    saver = tf.train.Saver(var_list=inception_vars + logit_vars)
+    if use_inception:
+        saver = tf.train.Saver(var_list=inception_vars + logit_vars)
+    else:
+        saver = tf.train.Saver()
     saver.restore(session, model_path)
 
     annot_f = dataset.create_file(

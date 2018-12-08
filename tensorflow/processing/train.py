@@ -28,14 +28,15 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     """
 
     use_inception = False
+    use_large = True
     sleep_sometimes = False
 
     pt = console.ProgressTracker()
     sess = tf.Session()
 
     with tf.name_scope("Dataset"):
-        train_iterator = input_pipeline.make_batch(filenames["train"], batch_size, is_training=True)
-        val_iterator = input_pipeline.make_batch(filenames["validation"], batch_size, is_training=False)
+        train_iterator = input_pipeline.make_batch(filenames["train"], batch_size, is_training=True, use_large=use_large)
+        val_iterator = input_pipeline.make_batch(filenames["validation"], batch_size, is_training=False, use_large=use_large)
 
         train_iterator_handle = sess.run(train_iterator.string_handle())
         val_iterator_handle = sess.run(val_iterator.string_handle())
@@ -52,7 +53,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
     if use_inception:
         logits, _ = network.build_net(images, num_classes, is_training=True)
     else:
-        logits, _ = network.build_nasnet(images, num_classes, is_training=True)
+        logits, _ = network.build_nasnet(images, num_classes, is_training=True, use_large=use_large)
 
     inception_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
     logit_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Logits' if use_inception else 'final_layer')

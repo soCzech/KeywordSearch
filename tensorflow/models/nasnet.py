@@ -28,32 +28,6 @@ arg_scope = tf.contrib.framework.arg_scope
 slim = tf.contrib.slim
 
 
-# Notes for training the mobile NASNet ImageNet model
-# -------------------------------------
-# batch size (per replica): 32
-# learning rate: 0.04 * 50
-# learning rate scaling factor: 0.97
-# num epochs per decay: 2.4
-# sync sgd with 50 replicas
-# auxiliary head weighting: 0.4
-# label smoothing: 0.1
-# clip global norm of all gradients by 10
-def mobile_imagenet_config():
-  return tf.contrib.training.HParams(
-      stem_multiplier=1.0,
-      dense_dropout_keep_prob=0.5,
-      num_cells=12,
-      filter_scaling_rate=2.0,
-      drop_path_keep_prob=1.0,
-      num_conv_filters=44,
-      use_aux_head=1,
-      num_reduction_layers=2,
-      data_format='NHWC',
-      skip_reduction_layer_input=0,
-      total_training_steps=250000,
-  )
-
-
 def nasnet_mobile_arg_scope(weight_decay=4e-5,
                             batch_norm_decay=0.9997,
                             batch_norm_epsilon=1e-3):
@@ -90,10 +64,9 @@ def nasnet_mobile_arg_scope(weight_decay=4e-5,
           return sc
 
 
-def _imagenet_stem(inputs, filter_scaling_rate, stem_cell, current_step=None):
+def _imagenet_stem(inputs, filter_scaling_rate, stem_cell, stem_multiplier, current_step=None):
   """Stem used for models trained on ImageNet."""
   num_stem_cells = 2
-  stem_multiplier = 1.0
 
   # 149 x 149 x 32
   num_stem_filters = int(32 * stem_multiplier)
@@ -129,6 +102,7 @@ def _build_nasnet_base(images,
                        num_reduction_layers,
                        skip_reduction_layer_input,
                        filter_scaling_rate,
+                       stem_multiplier,
                        final_endpoint=None,
                        current_step=None):
   """Constructs a NASNet image model."""
@@ -143,7 +117,7 @@ def _build_nasnet_base(images,
       num_cells, num_reduction_layers)
   stem_cell = reduction_cell
 
-  net, cell_outputs = _imagenet_stem(images, filter_scaling_rate, stem_cell)
+  net, cell_outputs = _imagenet_stem(images, filter_scaling_rate, stem_cell, stem_multiplier)
   if add_and_check_endpoint('Stem', net): return net, end_points
 
   # Setup for building in the auxiliary head.

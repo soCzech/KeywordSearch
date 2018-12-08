@@ -6,7 +6,8 @@ from common_utils import console
 
 BACHELOR_THESIS_HEADER = [b'BC\0\0\0\0\0\0\0\0\0\0\0\0\0\0', b'2018-04-01 00:00:00\n']
 VBS2018_HEADER = [b'TRECVid\0\0\0\0\0\0\0\0\0', b'2018-01-26 10:00:00\n']
-DEFAULT_HEADER = BACHELOR_THESIS_HEADER
+
+DEFAULT_HEADER = [b'V3C1-FIRST750\0\0\0', b'2018-11-11 00:00:00\n']
 
 
 def create_file(path, struct_data_list, file_header):
