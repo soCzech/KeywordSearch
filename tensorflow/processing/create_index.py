@@ -47,7 +47,7 @@ def create_index_file(pseudo_index_filename, index_filename):
     pt.info(">> Inverted index created.")
 
 
-def get_class_representatives(filename, max_images_per_class=800000):
+def get_class_representatives(filename, max_images_per_class=2000000):
     """Loads content of annotation file to memory.
 
     Args:

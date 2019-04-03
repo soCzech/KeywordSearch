@@ -92,7 +92,7 @@ def make_batch_from_jpeg(filenames, batch_size=80, use_large=False):
 
         key, image = tf.WholeFileReader().read(filename_queue)
         image = tf.image.decode_jpeg(image, channels=3)
-        image = inception_preprocessing.preprocess_image(image, wh, wh, is_training=False)
+        image = inception_preprocessing.preprocess_image(image, wh, wh, is_training=False, central_fraction=False)
 
         return tf.train.batch([key, image], batch_size=batch_size, num_threads=1,
                               allow_smaller_final_batch=True)

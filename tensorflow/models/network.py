@@ -43,7 +43,7 @@ def build_nasnet(inputs, num_classes, is_training=True, use_large=False):
 
     num_cells = 12
     drop_path_keep_prob = 1.0
-    total_training_steps = 0  # matters only if drop_path_keep_prob < 1.0
+    total_training_steps = 250000  # matters only if drop_path_keep_prob < 1.0
     num_conv_filters = 44
     dense_dropout_keep_prob = 0.5
     filter_scaling_rate = 2.0
@@ -54,6 +54,7 @@ def build_nasnet(inputs, num_classes, is_training=True, use_large=False):
     if use_large:
         num_cells = 18
         num_conv_filters = 168
+        drop_path_keep_prob = 0.7
         skip_reduction_layer_input = 1
         stem_multiplier = 3.0
 

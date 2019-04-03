@@ -64,7 +64,8 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
         Losses
     """
     with tf.name_scope('losses'):
-        diff_logits = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        labels = tf.one_hot(labels, num_classes, dtype=tf.float32) * 0.9 + (0.1 / num_classes)
+        diff_logits = tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels, logits=logits)
         cross_entropy_loss = tf.reduce_mean(diff_logits)
 
     """
@@ -78,7 +79,7 @@ def train(filenames, batch_size, num_classes, learning_rate=0.0001, train_all=Fa
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            training = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999).minimize(
+            training = tf.train.RMSPropOptimizer(learning_rate, epsilon=1.0).minimize(
                 cross_entropy_loss,
                 global_step=global_step,
                 var_list=None if train_all else logit_vars
